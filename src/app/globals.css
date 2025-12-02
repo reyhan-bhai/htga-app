@@ -3,12 +3,50 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #262626;
+  --foreground: #ededed;
+}
+
+html {
+  background-color: #262626;
+  color: #ededed;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+/* Dark Mode Styling for input fields and components */
+input,
+textarea,
+select {
+  background-color: #1a1a1a;
+  color: #ededed;
+  border-color: #404040;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #808080;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #404040;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #505050;
 }

@@ -22,7 +22,7 @@ export default function Home() {
     navigator.clipboard.writeText(user?.data.firebaseToken || "");
   };
   return (
-    <div className="grid grid-rows-[20px_auto_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-8 sm:p-20 font-[family-name:var(--font-geist-sans)]">
+    <div className="grid grid-rows-[20px_auto_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-8 sm:p-20 font-[family-name:var(--font-geist-sans)] bg-[#262626] text-[#ededed]">
       <main className="w-full gap-5 flex flex-col row-start-2 items-center">
         <InstallPrompt />
 
