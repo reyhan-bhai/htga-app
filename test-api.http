@@ -1,0 +1,34 @@
+### Seed Database
+POST https://localhost:8080/api/seed
+Content-Type: application/json
+
+###
+
+### Get Database Stats
+GET https://localhost:8080/api/seed
+
+###
+
+### Auto Assign All
+POST https://localhost:8080/api/assignments/auto-assign
+Content-Type: application/json
+
+###
+
+### Get All Assignments with Details
+GET https://localhost:8080/api/assignments?includeDetails=true
+
+###
+
+### Get Assignment Statistics
+GET https://localhost:8080/api/assignments/auto-assign
+
+###
+
+### Get All Evaluators
+GET https://localhost:8080/api/evaluators
+
+###
+
+### Get All Establishments
+GET https://localhost:8080/api/establishments
