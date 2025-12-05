@@ -1,0 +1,408 @@
+import { NextResponse } from "next/server";
+import { db } from "@/lib/firebase-admin";
+import {
+  Assignment,
+  AssignmentWithDetails,
+  Evaluator,
+  Establishment,
+} from "@/types/restaurant";
+
+// Helper function to get assignment with details
+async function getAssignmentWithDetails(
+  assignmentId: string,
+  assignment: Assignment
+): Promise<AssignmentWithDetails> {
+  const [establishmentSnap, evaluator1Snap, evaluator2Snap] = await Promise.all(
+    [
+      db.ref(`establishments/${assignment.establishmentId}`).once("value"),
+      db.ref(`evaluators/${assignment.evaluator1Id}`).once("value"),
+      db.ref(`evaluators/${assignment.evaluator2Id}`).once("value"),
+    ]
+  );
+
+  return {
+    ...assignment,
+    establishment: {
+      id: assignment.establishmentId,
+      ...establishmentSnap.val(),
+    },
+    evaluator1: { id: assignment.evaluator1Id, ...evaluator1Snap.val() },
+    evaluator2: { id: assignment.evaluator2Id, ...evaluator2Snap.val() },
+  };
+}
+
+// GET - Get all assignments or specific assignment by ID
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+    const establishmentId = searchParams.get("establishmentId");
+    const evaluatorId = searchParams.get("evaluatorId");
+    const status = searchParams.get("status");
+    const includeDetails = searchParams.get("includeDetails") === "true";
+
+    if (id) {
+      // Get specific assignment
+      const snapshot = await db.ref(`assignments/${id}`).once("value");
+      const assignment = snapshot.val();
+
+      if (!assignment) {
+        return NextResponse.json(
+          { error: "Assignment not found" },
+          { status: 404 }
+        );
+      }
+
+      const assignmentData = { id, ...assignment };
+
+      if (includeDetails) {
+        const detailedAssignment = await getAssignmentWithDetails(
+          id,
+          assignmentData
+        );
+        return NextResponse.json({ assignment: detailedAssignment });
+      }
+
+      return NextResponse.json({ assignment: assignmentData });
+    }
+
+    // Get all assignments with optional filters
+    const snapshot = await db.ref("assignments").once("value");
+    const assignmentsData = snapshot.val();
+
+    let assignments: Assignment[] = assignmentsData
+      ? Object.entries(assignmentsData).map(([id, data]: [string, any]) => ({
+          id,
+          ...data,
+        }))
+      : [];
+
+    // Apply filters
+    if (establishmentId) {
+      assignments = assignments.filter(
+        (a) => a.establishmentId === establishmentId
+      );
+    }
+
+    if (evaluatorId) {
+      assignments = assignments.filter(
+        (a) => a.evaluator1Id === evaluatorId || a.evaluator2Id === evaluatorId
+      );
+    }
+
+    if (status) {
+      assignments = assignments.filter((a) => a.status === status);
+    }
+
+    // Include details if requested
+    if (includeDetails && assignments.length > 0) {
+      const detailedAssignments = await Promise.all(
+        assignments.map((assignment) =>
+          getAssignmentWithDetails(assignment.id, assignment)
+        )
+      );
+
+      return NextResponse.json({
+        assignments: detailedAssignments,
+        count: detailedAssignments.length,
+      });
+    }
+
+    return NextResponse.json({
+      assignments,
+      count: assignments.length,
+    });
+  } catch (error: any) {
+    console.error("Error getting assignments:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// POST - Create new assignment (with auto-matching logic)
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { establishmentId, evaluator1Id, evaluator2Id, forceReassign } = body;
+
+    // Validation
+    if (!establishmentId) {
+      return NextResponse.json(
+        { error: "Establishment ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Check if establishment exists
+    const establishmentSnap = await db
+      .ref(`establishments/${establishmentId}`)
+      .once("value");
+    if (!establishmentSnap.exists()) {
+      return NextResponse.json(
+        { error: "Establishment not found" },
+        { status: 404 }
+      );
+    }
+
+    const establishment: Establishment = {
+      id: establishmentId,
+      ...establishmentSnap.val(),
+    };
+
+    // Check if already assigned
+    const existingAssignmentSnap = await db
+      .ref("assignments")
+      .orderByChild("establishmentId")
+      .equalTo(establishmentId)
+      .once("value");
+
+    if (existingAssignmentSnap.exists() && !forceReassign) {
+      return NextResponse.json(
+        {
+          error:
+            "Establishment already has an assignment. Use forceReassign=true to override.",
+        },
+        { status: 400 }
+      );
+    }
+
+    let selectedEvaluator1Id = evaluator1Id;
+    let selectedEvaluator2Id = evaluator2Id;
+
+    // If evaluators not provided, auto-assign based on specialty and constraints
+    if (!evaluator1Id || !evaluator2Id) {
+      const evaluatorsSnap = await db.ref("evaluators").once("value");
+      const evaluatorsData = evaluatorsSnap.val();
+
+      if (!evaluatorsData) {
+        return NextResponse.json(
+          { error: "No evaluators available" },
+          { status: 400 }
+        );
+      }
+
+      const allEvaluators: Evaluator[] = Object.entries(evaluatorsData).map(
+        ([id, data]: [string, any]) => ({ id, ...data })
+      );
+
+      // Filter evaluators by specialty match
+      const matchingEvaluators = allEvaluators.filter((evaluator) =>
+        evaluator.specialties.includes(establishment.category)
+      );
+
+      if (matchingEvaluators.length < 2) {
+        return NextResponse.json(
+          {
+            error: `Not enough evaluators with specialty "${establishment.category}". Need at least 2, found ${matchingEvaluators.length}.`,
+          },
+          { status: 400 }
+        );
+      }
+
+      // Get current assignments count for each evaluator
+      const assignmentsSnap = await db.ref("assignments").once("value");
+      const assignmentsData = assignmentsSnap.val();
+
+      const evaluatorAssignmentCounts = new Map<string, number>();
+      if (assignmentsData) {
+        Object.values(assignmentsData).forEach((assignment: any) => {
+          evaluatorAssignmentCounts.set(
+            assignment.evaluator1Id,
+            (evaluatorAssignmentCounts.get(assignment.evaluator1Id) || 0) + 1
+          );
+          evaluatorAssignmentCounts.set(
+            assignment.evaluator2Id,
+            (evaluatorAssignmentCounts.get(assignment.evaluator2Id) || 0) + 1
+          );
+        });
+      }
+
+      // Sort by least assignments first
+      const sortedEvaluators = matchingEvaluators.sort((a, b) => {
+        const aCount = evaluatorAssignmentCounts.get(a.id) || 0;
+        const bCount = evaluatorAssignmentCounts.get(b.id) || 0;
+        return aCount - bCount;
+      });
+
+      // Select top 2 evaluators with least assignments
+      selectedEvaluator1Id = sortedEvaluators[0].id;
+      selectedEvaluator2Id = sortedEvaluators[1].id;
+
+      console.log("Auto-assigned evaluators:", {
+        evaluator1: sortedEvaluators[0].name,
+        evaluator2: sortedEvaluators[1].name,
+        establishment: establishment.name,
+      });
+    } else {
+      // Validate manually provided evaluators
+      if (selectedEvaluator1Id === selectedEvaluator2Id) {
+        return NextResponse.json(
+          { error: "Cannot assign same evaluator twice" },
+          { status: 400 }
+        );
+      }
+
+      // Check if evaluators exist and have matching specialty
+      const [eval1Snap, eval2Snap] = await Promise.all([
+        db.ref(`evaluators/${selectedEvaluator1Id}`).once("value"),
+        db.ref(`evaluators/${selectedEvaluator2Id}`).once("value"),
+      ]);
+
+      if (!eval1Snap.exists() || !eval2Snap.exists()) {
+        return NextResponse.json(
+          { error: "One or both evaluators not found" },
+          { status: 404 }
+        );
+      }
+
+      const evaluator1: Evaluator = {
+        id: selectedEvaluator1Id,
+        ...eval1Snap.val(),
+      };
+      const evaluator2: Evaluator = {
+        id: selectedEvaluator2Id,
+        ...eval2Snap.val(),
+      };
+
+      // Check specialty match
+      if (
+        !evaluator1.specialties.includes(establishment.category) ||
+        !evaluator2.specialties.includes(establishment.category)
+      ) {
+        return NextResponse.json(
+          {
+            error: `Both evaluators must have specialty "${establishment.category}"`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Delete existing assignment if forceReassign
+    if (existingAssignmentSnap.exists() && forceReassign) {
+      const existingAssignments = existingAssignmentSnap.val();
+      await Promise.all(
+        Object.keys(existingAssignments).map((key) =>
+          db.ref(`assignments/${key}`).remove()
+        )
+      );
+    }
+
+    // Create new assignment
+    const assignmentRef = db.ref("assignments").push();
+    const assignmentId = assignmentRef.key!;
+
+    const newAssignment: Omit<Assignment, "id"> = {
+      establishmentId,
+      evaluator1Id: selectedEvaluator1Id,
+      evaluator2Id: selectedEvaluator2Id,
+      status: "pending",
+      assignedAt: new Date().toISOString(),
+    };
+
+    await assignmentRef.set(newAssignment);
+
+    const detailedAssignment = await getAssignmentWithDetails(assignmentId, {
+      id: assignmentId,
+      ...newAssignment,
+    });
+
+    return NextResponse.json(
+      {
+        message: "Assignment created successfully",
+        assignment: detailedAssignment,
+      },
+      { status: 201 }
+    );
+  } catch (error: any) {
+    console.error("Error creating assignment:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// PUT - Update assignment status
+export async function PUT(request: Request) {
+  try {
+    const body = await request.json();
+    const { id, status, notes } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Assignment ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Check if assignment exists
+    const snapshot = await db.ref(`assignments/${id}`).once("value");
+    if (!snapshot.exists()) {
+      return NextResponse.json(
+        { error: "Assignment not found" },
+        { status: 404 }
+      );
+    }
+
+    const updates: Partial<Assignment> = {};
+
+    if (status) {
+      updates.status = status;
+      if (status === "completed") {
+        updates.completedAt = new Date().toISOString();
+      }
+    }
+
+    if (notes !== undefined) {
+      updates.notes = notes;
+    }
+
+    await db.ref(`assignments/${id}`).update(updates);
+
+    const updatedSnapshot = await db.ref(`assignments/${id}`).once("value");
+    const updatedAssignment = { id, ...updatedSnapshot.val() };
+
+    const detailedAssignment = await getAssignmentWithDetails(
+      id,
+      updatedAssignment
+    );
+
+    return NextResponse.json({
+      message: "Assignment updated successfully",
+      assignment: detailedAssignment,
+    });
+  } catch (error: any) {
+    console.error("Error updating assignment:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// DELETE - Delete assignment
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Assignment ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Check if assignment exists
+    const snapshot = await db.ref(`assignments/${id}`).once("value");
+    if (!snapshot.exists()) {
+      return NextResponse.json(
+        { error: "Assignment not found" },
+        { status: 404 }
+      );
+    }
+
+    await db.ref(`assignments/${id}`).remove();
+
+    return NextResponse.json({
+      message: "Assignment deleted successfully",
+    });
+  } catch (error: any) {
+    console.error("Error deleting assignment:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

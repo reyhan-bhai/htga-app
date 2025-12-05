@@ -4,6 +4,7 @@ import "./globals.css";
 import PushNotificationsProvider from "@/components/notifications/PushNotificationsProvider";
 import { UserProvider } from "@/utils/useCurrentUser";
 import DarkThemeProvider from "@/components/ThemeProvider";
+import DarkThemeProvider from "@/components/ThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
