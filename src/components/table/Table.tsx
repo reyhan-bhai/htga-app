@@ -68,7 +68,19 @@ export default function TableComponent({ columns, data }: TableComponentProps) {
           </TableColumn>
         )}
       </TableHeader>
-      <TableBody items={data}>
+      <TableBody items={data} emptyContent={
+        <div className="text-center py-12 text-gray-500">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+              <MdInfoOutline size={32} className="text-gray-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-medium text-gray-700 mb-1">No evaluators found</h3>
+              <p className="text-sm text-gray-500">There are no evaluators to display at the moment.</p>
+            </div>
+          </div>
+        </div>
+      }>
         {(item) => (
           <TableRow
             key={item.id}
