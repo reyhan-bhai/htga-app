@@ -60,6 +60,9 @@ export default function TableComponent({ columns, data }: TableComponentProps) {
           <TableColumn
             key={column.uid}
             align={column.uid === "actions" ? "center" : "start"}
+            className={
+              column.uid === "actions" ? "sticky right-0 z-20 bg-[#F2BD56]" : ""
+            }
           >
             {column.name}
           </TableColumn>
@@ -72,7 +75,13 @@ export default function TableComponent({ columns, data }: TableComponentProps) {
             className="border-b border-[#DADADA] last:border-none"
           >
             {(columnKey) => (
-              <TableCell>{renderCell(item, columnKey)}</TableCell>
+              <TableCell
+                className={
+                  columnKey === "actions" ? "sticky right-0 z-10 bg-white" : ""
+                }
+              >
+                {renderCell(item, columnKey)}
+              </TableCell>
             )}
           </TableRow>
         )}

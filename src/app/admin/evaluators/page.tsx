@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
 import TableComponent from "@/components/table/Table";
 import { Button, Pagination, Select, SelectItem } from "@nextui-org/react";
+import React from "react";
 import { MdAdd } from "react-icons/md";
 
 const columns = [
@@ -12,6 +12,11 @@ const columns = [
   { name: "Phone Number", uid: "phone" },
   { name: "Current Position", uid: "position" },
   { name: "Company/Organization", uid: "company" },
+    { name: "Company/Organization", uid: "company" },
+  { name: "Company/Organization", uid: "company" },
+  { name: "Company/Organization", uid: "company" },
+  { name: "Company/Organization", uid: "company" },
+
   { name: "Actions", uid: "actions" },
 ];
 
