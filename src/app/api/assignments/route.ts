@@ -112,9 +112,10 @@ export async function GET(request: Request) {
       assignments,
       count: assignments.length,
     });
-  } catch (error: any) {
-    console.error("Error getting assignments:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (e: any) {
+    console.error("❌ Error getting assignments:", e);
+    console.error("Stack trace:", e.stack);
+    return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
 
@@ -313,9 +314,10 @@ export async function POST(request: Request) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
-    console.error("Error creating assignment:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (e: any) {
+    console.error("❌ Error creating assignment:", e);
+    console.error("Stack trace:", e.stack);
+    return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
 
@@ -368,9 +370,10 @@ export async function PUT(request: Request) {
       message: "Assignment updated successfully",
       assignment: detailedAssignment,
     });
-  } catch (error: any) {
-    console.error("Error updating assignment:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (e: any) {
+    console.error("❌ Error updating assignment:", e);
+    console.error("Stack trace:", e.stack);
+    return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
 
@@ -401,8 +404,9 @@ export async function DELETE(request: Request) {
     return NextResponse.json({
       message: "Assignment deleted successfully",
     });
-  } catch (error: any) {
-    console.error("Error deleting assignment:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (e: any) {
+    console.error("❌ Error deleting assignment:", e);
+    console.error("Stack trace:", e.stack);
+    return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }

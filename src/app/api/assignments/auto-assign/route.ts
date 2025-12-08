@@ -193,9 +193,10 @@ export async function POST(request: Request) {
       assignments: successfulAssignments,
       failures: failedAssignments,
     });
-  } catch (error: any) {
-    console.error("❌ Error in auto-assignment:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (e: any) {
+    console.error("❌ Error in auto-assignment:", e);
+    console.error("Stack trace:", e.stack);
+    return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
 
@@ -277,8 +278,9 @@ export async function GET() {
       violations,
       isValid: violations.length === 0,
     });
-  } catch (error: any) {
-    console.error("❌ Error getting statistics:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (e: any) {
+    console.error("❌ Error getting statistics:", e);
+    console.error("Stack trace:", e.stack);
+    return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }

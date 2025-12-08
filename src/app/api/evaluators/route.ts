@@ -38,9 +38,10 @@ export async function GET(request: Request) {
       evaluators,
       count: evaluators.length,
     });
-  } catch (error: any) {
-    console.error("Error getting evaluators:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (e: any) {
+    console.error("❌ Error getting evaluators:", e);
+    console.error("Stack trace:", e.stack);
+    return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
 
@@ -78,9 +79,10 @@ export async function POST(request: Request) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
-    console.error("Error creating evaluator:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (e: any) {
+    console.error("❌ Error creating evaluator:", e);
+    console.error("Stack trace:", e.stack);
+    return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
 
@@ -122,9 +124,10 @@ export async function PUT(request: Request) {
       message: "Evaluator updated successfully",
       evaluator: { id, ...updatedSnapshot.val() },
     });
-  } catch (error: any) {
-    console.error("Error updating evaluator:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (e: any) {
+    console.error("❌ Error updating evaluator:", e);
+    console.error("Stack trace:", e.stack);
+    return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
 
@@ -178,8 +181,9 @@ export async function DELETE(request: Request) {
     return NextResponse.json({
       message: "Evaluator deleted successfully",
     });
-  } catch (error: any) {
-    console.error("Error deleting evaluator:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (e: any) {
+    console.error("❌ Error deleting evaluator:", e);
+    console.error("Stack trace:", e.stack);
+    return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }

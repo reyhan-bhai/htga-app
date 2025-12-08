@@ -110,9 +110,13 @@ export async function POST(request: Request) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
-    console.error("❌ Error seeding database:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (e: any) {
+    console.error("❌ Error seeding database:", e);
+    console.error("Stack trace:", e.stack);
+    return NextResponse.json(
+      { error: e.message, stack: e.stack },
+      { status: 500 }
+    );
   }
 }
 
@@ -145,9 +149,10 @@ export async function GET() {
         stats.establishments === 0 &&
         stats.assignments === 0,
     });
-  } catch (error: any) {
-    console.error("❌ Error getting stats:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (e: any) {
+    console.error("❌ Error getting stats:", e);
+    console.error("Stack trace:", e.stack);
+    return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
 
@@ -162,8 +167,9 @@ export async function DELETE() {
     return NextResponse.json({
       message: "All data cleared successfully",
     });
-  } catch (error: any) {
-    console.error("❌ Error clearing database:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (e: any) {
+    console.error("❌ Error clearing database:", e);
+    console.error("Stack trace:", e.stack);
+    return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
