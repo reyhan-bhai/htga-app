@@ -23,7 +23,7 @@ export default function TableComponent({ columns, data }: TableComponentProps) {
       case "actions":
         return (
           <div className="relative flex items-center justify-center gap-2">
-            <Tooltip content="Edit">
+            <Tooltip content="Edit" className="bg-black text-white">
               <span className="text-lg text-default-400 cursor-pointer active:opacity-50">
                 <MdEdit />
               </span>
@@ -33,7 +33,7 @@ export default function TableComponent({ columns, data }: TableComponentProps) {
                 <MdDelete />
               </span>
             </Tooltip>
-            <Tooltip content="Details">
+            <Tooltip content="Details" className="bg-black text-white">
               <span className="text-lg text-default-400 cursor-pointer active:opacity-50">
                 <MdInfoOutline />
               </span>
