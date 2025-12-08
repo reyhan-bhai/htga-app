@@ -1,5 +1,5 @@
 /* Import HTGA Styles */
-@import '../htga-app/styles/htga.css';
+@import "../htga-app/styles/htga.css";
 
 @tailwind base;
 @tailwind components;
@@ -19,7 +19,9 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
-  transition: background-color 0.2s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
 }
 
 /* Dark Mode Styling for input fields and components */
@@ -38,16 +40,21 @@ textarea::placeholder {
 
 /* Scrollbar styling */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #1a1a1a;
+  background: #f0f0f0;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #404040;
-  border-radius: 4px;
+  background: #c6a87c;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a67c37;
 }
 
 ::-webkit-scrollbar-thumb:hover {

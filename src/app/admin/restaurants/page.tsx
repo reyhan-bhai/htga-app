@@ -39,7 +39,7 @@ export default function RestaurantsPage() {
   };
 
   return (
-    <div>
+    <div className="text-black">
       <h2 className="text-2xl font-bold mb-4">Restaurant Management</h2>
       <div className="flex gap-3 mb-6">
         <button
