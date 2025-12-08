@@ -40,7 +40,7 @@ export default function AdminLayout({
           </span>
         </header>
 
-        <main className="flex-1 overflow-auto p-6">{children}</main>
+        <main className={`flex-1 overflow-auto p-6 ${poppins.className}`}>{children}</main>
       </div>
     </div>
   );
