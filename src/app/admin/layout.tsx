@@ -1,12 +1,12 @@
+import { Poppins } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
-import { Poppins } from "next/font/google";
-import { MdAssignment, MdRestaurant, MdPeople, MdLogout } from "react-icons/md";
+import { MdAssignment, MdLogout, MdPeople, MdRestaurant } from "react-icons/md";
 
 const poppins = Poppins({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"], 
+  weight: ["400", "500", "600", "700"],
 });
 export default function AdminLayout({
   children,
@@ -16,13 +16,15 @@ export default function AdminLayout({
   return (
     <div className={`flex h-screen bg-[#FFEDCC]`}>
       <aside className="w-2xl bg-gradient-to-b from-[#FF6B00] to-[#FFA200] text-white flex flex-col">
-        <div className={`p-6 text-2xl ${poppins.className} font-bold flex items-center gap-2`}>
+        <div
+          className={`p-6 text-2xl ${poppins.className} font-bold flex items-center gap-2`}
+        >
           {/* Add the logo here */}
-          <Image 
-            src="/home-2.png" 
-            alt="HTGA Logo" 
-            width={30} 
-            height={30} 
+          <Image
+            src="/home-2.png"
+            alt="HTGA Logo"
+            width={30}
+            height={30}
             className="object-contain"
           />
           HTGA Admin
@@ -59,7 +61,9 @@ export default function AdminLayout({
           </ul>
         </nav>
         <div className="p-4">
-          <button className={`w-full flex items-center gap-3 p-3 rounded ${poppins.className} font-semibold text-[16px] hover:bg-white/30 transition-all text-white`}>
+          <button
+            className={`w-full flex items-center gap-3 p-3 rounded ${poppins.className} font-semibold text-[16px] hover:bg-white/30 transition-all text-white`}
+          >
             <MdLogout size={24} />
             Log Out
           </button>
