@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import PushNotificationsProvider from "@/components/notifications/PushNotificationsProvider";
-import { UserProvider } from "@/utils/useCurrentUser";
-import DarkThemeProvider from "@/components/ThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         {/* ... other meta tags ... */}
 
@@ -54,13 +51,10 @@ export default function RootLayout({
         <link rel="apple-touch-startup-image" href="/splash.png" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#0a0a0a] text-[#ededed]`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        suppressHydrationWarning
       >
-        <DarkThemeProvider>
-          <UserProvider>
-            <PushNotificationsProvider>{children}</PushNotificationsProvider>
-          </UserProvider>
-        </DarkThemeProvider>
+        {children}
       </body>
     </html>
   );

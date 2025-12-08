@@ -1,3 +1,6 @@
+/* Import HTGA Styles */
+@import '../htga-app/styles/htga.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

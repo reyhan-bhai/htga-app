@@ -47,10 +47,9 @@ export async function GET(request: Request) {
       establishments,
       count: establishments.length,
     });
-  } catch (e: any) {
-    console.error("❌ Error getting establishments:", e);
-    console.error("Stack trace:", e.stack);
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  } catch (error: any) {
+    console.error("Error getting establishments:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
@@ -88,10 +87,9 @@ export async function POST(request: Request) {
       },
       { status: 201 }
     );
-  } catch (e: any) {
-    console.error("❌ Error creating establishment:", e);
-    console.error("Stack trace:", e.stack);
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  } catch (error: any) {
+    console.error("Error creating establishment:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
@@ -133,10 +131,9 @@ export async function PUT(request: Request) {
       message: "Establishment updated successfully",
       establishment: { id, ...updatedSnapshot.val() },
     });
-  } catch (e: any) {
-    console.error("❌ Error updating establishment:", e);
-    console.error("Stack trace:", e.stack);
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  } catch (error: any) {
+    console.error("Error updating establishment:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
@@ -184,9 +181,8 @@ export async function DELETE(request: Request) {
     return NextResponse.json({
       message: "Establishment deleted successfully",
     });
-  } catch (e: any) {
-    console.error("❌ Error deleting establishment:", e);
-    console.error("Stack trace:", e.stack);
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  } catch (error: any) {
+    console.error("Error deleting establishment:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
