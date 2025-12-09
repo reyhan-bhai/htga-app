@@ -13,37 +13,58 @@ import { MdDelete, MdEdit, MdInfoOutline } from "react-icons/md";
 interface TableComponentProps {
   columns: { name: string; uid: string }[];
   data: any[];
+  onEdit?: (item: any) => void;
+  onDelete?: (item: any) => void;
+  onView?: (item: any) => void;
 }
 
-export default function TableComponent({ columns, data }: TableComponentProps) {
-  const renderCell = React.useCallback((user: any, columnKey: React.Key) => {
-    const cellValue = user[columnKey as keyof typeof user];
+export default function TableComponent({
+  columns,
+  data,
+  onEdit,
+  onDelete,
+  onView,
+}: TableComponentProps) {
+  const renderCell = React.useCallback(
+    (user: any, columnKey: React.Key) => {
+      const cellValue = user[columnKey as keyof typeof user];
 
-    switch (columnKey) {
-      case "actions":
-        return (
-          <div className="relative flex items-center justify-center gap-2">
-            <Tooltip content="Edit" className="bg-black text-white">
-              <span className="text-lg text-default-400 cursor-pointer active:opacity-50">
-                <MdEdit />
-              </span>
-            </Tooltip>
-            <Tooltip color="danger" content="Delete">
-              <span className="text-lg text-default-400 cursor-pointer active:opacity-50">
-                <MdDelete />
-              </span>
-            </Tooltip>
-            <Tooltip content="Details" className="bg-black text-white">
-              <span className="text-lg text-default-400 cursor-pointer active:opacity-50">
-                <MdInfoOutline />
-              </span>
-            </Tooltip>
-          </div>
-        );
-      default:
-        return cellValue;
-    }
-  }, []);
+      switch (columnKey) {
+        case "actions":
+          return (
+            <div className="relative flex items-center justify-center gap-2">
+              <Tooltip content="Edit" className="bg-black text-white">
+                <span
+                  className="text-lg text-default-400 cursor-pointer active:opacity-50"
+                  onClick={() => onEdit && onEdit(user)}
+                >
+                  <MdEdit />
+                </span>
+              </Tooltip>
+              <Tooltip color="danger" content="Delete">
+                <span
+                  className="text-lg text-default-400 cursor-pointer active:opacity-50"
+                  onClick={() => onDelete && onDelete(user)}
+                >
+                  <MdDelete />
+                </span>
+              </Tooltip>
+              <Tooltip content="Details" className="bg-black text-white">
+                <span
+                  className="text-lg text-default-400 cursor-pointer active:opacity-50"
+                  onClick={() => onView && onView(user)}
+                >
+                  <MdInfoOutline />
+                </span>
+              </Tooltip>
+            </div>
+          );
+        default:
+          return cellValue;
+      }
+    },
+    [onEdit, onDelete, onView]
+  );
 
   return (
     <Table
@@ -68,19 +89,26 @@ export default function TableComponent({ columns, data }: TableComponentProps) {
           </TableColumn>
         )}
       </TableHeader>
-      <TableBody items={data} emptyContent={
-        <div className="text-center py-12 text-gray-500">
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-              <MdInfoOutline size={32} className="text-gray-400" />
-            </div>
-            <div>
-              <h3 className="text-lg font-medium text-gray-700 mb-1">No evaluators found</h3>
-              <p className="text-sm text-gray-500">There are no evaluators to display at the moment.</p>
+      <TableBody
+        items={data}
+        emptyContent={
+          <div className="text-center py-12 text-gray-500">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                <MdInfoOutline size={32} className="text-gray-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-medium text-gray-700 mb-1">
+                  No evaluators found
+                </h3>
+                <p className="text-sm text-gray-500">
+                  There are no evaluators to display at the moment.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      }>
+        }
+      >
         {(item) => (
           <TableRow
             key={item.id}
