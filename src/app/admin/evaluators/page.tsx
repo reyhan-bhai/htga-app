@@ -25,7 +25,7 @@ import { MdAdd, MdClose, MdFilterList, MdSearch } from "react-icons/md";
 
 const columns = [
   { name: "ID", uid: "id" },
-  { name: "Nama Evaluator", uid: "name" },
+  { name: "Evaluator Name", uid: "name" },
   { name: "Email/Contact", uid: "email" },
   { name: "Phone Number", uid: "phone" },
   { name: "Current Position", uid: "position" },
@@ -190,8 +190,8 @@ export default function EvaluatorsPage() {
     <div className="text-black flex flex-col gap-6">
       <h2 className="text-2xl font-bold uppercase">Evaluator Management</h2>
 
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex flex-wrap gap-3 w-full md:w-auto items-center">
+      <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-4 md:bg-transparent">
+        <div className="flex flex-row gap-3 w-full md:w-auto items-center">
           {/* Search Input */}
           <Input
             placeholder="Search by name, email, ID, city or status..."
@@ -288,13 +288,11 @@ export default function EvaluatorsPage() {
             </PopoverContent>
           </Popover>
         </div>
-
         <Button
-          className="bg-[#A67C37] text-white font-semibold rounded-full px-6"
-          startContent={<MdAdd size={20} />}
+          className="bg-[#A67C37] text-white font-semibold rounded-full p-0"
+          startContent={<MdAdd size={30} />}
           onPress={handleAddEvaluator}
         >
-          add new evaluator
         </Button>
       </div>
 
