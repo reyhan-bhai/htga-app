@@ -405,7 +405,7 @@ export default function RestaurantsPage() {
         title={{
           add: "ADD / EDIT RESTAURANT",
           edit: "ADD / EDIT RESTAURANT",
-          view: "Lihat Detail Restaurant",
+          view: "Detail Restaurant",
         }}
       />
 

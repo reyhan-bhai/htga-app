@@ -378,7 +378,7 @@ export default function EvaluatorsPage() {
         title={{
           add: "ADD / EDIT EVALUATOR",
           edit: "ADD / EDIT EVALUATOR",
-          view: "Lihat Detail Evaluator",
+          view: "Detail Evaluator",
         }}
       />
 
