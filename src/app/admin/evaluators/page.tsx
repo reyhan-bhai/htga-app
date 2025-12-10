@@ -1,7 +1,6 @@
 "use client";
 
-import EvaluatorModal from "@/components/admin/EvaluatorModal";
-import { Evaluator } from "@/types/restaurant";
+import EntityModal, { FieldConfig } from "@/components/admin/EntityModal";
 import { useState } from "react";
 
 import TableComponent from "@/components/table/Table";
@@ -108,19 +107,56 @@ const users = [
   },
 ];
 
+// Evaluator field configuration for the modal
+const evaluatorFields: FieldConfig[] = [
+  {
+    name: "name",
+    label: "Evaluator Name",
+    type: "text",
+    placeholder: "Type evaluator name...",
+    required: true,
+  },
+  {
+    name: "email",
+    label: "Email/Contact",
+    type: "email",
+    placeholder: "evaluator@email.com",
+  },
+  {
+    name: "phone",
+    label: "Phone Number",
+    type: "tel",
+    placeholder: "+62xxx...",
+  },
+  {
+    name: "position",
+    label: "Current Position",
+    type: "text",
+    placeholder: "e.g., Chef Manager, Food Inspector",
+  },
+  {
+    name: "company",
+    label: "Company/Organization",
+    type: "text",
+    placeholder: "Organization name",
+  },
+  {
+    name: "specialties",
+    label: "Aksi (Specialties)",
+    type: "multiselect",
+    options: ["Bakery", "Italy", "FastFood"],
+  },
+];
+
 export default function EvaluatorsPage() {
   const [page, setPage] = React.useState(1);
   const [selectedCities, setSelectedCities] = React.useState<string[]>([]);
   const [selectedStatus, setSelectedStatus] = React.useState<string[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedEvaluator, setSelectedEvaluator] = useState<Evaluator | null>(
-    null
-  );
+  const [selectedEvaluator, setSelectedEvaluator] = useState<any>(null);
   const [modalMode, setModalMode] = useState<"add" | "edit" | "view">("add");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [evaluatorToDelete, setEvaluatorToDelete] = useState<Evaluator | null>(
-    null
-  );
+  const [evaluatorToDelete, setEvaluatorToDelete] = useState<any>(null);
 
   const handleAddEvaluator = () => {
     setSelectedEvaluator(null);
@@ -128,13 +164,13 @@ export default function EvaluatorsPage() {
     setIsModalOpen(true);
   };
 
-  const handleViewEvaluator = (evaluator: Evaluator) => {
+  const handleViewEvaluator = (evaluator: any) => {
     setSelectedEvaluator(evaluator);
     setModalMode("view");
     setIsModalOpen(true);
   };
 
-  const handleSaveEvaluator = async (evaluator: Partial<Evaluator>) => {
+  const handleSaveEvaluator = async (evaluator: any) => {
     try {
       // TODO: Implement API call to save evaluator
       console.log("Saving evaluator:", evaluator);
@@ -144,13 +180,13 @@ export default function EvaluatorsPage() {
     }
   };
 
-  const handleEditEvaluator = (evaluator: Evaluator) => {
+  const handleEditEvaluator = (evaluator: any) => {
     setSelectedEvaluator(evaluator);
     setModalMode("edit");
     setIsModalOpen(true);
   };
 
-  const handleDeleteEvaluator = (evaluator: Evaluator) => {
+  const handleDeleteEvaluator = (evaluator: any) => {
     setEvaluatorToDelete(evaluator);
     setIsDeleteModalOpen(true);
   };
@@ -292,8 +328,7 @@ export default function EvaluatorsPage() {
           className="bg-[#A67C37] text-white font-semibold rounded-full p-0"
           startContent={<MdAdd size={30} />}
           onPress={handleAddEvaluator}
-        >
-        </Button>
+        ></Button>
       </div>
 
       <div className="bg-white rounded-lg">
@@ -333,12 +368,18 @@ export default function EvaluatorsPage() {
         </div>
       </div>
 
-      <EvaluatorModal
+      <EntityModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveEvaluator}
-        evaluator={selectedEvaluator}
+        entity={selectedEvaluator}
         mode={modalMode}
+        fields={evaluatorFields}
+        title={{
+          add: "ADD / EDIT EVALUATOR",
+          edit: "ADD / EDIT EVALUATOR",
+          view: "Lihat Detail Evaluator",
+        }}
       />
 
       {/* Delete Confirmation Modal */}

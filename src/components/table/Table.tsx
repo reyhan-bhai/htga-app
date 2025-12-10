@@ -59,6 +59,20 @@ export default function TableComponent({
               </Tooltip>
             </div>
           );
+        case "remarks":
+          const trimmedValue = cellValue?.trim();
+          {
+            return (
+              <a
+                href={trimmedValue}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-500 underline hover:text-blue-700"
+              >
+                Link
+              </a>
+            );
+          }
         default:
           return cellValue;
       }
