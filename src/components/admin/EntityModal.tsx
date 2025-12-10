@@ -145,7 +145,7 @@ export default function EntityModal<T extends Record<string, any>>({
                     placeholder={field.placeholder}
                     rows={field.rows || 3}
                     required={!isViewMode && field.required}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-600 resize-none"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400  focus:ring-1 focus:ring-orange-500 focus:border-orange-500 outline-none disabled:bg-gray-100 disabled:text-gray-600"
                   />
                 </div>
               );
@@ -164,7 +164,7 @@ export default function EntityModal<T extends Record<string, any>>({
                       onChange={handleChange}
                       disabled={isViewMode}
                       required={!isViewMode && field.required}
-                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-600 appearance-none"
+                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 outline-none disabled:bg-gray-100 disabled:text-gray-600 appearance-none"
                     >
                       <option value="">
                         {field.placeholder || `Select ${field.label}`}
@@ -240,7 +240,7 @@ export default function EntityModal<T extends Record<string, any>>({
                   disabled={isViewMode}
                   placeholder={field.placeholder}
                   required={!isViewMode && field.required}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-600"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400  focus:ring-1 focus:ring-orange-500 focus:border-orange-500 outline-none disabled:bg-gray-100 disabled:text-gray-600"
                 />
               </div>
             );
