@@ -16,14 +16,12 @@ interface TableComponentProps {
   onEdit?: (item: any) => void;
   onDelete?: (item: any) => void;
   onView?: (item: any) => void;
-  customRenderCell?: (
-    item: any,
-    columnKey: React.Key
-  ) => React.ReactNode | null;
+  renderCell?: (item: any, columnKey: React.Key) => React.ReactNode;
   emptyMessage?: {
     title: string;
     description: string;
   };
+  hideActions?: boolean;
 }
 
 export default function TableComponent({
@@ -32,49 +30,49 @@ export default function TableComponent({
   onEdit,
   onDelete,
   onView,
-  customRenderCell,
+  renderCell: customRenderCell,
   emptyMessage,
+  hideActions = false,
 }: TableComponentProps) {
-  const renderCell = React.useCallback(
+  const defaultRenderCell = React.useCallback(
     (user: any, columnKey: React.Key) => {
-      // First check if custom renderer handles this cell
-      if (customRenderCell) {
-        const customResult = customRenderCell(user, columnKey);
-        if (customResult !== null) {
-          return customResult;
-        }
-      }
-
       const cellValue = user[columnKey as keyof typeof user];
 
       switch (columnKey) {
         case "actions":
+          if (hideActions) return null;
           return (
             <div className="relative flex items-center justify-center gap-2">
-              <Tooltip content="Edit" className="bg-black text-white">
-                <span
-                  className="text-lg text-default-400 cursor-pointer active:opacity-50"
-                  onClick={() => onEdit && onEdit(user)}
-                >
-                  <MdEdit />
-                </span>
-              </Tooltip>
-              <Tooltip color="danger" content="Delete">
-                <span
-                  className="text-lg text-default-400 cursor-pointer active:opacity-50"
-                  onClick={() => onDelete && onDelete(user)}
-                >
-                  <MdDelete />
-                </span>
-              </Tooltip>
-              <Tooltip content="Details" className="bg-black text-white">
-                <span
-                  className="text-lg text-default-400 cursor-pointer active:opacity-50"
-                  onClick={() => onView && onView(user)}
-                >
-                  <MdInfoOutline />
-                </span>
-              </Tooltip>
+              {onEdit && (
+                <Tooltip content="Edit" className="bg-black text-white">
+                  <span
+                    className="text-lg text-default-400 cursor-pointer active:opacity-50"
+                    onClick={() => onEdit(user)}
+                  >
+                    <MdEdit />
+                  </span>
+                </Tooltip>
+              )}
+              {onDelete && (
+                <Tooltip color="danger" content="Delete">
+                  <span
+                    className="text-lg text-default-400 cursor-pointer active:opacity-50"
+                    onClick={() => onDelete(user)}
+                  >
+                    <MdDelete />
+                  </span>
+                </Tooltip>
+              )}
+              {onView && (
+                <Tooltip content="Details" className="bg-black text-white">
+                  <span
+                    className="text-lg text-default-400 cursor-pointer active:opacity-50"
+                    onClick={() => onView(user)}
+                  >
+                    <MdInfoOutline />
+                  </span>
+                </Tooltip>
+              )}
             </div>
           );
         case "remarks":
@@ -95,8 +93,10 @@ export default function TableComponent({
           return cellValue;
       }
     },
-    [onEdit, onDelete, onView, customRenderCell]
+    [onEdit, onDelete, onView, hideActions]
   );
+
+  const renderCell = customRenderCell || defaultRenderCell;
 
   return (
     <Table

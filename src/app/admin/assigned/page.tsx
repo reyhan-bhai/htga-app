@@ -476,17 +476,34 @@ export default function AssignedPage() {
       {/* Table Section */}
       <div className="bg-white rounded-lg overflow-x-auto">
         {selectedView === "evaluator" ? (
-          <EvaluatorTable
+          <TableComponent
+            columns={evaluatorColumns}
             data={evaluatorData}
-            onSendReminder={handleSendReminder}
             onView={handleViewDetails}
             onEdit={handleEdit}
+            hideActions={false}
+            renderCell={(item, columnKey) =>
+              renderEvaluatorCell(item, columnKey, handleSendReminder)
+            }
+            emptyMessage={{
+              title: "No evaluators assigned",
+              description:
+                "Click 'Match Evaluator' to start assigning evaluators to restaurants.",
+            }}
           />
         ) : (
-          <RestaurantTable
+          <TableComponent
+            columns={restaurantColumns}
             data={restaurantData}
             onView={handleViewDetails}
             onEdit={handleEdit}
+            hideActions={false}
+            renderCell={renderRestaurantCell}
+            emptyMessage={{
+              title: "No restaurants assigned",
+              description:
+                "Click 'Match Evaluator' to start assigning restaurants to evaluators.",
+            }}
           />
         )}
       </div>
@@ -640,159 +657,112 @@ export default function AssignedPage() {
   );
 }
 
-// Custom Evaluator Table Component
-function EvaluatorTable({
-  data,
-  onSendReminder,
-  onView,
-  onEdit,
-}: {
-  data: any[];
-  onSendReminder: (item: any) => void;
-  onView: (item: any) => void;
-  onEdit: (item: any) => void;
-}) {
-  const customRenderCell = React.useCallback(
-    (item: any, columnKey: React.Key) => {
-      const value = item[columnKey as string];
+// Render cell function for Evaluator table
+const renderEvaluatorCell = (
+  item: any,
+  columnKey: React.Key,
+  onSendReminder: (item: any) => void
+) => {
+  const value = item[columnKey as string];
 
-      switch (columnKey) {
-        case "nda_status":
-          const statusColor =
+  switch (columnKey) {
+    case "nda_status":
+      return (
+        <Chip
+          size="sm"
+          color={
             value === "Signed"
               ? "success"
               : value === "Pending"
                 ? "warning"
-                : "danger";
-          return (
-            <Chip size="sm" color={statusColor} variant="flat">
-              {value}
-            </Chip>
-          );
-        case "nda_reminder":
-          return (
-            <div className="flex items-center gap-2">
-              <span className="text-xs">{value}</span>
-              {item.nda_status !== "Signed" && (
-                <Tooltip content="Send NDA Reminder via Push Notification">
-                  <button
-                    onClick={() => onSendReminder(item)}
-                    className="text-[#A67C37] hover:text-[#8B6930] transition-colors"
-                  >
-                    <MdNotifications size={18} />
-                  </button>
-                </Tooltip>
-              )}
-            </div>
-          );
-        case "restaurant_completed":
-          const total = item.total_restaurant;
-          const completed = item.restaurant_completed;
-          const progressColor =
-            completed === total && total > 0
-              ? "text-green-600"
-              : completed > 0
-                ? "text-yellow-600"
-                : "text-gray-500";
-          return (
-            <div className="flex items-center gap-2">
-              <span className={`font-semibold ${progressColor}`}>
-                {completed}/{total}
-              </span>
-              {completed < total && total > 0 && (
-                <Tooltip content="Send Completion Reminder">
-                  <button
-                    onClick={() => onSendReminder(item)}
-                    className="text-[#A67C37] hover:text-[#8B6930] transition-colors"
-                  >
-                    <MdNotifications size={16} />
-                  </button>
-                </Tooltip>
-              )}
-            </div>
-          );
-        default:
-          return null; // Return null to use default rendering
-      }
-    },
-    [onSendReminder]
-  );
+                : "danger"
+          }
+          variant="flat"
+        >
+          {value}
+        </Chip>
+      );
+    case "nda_reminder":
+      return (
+        <div className="flex items-center gap-2">
+          <span className="text-xs">{value}</span>
+          {item.nda_status !== "Signed" && (
+            <Tooltip className="text-black" content="Send NDA Reminder via Push Notification">
+              <button
+                onClick={() => onSendReminder(item)}
+                className="text-[#A67C37] hover:text-[#8B6930] transition-colors"
+              >
+                <MdNotifications size={18} />
+              </button>
+            </Tooltip>
+          )}
+        </div>
+      );
+    case "restaurant_completed":
+      const total = item.total_restaurant;
+      const completed = item.restaurant_completed;
+      const progressColor =
+        completed === total && total > 0
+          ? "text-green-600"
+          : completed > 0
+            ? "text-yellow-600"
+            : "text-gray-500";
+      return (
+        <div className="flex items-center gap-2">
+          <span className={`font-semibold ${progressColor}`}>
+            {completed}/{total}
+          </span>
+          {completed < total && total > 0 && (
+            <Tooltip className="text-black" content="Send Completion Reminder">
+              <button
+                onClick={() => onSendReminder(item)}
+                className="text-[#A67C37] hover:text-[#8B6930] transition-colors"
+              >
+                <MdNotifications size={16} />
+              </button>
+            </Tooltip>
+          )}
+        </div>
+      );
+    default:
+      return value;
+  }
+};
 
-  return (
-    <TableComponent
-      columns={evaluatorColumns}
-      data={data}
-      onView={onView}
-      onEdit={onEdit}
-      customRenderCell={customRenderCell}
-      emptyMessage={{
-        title: "No evaluators assigned",
-        description:
-          "Click 'Match Evaluator' to start assigning evaluators to restaurants.",
-      }}
-    />
-  );
-}
+// Render cell function for Restaurant table
+const renderRestaurantCell = (item: any, columnKey: React.Key) => {
+  const value = item[columnKey as string];
 
-// Custom Restaurant Table Component
-function RestaurantTable({
-  data,
-  onView,
-  onEdit,
-}: {
-  data: any[];
-  onView: (item: any) => void;
-  onEdit: (item: any) => void;
-}) {
-  const customRenderCell = React.useCallback(
-    (item: any, columnKey: React.Key) => {
-      const value = item[columnKey as string];
-
-      switch (columnKey) {
-        case "matched":
-          const matchColor =
+  switch (columnKey) {
+    case "matched":
+      return (
+        <Chip
+          size="sm"
+          color={
             value === "Yes"
               ? "success"
               : value === "Partial"
                 ? "warning"
-                : "danger";
-          return (
-            <Chip size="sm" color={matchColor} variant="flat">
-              {value}
-            </Chip>
-          );
-        case "completed_eva_1":
-        case "completed_eva_2":
-          if (value === "-")
-            return <span className="text-gray-400">{value}</span>;
-          return (
-            <Chip
-              size="sm"
-              color={value === "Yes" ? "success" : "warning"}
-              variant="flat"
-            >
-              {value === "Yes" ? "Done" : "Pending"}
-            </Chip>
-          );
-        default:
-          return null; // Return null to use default rendering
-      }
-    },
-    []
-  );
-
-  return (
-    <TableComponent
-      columns={restaurantColumns}
-      data={data}
-      onView={onView}
-      onEdit={onEdit}
-      customRenderCell={customRenderCell}
-      emptyMessage={{
-        title: "No restaurants assigned",
-        description:
-          "Click 'Match Evaluator' to start assigning restaurants to evaluators.",
-      }}
-    />
-  );
-}
+                : "danger"
+          }
+          variant="flat"
+        >
+          {value}
+        </Chip>
+      );
+    case "completed_eva_1":
+    case "completed_eva_2":
+      if (value === "-") return <span className="text-gray-400">{value}</span>;
+      return (
+        <Chip
+          size="sm"
+          color={value === "Yes" ? "success" : "warning"}
+          variant="flat"
+        >
+          {value === "Yes" ? "Done" : "Pending"}
+        </Chip>
+      );
+    default:
+      return value;
+  }
+};
