@@ -16,6 +16,14 @@ interface TableComponentProps {
   onEdit?: (item: any) => void;
   onDelete?: (item: any) => void;
   onView?: (item: any) => void;
+  customRenderCell?: (
+    item: any,
+    columnKey: React.Key
+  ) => React.ReactNode | null;
+  emptyMessage?: {
+    title: string;
+    description: string;
+  };
 }
 
 export default function TableComponent({
@@ -24,9 +32,19 @@ export default function TableComponent({
   onEdit,
   onDelete,
   onView,
+  customRenderCell,
+  emptyMessage,
 }: TableComponentProps) {
   const renderCell = React.useCallback(
     (user: any, columnKey: React.Key) => {
+      // First check if custom renderer handles this cell
+      if (customRenderCell) {
+        const customResult = customRenderCell(user, columnKey);
+        if (customResult !== null) {
+          return customResult;
+        }
+      }
+
       const cellValue = user[columnKey as keyof typeof user];
 
       switch (columnKey) {
@@ -77,7 +95,7 @@ export default function TableComponent({
           return cellValue;
       }
     },
-    [onEdit, onDelete, onView]
+    [onEdit, onDelete, onView, customRenderCell]
   );
 
   return (
@@ -113,10 +131,11 @@ export default function TableComponent({
               </div>
               <div>
                 <h3 className="text-lg font-medium text-gray-700 mb-1">
-                  No evaluators found
+                  {emptyMessage?.title || "No data found"}
                 </h3>
                 <p className="text-sm text-gray-500">
-                  There are no evaluators to display at the moment.
+                  {emptyMessage?.description ||
+                    "There is no data to display at the moment."}
                 </p>
               </div>
             </div>
