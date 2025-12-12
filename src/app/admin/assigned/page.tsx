@@ -2,6 +2,16 @@
 
 import TableComponent from "@/components/table/Table";
 import {
+  evaluatorColumns,
+  evaluatorData,
+  evaluatorsList,
+  matchStatuses,
+  ndaStatuses,
+  restaurantColumns,
+  restaurantData,
+  restaurantsList,
+} from "@/constants/assignedData";
+import {
   Button,
   Checkbox,
   Divider,
@@ -31,175 +41,13 @@ import {
   MdShuffle,
 } from "react-icons/md";
 
-// Columns for Evaluator View
-const evaluatorColumns = [
-  { name: "Eva ID", uid: "eva_id" },
-  { name: "Name", uid: "name" },
-  { name: "Email", uid: "email" },
-  { name: "Phone", uid: "phone" },
-  { name: "Specialty", uid: "specialty" },
-  { name: "NDA Sent", uid: "nda_sent" },
-  { name: "NDA Reminder", uid: "nda_reminder" },
-  { name: "NDA Status", uid: "nda_status" },
-  { name: "Rest. 1", uid: "restaurant_1" },
-  { name: "Rest. 2", uid: "restaurant_2" },
-  { name: "Total", uid: "total_restaurant" },
-  { name: "Completed", uid: "restaurant_completed" },
-  // { name: "Actions", uid: "actions" },
-];
-
-// Columns for Restaurant View
-const restaurantColumns = [
-  { name: "Name", uid: "name" },
-  { name: "Category", uid: "category" },
-  { name: "Matched", uid: "matched" },
-  { name: "Date Assigned", uid: "date_assigned" },
-  { name: "Evaluator 1", uid: "evaluator_1" },
-  { name: "Eva 1 Done", uid: "completed_eva_1" },
-  { name: "Evaluator 2", uid: "evaluator_2" },
-  { name: "Eva 2 Done", uid: "completed_eva_2" },
-  // { name: "Actions", uid: "actions" },
-];
-
-// Dummy data for Evaluator View
-const evaluatorData = [
-  {
-    id: "1",
-    eva_id: "EVA001",
-    name: "Fajar Ramdani",
-    email: "fajar@email.com",
-    phone: "+60146111987",
-    specialty: "Italian, Bakery",
-    nda_sent: "2024-01-15",
-    nda_reminder: "2024-01-20",
-    nda_status: "Signed",
-    restaurant_1: 3,
-    restaurant_2: 4,
-    total_restaurant: 8,
-    restaurant_completed: 3,
-  },
-  {
-    id: "2",
-    eva_id: "EVA002",
-    name: "Raihan Muhammad",
-    email: "raihan@email.com",
-    phone: "+60146112345",
-    specialty: "Fast Food",
-    nda_sent: "2024-01-16",
-    nda_reminder: "-",
-    nda_status: "Pending",
-    restaurant_1: "Big Food",
-    restaurant_2: "-",
-    total_restaurant: 3,
-    restaurant_completed: 1,
-  },
-  {
-    id: "3",
-    eva_id: "EVA003",
-    name: "Ayunda Cinta",
-    email: "ayunda@email.com",
-    phone: "+60146119876",
-    specialty: "Bakery, Pastry",
-    nda_sent: "2024-01-17",
-    nda_reminder: "2024-01-22",
-    nda_status: "Not Sent",
-    restaurant_1: "-",
-    restaurant_2: "-",
-    total_restaurant: 0,
-    restaurant_completed: 0,
-  },
-  {
-    id: "4",
-    eva_id: "EVA004",
-    name: "Putra Indika",
-    email: "putra@email.com",
-    phone: "+60146115678",
-    specialty: "Asian Cuisine",
-    nda_sent: "2024-01-18",
-    nda_reminder: "-",
-    nda_status: "Signed",
-    restaurant_1: "Alina Bakery",
-    restaurant_2: "Beriani Bonda",
-    total_restaurant: 4,
-    restaurant_completed: 4,
-  },
-];
-
-// Dummy data for Restaurant View
-const restaurantData = [
-  {
-    id: "1",
-    name: "Adam's Kitchen - Taman Kota Masai",
-    category: "Local Cuisine",
-    matched: "Yes",
-    date_assigned: "2024-01-15",
-    evaluator_1: "Fajar Ramdani",
-    completed_eva_1: "Yes",
-    evaluator_2: "Raihan Muhammad",
-    completed_eva_2: "No",
-  },
-  {
-    id: "2",
-    name: "ADS Corner's - Pusat Perdagangan",
-    category: "Fast Food",
-    matched: "Yes",
-    date_assigned: "2024-01-16",
-    evaluator_1: "Fajar Ramdani",
-    completed_eva_1: "Yes",
-    evaluator_2: "Putra Indika",
-    completed_eva_2: "Yes",
-  },
-  {
-    id: "3",
-    name: "Alina Bakery",
-    category: "Bakery",
-    matched: "Yes",
-    date_assigned: "2024-01-17",
-    evaluator_1: "Putra Indika",
-    completed_eva_1: "Yes",
-    evaluator_2: "-",
-    completed_eva_2: "-",
-  },
-  {
-    id: "4",
-    name: "Beriani Bonda House 1969",
-    category: "Local Cuisine",
-    matched: "No",
-    date_assigned: "-",
-    evaluator_1: "-",
-    completed_eva_1: "-",
-    evaluator_2: "-",
-    completed_eva_2: "-",
-  },
-  {
-    id: "5",
-    name: "Big Food - Taman Nong Chik",
-    category: "Fast Food",
-    matched: "Partial",
-    date_assigned: "2024-01-18",
-    evaluator_1: "Raihan Muhammad",
-    completed_eva_1: "No",
-    evaluator_2: "-",
-    completed_eva_2: "-",
-  },
-];
-
-// Dummy evaluators list for manual matching
-const evaluatorsList = [
-  { id: "EVA001", name: "Fajar Ramdani" },
-  { id: "EVA002", name: "Raihan Muhammad" },
-  { id: "EVA003", name: "Ayunda Cinta" },
-  { id: "EVA004", name: "Putra Indika" },
-];
-
-// Dummy restaurants list for manual matching
-const restaurantsList = [
-  { id: "REST001", name: "Adam's Kitchen" },
-  { id: "REST002", name: "ADS Corner's" },
-  { id: "REST003", name: "Alina Bakery" },
-  { id: "REST004", name: "Beriani Bonda House 1969" },
-  { id: "REST005", name: "Big Food" },
-];
+/* TODO: Implement API helpers - See guidance below
+ * 1. Data fetching: src/lib/api/assignments.ts
+ *    - fetchAssignments(), fetchEvaluators(), fetchRestaurants()
+ * 2. Manual assignment: assignEvaluatorToRestaurant()
+ * 3. Notifications: src/lib/notifications.ts
+ *    - sendNDAEmail(), sendNdaReminder(), sendCompletionReminder()
+ */
 
 export default function AssignedPage() {
   const [selectedView, setSelectedView] = useState<string>("evaluator");
@@ -209,10 +57,6 @@ export default function AssignedPage() {
   const [isManualMatchOpen, setIsManualMatchOpen] = useState(false);
   const [selectedEvaluator, setSelectedEvaluator] = useState<string>("");
   const [selectedRestaurant, setSelectedRestaurant] = useState<string>("");
-
-  // NDA status options
-  const ndaStatuses = ["Signed", "Pending", "Not Sent"];
-  const matchStatuses = ["Yes", "No", "Partial"];
 
   const toggleNDAStatus = (status: string) => {
     setSelectedNDAStatus((prev) =>
@@ -255,9 +99,23 @@ export default function AssignedPage() {
     setSelectedRestaurant("");
   };
 
-  const handleSendReminder = (item: any) => {
-    // TODO: Implement push notification reminder
-    console.log("Sending reminder to:", item);
+  // Clean handler functions similar to evaluators/restaurants pages
+  const handleSendNDAEmail = (evaluator: any) => {
+    // TODO: Implement NDA email sending
+    console.log("Sending NDA email to:", evaluator.name);
+    // Call API: await sendNDAEmail(evaluator.eva_id);
+  };
+
+  const handleSendNDAReminder = (evaluator: any) => {
+    // TODO: Implement NDA reminder
+    console.log("Sending NDA reminder to:", evaluator.name);
+    // Call API: await sendNdaReminder(evaluator.eva_id);
+  };
+
+  const handleSendCompletionReminder = (evaluator: any) => {
+    // TODO: Implement completion reminder
+    console.log("Sending completion reminder to:", evaluator.name);
+    // Call API: await sendCompletionReminder({ evaluatorId: evaluator.eva_id });
   };
 
   const handleViewDetails = (item: any) => {
@@ -521,7 +379,11 @@ export default function AssignedPage() {
               onEdit={handleEdit}
               hideActions={false}
               renderCell={(item, columnKey) =>
-                renderEvaluatorCell(item, columnKey, handleSendReminder)
+                renderEvaluatorCell(item, columnKey, {
+                  onSendNDAEmail: handleSendNDAEmail,
+                  onSendNDAReminder: handleSendNDAReminder,
+                  onSendCompletionReminder: handleSendCompletionReminder,
+                })
               }
               emptyMessage={{
                 title: "No evaluators assigned",
@@ -704,7 +566,11 @@ export default function AssignedPage() {
 const renderEvaluatorCell = (
   item: any,
   columnKey: React.Key,
-  onSendReminder: (item: any) => void
+  handlers: {
+    onSendNDAEmail: (item: any) => void;
+    onSendNDAReminder: (item: any) => void;
+    onSendCompletionReminder: (item: any) => void;
+  }
 ) => {
   const value = item[columnKey as string];
 
@@ -767,7 +633,7 @@ const renderEvaluatorCell = (
         <div className="flex items-center justify-center">
           {isPending && (
             <button
-              onClick={() => onSendReminder(item)}
+              onClick={() => handlers.onSendNDAReminder(item)}
               className="px-2 sm:px-3 py-1 sm:py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors text-xs font-medium shadow-sm flex items-center gap-1"
               title="Send NDA Reminder"
             >
@@ -777,7 +643,7 @@ const renderEvaluatorCell = (
           )}
           {isNotSent && (
             <button
-              onClick={() => onSendReminder(item)}
+              onClick={() => handlers.onSendNDAEmail(item)}
               className="px-2 sm:px-3 py-1 sm:py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-xs font-medium shadow-sm flex items-center gap-1"
               title="Send NDA Email"
             >
@@ -854,7 +720,7 @@ const renderEvaluatorCell = (
           </div>
           {needsReminder && (
             <button
-              onClick={() => onSendReminder(item)}
+              onClick={() => handlers.onSendCompletionReminder(item)}
               className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors flex items-center justify-center text-xs"
               title="Send Completion Reminder"
             >
