@@ -302,26 +302,31 @@ export default function AssignedPage() {
       {/* View Toggle & Search/Filter Section */}
       <div className="flex flex-col gap-3 sm:gap-4">
         {/* Modern Tab Toggle */}
-        <div className="bg-gray-100 p-1 rounded-xl inline-flex w-full sm:w-fit">
+        <div className="bg-gray-100 p-1 rounded-xl flex w-full sm:w-fit">
           <Tabs
             selectedKey={selectedView}
             onSelectionChange={(key) => setSelectedView(key as string)}
             variant="light"
+            className="w-full sm:w-auto"
             classNames={{
-              tabList: "gap-1 bg-transparent w-full",
+              tabList:
+                "gap-1 bg-transparent w-full grid grid-cols-2 sm:flex sm:w-auto",
               cursor: "bg-[#A67C37] shadow-md",
-              tab: "px-3 sm:px-6 py-2 font-semibold flex-1 sm:flex-initial",
+              tab: "px-2 sm:px-6 py-2 font-semibold",
               tabContent:
-                "group-data-[selected=true]:text-white text-gray-600 text-sm sm:text-base",
+                "group-data-[selected=true]:text-white text-gray-600 text-xs sm:text-base",
             }}
           >
             <Tab
               key="evaluator"
               title={
-                <div className="flex items-center gap-1 sm:gap-2 justify-center" >
-                  <MdPeople size={16} className="sm:w-[18px] sm:h-[18px]" />
-                  <span className="hidden xs:inline">By Evaluator</span>
-                  <span className="xs:hidden">Evaluator</span>
+                <div className="flex items-center gap-1 sm:gap-2 justify-center">
+                  <MdPeople
+                    size={16}
+                    className="w-[14px] h-[14px] sm:w-[18px] sm:h-[18px]"
+                  />
+                  <span className="hidden sm:inline">By Evaluator</span>
+                  <span className="sm:hidden">Evaluator</span>
                 </div>
               }
             />
@@ -329,9 +334,12 @@ export default function AssignedPage() {
               key="restaurant"
               title={
                 <div className="flex items-center gap-1 sm:gap-2 justify-center">
-                  <MdRestaurant size={16} className="sm:w-[18px] sm:h-[18px]" />
-                  <span className="hidden xs:inline">By Restaurant</span>
-                  <span className="xs:hidden">Restaurant</span>
+                  <MdRestaurant
+                    size={16}
+                    className="w-[14px] h-[14px] sm:w-[18px] sm:h-[18px]"
+                  />
+                  <span className="hidden sm:inline">By Restaurant</span>
+                  <span className="sm:hidden">Restaurant</span>
                 </div>
               }
             />
