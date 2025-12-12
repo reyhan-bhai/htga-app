@@ -269,60 +269,69 @@ export default function AssignedPage() {
   };
 
   return (
-    <div className="text-black flex flex-col gap-6">
+    <div className="text-black flex flex-col gap-4 lg:gap-6 p-4 sm:p-6">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h2 className="text-2xl font-bold uppercase">Assignment Management</h2>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+        <h2 className="text-xl sm:text-2xl font-bold uppercase">
+          Assignment Management
+        </h2>
 
         {/* Action Buttons */}
-        <div className="flex flex-row gap-3">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
           <Button
-            className="bg-[#A67C37] text-white font-semibold rounded-lg"
-            startContent={<MdShuffle size={20} />}
+            className="bg-[#A67C37] text-white font-semibold rounded-lg text-sm sm:text-base"
+            startContent={<MdShuffle size={18} />}
             onPress={handleMatchEvaluator}
+            size="sm"
           >
-            Match Evaluator
+            <span className="hidden sm:inline">Match Evaluator</span>
+            <span className="sm:hidden">Match</span>
           </Button>
           <Button
-            className="bg-white border-2 border-[#A67C37] text-[#A67C37] font-semibold rounded-lg"
-            startContent={<MdLink size={20} />}
+            className="bg-white border-2 border-[#A67C37] text-[#A67C37] font-semibold rounded-lg text-sm sm:text-base"
+            startContent={<MdLink size={18} />}
             onPress={handleManualMatch}
+            size="sm"
           >
-            Manual Match
+            <span className="hidden sm:inline">Manual Match</span>
+            <span className="sm:hidden">Manual</span>
           </Button>
         </div>
       </div>
 
       {/* View Toggle & Search/Filter Section */}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3 sm:gap-4">
         {/* Modern Tab Toggle */}
-        <div className="bg-gray-100 p-1 rounded-xl inline-flex w-fit">
+        <div className="bg-gray-100 p-1 rounded-xl inline-flex w-full sm:w-fit">
           <Tabs
             selectedKey={selectedView}
             onSelectionChange={(key) => setSelectedView(key as string)}
             variant="light"
             classNames={{
-              tabList: "gap-1 bg-transparent",
+              tabList: "gap-1 bg-transparent w-full",
               cursor: "bg-[#A67C37] shadow-md",
-              tab: "px-6 py-2 font-semibold",
-              tabContent: "group-data-[selected=true]:text-white text-gray-600",
+              tab: "px-3 sm:px-6 py-2 font-semibold flex-1 sm:flex-initial",
+              tabContent:
+                "group-data-[selected=true]:text-white text-gray-600 text-sm sm:text-base",
             }}
           >
             <Tab
               key="evaluator"
               title={
-                <div className="flex items-center gap-2">
-                  <MdPeople size={18} />
-                  <span>By Evaluator</span>
+                <div className="flex items-center gap-1 sm:gap-2 justify-center" >
+                  <MdPeople size={16} className="sm:w-[18px] sm:h-[18px]" />
+                  <span className="hidden xs:inline">By Evaluator</span>
+                  <span className="xs:hidden">Evaluator</span>
                 </div>
               }
             />
             <Tab
               key="restaurant"
               title={
-                <div className="flex items-center gap-2">
-                  <MdRestaurant size={18} />
-                  <span>By Restaurant</span>
+                <div className="flex items-center gap-1 sm:gap-2 justify-center">
+                  <MdRestaurant size={16} className="sm:w-[18px] sm:h-[18px]" />
+                  <span className="hidden xs:inline">By Restaurant</span>
+                  <span className="xs:hidden">Restaurant</span>
                 </div>
               }
             />
@@ -330,22 +339,22 @@ export default function AssignedPage() {
         </div>
 
         {/* Search and Filter Row */}
-        <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-4">
-          <div className="flex flex-row gap-3 w-full md:w-auto items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4">
+          <div className="flex flex-row gap-2 sm:gap-3 w-full sm:w-auto items-center">
             {/* Search Input */}
             <Input
               placeholder={
                 selectedView === "evaluator"
-                  ? "Search by name, email, ID..."
-                  : "Search by restaurant name, category..."
+                  ? "Search evaluators..."
+                  : "Search restaurants..."
               }
-              className="w-full md:w-[350px]"
+              className="w-full sm:w-[280px] md:w-[350px]"
               size="sm"
               variant="bordered"
-              startContent={<MdSearch className="text-black" size={18} />}
+              startContent={<MdSearch className="text-black" size={16} />}
               classNames={{
-                inputWrapper: "bg-white border-gray-300 rounded-md",
-                input: "text-black placeholder:text-gray-500",
+                inputWrapper: "bg-white border-gray-300 rounded-md h-8 sm:h-10",
+                input: "text-black placeholder:text-gray-500 text-sm",
               }}
             />
 
@@ -354,28 +363,36 @@ export default function AssignedPage() {
               <PopoverTrigger>
                 <Button
                   isIconOnly
-                  className="bg-white border border-gray-300 rounded-md relative overflow-visible"
+                  className="bg-white border border-gray-300 rounded-md relative overflow-visible min-w-8 sm:min-w-10 h-8 sm:h-10"
                   size="sm"
                 >
-                  <MdFilterList size={20} className="text-gray-500" />
+                  <MdFilterList
+                    size={16}
+                    className="text-gray-500 sm:w-5 sm:h-5"
+                  />
                   {activeFiltersCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-[#A67C37] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center z-10 border-2 border-white">
+                    <span className="absolute -top-1 sm:-top-2 -right-1 sm:-right-2 bg-[#A67C37] text-white text-xs w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center z-10 border-2 border-white">
                       {activeFiltersCount}
                     </span>
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="p-4 w-[280px] bg-white shadow-lg rounded-lg">
-                <div className="flex flex-col gap-4 text-black">
+              <PopoverContent className="p-3 sm:p-4 w-[250px] sm:w-[280px] bg-white shadow-lg rounded-lg">
+                <div className="flex flex-col gap-3 sm:gap-4 text-black">
                   {/* Header */}
                   <div className="flex justify-between items-center">
-                    <span className="font-semibold text-base">Filters</span>
+                    <span className="font-semibold text-sm sm:text-base">
+                      Filters
+                    </span>
                     {activeFiltersCount > 0 && (
                       <button
                         onClick={clearFilters}
-                        className="text-sm text-[#A67C37] hover:underline flex items-center gap-1"
+                        className="text-xs sm:text-sm text-[#A67C37] hover:underline flex items-center gap-1"
                       >
-                        <MdClose size={14} />
+                        <MdClose
+                          size={12}
+                          className="sm:w-[14px] sm:h-[14px]"
+                        />
                         Clear all
                       </button>
                     )}
@@ -434,35 +451,50 @@ export default function AssignedPage() {
           </div>
 
           {/* Summary Stats */}
-          <div className="flex gap-4 text-sm">
+          <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm">
             {selectedView === "evaluator" ? (
               <>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                  <span className="text-gray-600">NDA Signed: 2</span>
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
+                  <span className="text-gray-600 whitespace-nowrap">
+                    <span className="hidden sm:inline">NDA Signed: </span>
+                    <span className="sm:hidden">Signed: </span>2
+                  </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                  <span className="text-gray-600">Pending: 1</span>
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
+                  <span className="text-gray-600 whitespace-nowrap">
+                    Pending: 1
+                  </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <span className="text-gray-600">Not Sent: 1</span>
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
+                  <span className="text-gray-600 whitespace-nowrap">
+                    <span className="hidden sm:inline">Not Sent: </span>
+                    <span className="sm:hidden">Unsent: </span>1
+                  </span>
                 </div>
               </>
             ) : (
               <>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                  <span className="text-gray-600">Matched: 3</span>
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
+                  <span className="text-gray-600 whitespace-nowrap">
+                    Matched: 3
+                  </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                  <span className="text-gray-600">Partial: 1</span>
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
+                  <span className="text-gray-600 whitespace-nowrap">
+                    Partial: 1
+                  </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <span className="text-gray-600">Unassigned: 1</span>
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
+                  <span className="text-gray-600 whitespace-nowrap">
+                    <span className="hidden sm:inline">Unassigned: </span>
+                    <span className="sm:hidden">None: </span>1
+                  </span>
                 </div>
               </>
             )}
@@ -471,43 +503,45 @@ export default function AssignedPage() {
       </div>
 
       {/* Table Section */}
-      <div className="bg-white rounded-lg overflow-x-auto">
-        {selectedView === "evaluator" ? (
-          <TableComponent
-            columns={evaluatorColumns}
-            data={evaluatorData}
-            onView={handleViewDetails}
-            onEdit={handleEdit}
-            hideActions={false}
-            renderCell={(item, columnKey) =>
-              renderEvaluatorCell(item, columnKey, handleSendReminder)
-            }
-            emptyMessage={{
-              title: "No evaluators assigned",
-              description:
-                "Click 'Match Evaluator' to start assigning evaluators to restaurants.",
-            }}
-          />
-        ) : (
-          <TableComponent
-            columns={restaurantColumns}
-            data={restaurantData}
-            onView={handleViewDetails}
-            onEdit={handleEdit}
-            hideActions={false}
-            renderCell={renderRestaurantCell}
-            emptyMessage={{
-              title: "No restaurants assigned",
-              description:
-                "Click 'Match Evaluator' to start assigning restaurants to evaluators.",
-            }}
-          />
-        )}
+      <div className="bg-white rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          {selectedView === "evaluator" ? (
+            <TableComponent
+              columns={evaluatorColumns}
+              data={evaluatorData}
+              onView={handleViewDetails}
+              onEdit={handleEdit}
+              hideActions={false}
+              renderCell={(item, columnKey) =>
+                renderEvaluatorCell(item, columnKey, handleSendReminder)
+              }
+              emptyMessage={{
+                title: "No evaluators assigned",
+                description:
+                  "Click 'Match Evaluator' to start assigning evaluators to restaurants.",
+              }}
+            />
+          ) : (
+            <TableComponent
+              columns={restaurantColumns}
+              data={restaurantData}
+              onView={handleViewDetails}
+              onEdit={handleEdit}
+              hideActions={false}
+              renderCell={renderRestaurantCell}
+              emptyMessage={{
+                title: "No restaurants assigned",
+                description:
+                  "Click 'Match Evaluator' to start assigning restaurants to evaluators.",
+              }}
+            />
+          )}
+        </div>
       </div>
 
       {/* Pagination */}
-      <div className="flex justify-center items-center mt-4">
-        <div className="block md:hidden">
+      <div className="flex justify-center items-center mt-2 sm:mt-4">
+        <div className="block lg:hidden">
           <Pagination
             isCompact
             showControls
@@ -515,12 +549,14 @@ export default function AssignedPage() {
             page={page}
             onChange={setPage}
             siblings={0}
+            size="sm"
             classNames={{
-              cursor: "bg-[#A67C37] text-white font-bold",
+              cursor: "bg-[#A67C37] text-white font-bold text-xs sm:text-sm",
+              item: "text-xs sm:text-sm",
             }}
           />
         </div>
-        <div className="hidden md:block">
+        <div className="hidden lg:block">
           <Pagination
             showControls
             total={10}
@@ -538,6 +574,8 @@ export default function AssignedPage() {
         isOpen={isManualMatchOpen}
         onClose={() => setIsManualMatchOpen(false)}
         size="lg"
+        className="mx-4"
+        scrollBehavior="inside"
       >
         <ModalContent>
           {(onClose) => (
@@ -706,8 +744,9 @@ const renderEvaluatorCell = (
       if (isSigned) {
         return (
           <div className="flex items-center justify-center">
-            <div className="px-3 py-2 bg-green-50 text-green-700 rounded-lg border border-green-200 text-xs font-medium">
-              ✅ Signed
+            <div className="px-2 sm:px-3 py-1 sm:py-2 bg-green-50 text-green-700 rounded-lg border border-green-200 text-xs font-medium">
+              <span className="hidden sm:inline">✅ Signed</span>
+              <span className="sm:hidden">✅</span>
             </div>
           </div>
         );
@@ -721,19 +760,21 @@ const renderEvaluatorCell = (
           {isPending && (
             <button
               onClick={() => onSendReminder(item)}
-              className="px-3 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors text-xs font-medium shadow-sm flex items-center gap-1"
+              className="px-2 sm:px-3 py-1 sm:py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors text-xs font-medium shadow-sm flex items-center gap-1"
               title="Send NDA Reminder"
             >
-              🔔 Remind
+              <span className="hidden sm:inline">🔔 Remind</span>
+              <span className="sm:hidden">🔔</span>
             </button>
           )}
           {isNotSent && (
             <button
               onClick={() => onSendReminder(item)}
-              className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-xs font-medium shadow-sm flex items-center gap-1"
+              className="px-2 sm:px-3 py-1 sm:py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-xs font-medium shadow-sm flex items-center gap-1"
               title="Send NDA Email"
             >
-              📧 Send NDA
+              <span className="hidden sm:inline">📧 Send NDA</span>
+              <span className="sm:hidden">📧</span>
             </button>
           )}
         </div>
@@ -776,32 +817,37 @@ const renderEvaluatorCell = (
       const needsReminder = completed < total && total > 0;
 
       return (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <div className="flex flex-col gap-1 min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <span
                 className={`text-xs font-medium ${progressConfig.textColor}`}
               >
-                {progressConfig.icon} {completed}/{total}
+                <span className="hidden sm:inline">{progressConfig.icon} </span>
+                {completed}/{total}
               </span>
-              <span className="text-xs text-gray-500">({percentage}%)</span>
+              <span className="text-xs text-gray-500 hidden sm:inline">
+                ({percentage}%)
+              </span>
             </div>
             <div
-              className={`w-16 h-1.5 rounded-full ${progressConfig.bgColor}`}
+              className={`w-12 sm:w-16 h-1.5 rounded-full ${progressConfig.bgColor}`}
             >
               <div
                 className={`h-full rounded-full transition-all duration-300 ${progressConfig.progressColor}`}
                 style={{ width: `${percentage}%` }}
               ></div>
             </div>
-            <span className={`text-xs ${progressConfig.textColor}`}>
+            <span
+              className={`text-xs ${progressConfig.textColor} hidden sm:block`}
+            >
               {progressConfig.status}
             </span>
           </div>
           {needsReminder && (
             <button
               onClick={() => onSendReminder(item)}
-              className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors flex items-center justify-center"
+              className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors flex items-center justify-center text-xs"
               title="Send Completion Reminder"
             >
               🔔
