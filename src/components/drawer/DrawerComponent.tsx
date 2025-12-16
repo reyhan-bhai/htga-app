@@ -33,7 +33,11 @@ export default function DrawerComponent({
     if (!pathname) return false;
     const path = normalize(pathname);
     const target = normalize(href);
-    return path === target || path.startsWith(`${target}/`);
+    if (target === "/admin") {
+      return path === target;
+    } else {
+      return path === target || path.startsWith(`${target}/`);
+    }
   };
 
   const navItemClass = (href: string) => {
@@ -83,8 +87,8 @@ export default function DrawerComponent({
           <ul className="space-y-2">
             <li>
               <Link
-                href="/admin/assigned"
-                className={navItemClass("/admin/assigned")}
+                href="/admin"
+                className={navItemClass("/admin")}
                 onClick={onClose}
               >
                 <MdAssignment size={24} />

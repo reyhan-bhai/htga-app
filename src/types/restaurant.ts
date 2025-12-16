@@ -1,8 +1,13 @@
 export interface Evaluator {
   id: string;
   name: string;
+  email?: string;
+  phone?: string;
+  position?: string;
+  company?: string;
   specialties: string[]; // ["Bakery", "FastFood", "Italy"]
   maxAssignments?: number; // Optional: limit jumlah assignment per evaluator
+  password: string; // For login authentication
   createdAt: string;
   updatedAt: string;
 }

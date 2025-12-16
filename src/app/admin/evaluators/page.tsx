@@ -25,6 +25,7 @@ import { MdAdd, MdClose, MdFilterList, MdSearch } from "react-icons/md";
 const columns = [
   { name: "ID", uid: "id" },
   { name: "Evaluator Name", uid: "name" },
+  { name: "Specialties", uid: "specialties" },
   { name: "Email/Contact", uid: "email" },
   { name: "Phone Number", uid: "phone" },
   { name: "Current Position", uid: "position" },
@@ -32,80 +33,8 @@ const columns = [
   { name: "Actions", uid: "actions" },
 ];
 
-const users = [
-  {
-    id: "09989",
-    name: "Fajar Ramdani",
-    email: "fajarrmdni@gmail.com",
-    phone: "+601461116987",
-    position: "Johor Chef Association",
-    company: "Pastry",
-  },
-  {
-    id: "09990",
-    name: "Raihan Muhammad...",
-    email: "reyhanMf@gmail.com",
-    phone: "+601461116987",
-    position: "Johor Chef Association",
-    company: "081234562345",
-  },
-  {
-    id: "09991",
-    name: "Raihan Muhammad...",
-    email: "raihanmf@gmail.com",
-    phone: "+601461116987",
-    position: "Johor Chef Association",
-    company: "raihanmf@gmail.com",
-  },
-  {
-    id: "09992",
-    name: "Ayunda Cinta Dinan...",
-    email: "ayundacinta@gmail.com",
-    phone: "+601461116987",
-    position: "Johor Chef Association",
-    company: "ayundacinta@gmail.com",
-  },
-  {
-    id: "09993",
-    name: "Putra Indika Malik",
-    email: "putrdik@gmail.com",
-    phone: "+601461116987",
-    position: "Catalyse",
-    company: "putrdik@gmail.com",
-  },
-  {
-    id: "09994",
-    name: "Putra Indika Malik",
-    email: "purta@gmail.com",
-    phone: "+601461116987",
-    position: "Catalyse",
-    company: "081265437890",
-  },
-  {
-    id: "09994",
-    name: "Putra Indika Malik",
-    email: "purta@gmail.com",
-    phone: "+601461116987",
-    position: "Catalyse",
-    company: "081265437890",
-  },
-  {
-    id: "09994",
-    name: "Putra Indika Malik",
-    email: "purta@gmail.com",
-    phone: "+601461116987",
-    position: "Catalyse",
-    company: "081265437890",
-  },
-  {
-    id: "09994",
-    name: "Putra Indika Malik",
-    email: "purta@gmail.com",
-    phone: "+601461116987",
-    position: "Catalyse",
-    company: "081265437890",
-  },
-];
+// Dummy data removed - now using real data from Firebase
+// const users = [...];
 
 // Evaluator field configuration for the modal
 const evaluatorFields: FieldConfig[] = [
@@ -121,6 +50,7 @@ const evaluatorFields: FieldConfig[] = [
     label: "Email/Contact",
     type: "email",
     placeholder: "evaluator@email.com",
+    required: true,
   },
   {
     name: "phone",
@@ -142,9 +72,9 @@ const evaluatorFields: FieldConfig[] = [
   },
   {
     name: "specialties",
-    label: "Aksi (Specialties)",
-    type: "multiselect",
-    options: ["Bakery", "Italy", "FastFood"],
+    label: "Specialties",
+    type: "text",
+    placeholder: "e.g., Bakery, Italian, Fast Food",
   },
 ];
 
@@ -157,6 +87,30 @@ export default function EvaluatorsPage() {
   const [modalMode, setModalMode] = useState<"add" | "edit" | "view">("add");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [evaluatorToDelete, setEvaluatorToDelete] = useState<any>(null);
+  const [evaluators, setEvaluators] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch evaluators on component mount
+  React.useEffect(() => {
+    fetchEvaluators();
+  }, []);
+
+  const fetchEvaluators = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch("/api/evaluators");
+      if (!response.ok) {
+        throw new Error("Failed to fetch evaluators");
+      }
+      const data = await response.json();
+      setEvaluators(data.evaluators || []);
+    } catch (error) {
+      console.error("Error fetching evaluators:", error);
+      alert("Failed to load evaluators");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleAddEvaluator = () => {
     setSelectedEvaluator(null);
@@ -172,11 +126,57 @@ export default function EvaluatorsPage() {
 
   const handleSaveEvaluator = async (evaluator: any) => {
     try {
-      // TODO: Implement API call to save evaluator
-      console.log("Saving evaluator:", evaluator);
+      if (modalMode === "add") {
+        // Create new evaluator
+        const response = await fetch("/api/evaluators", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(evaluator),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to create evaluator");
+        }
+
+        const result = await response.json();
+        console.log("Evaluator created:", result);
+        alert(
+          `Evaluator created successfully!\n\n` +
+            `ID: ${result.evaluator.id}\n` +
+            `Email: ${result.evaluator.email}\n\n` +
+            `Login credentials have been sent to the evaluator's email address.`
+        );
+      } else if (modalMode === "edit") {
+        // Update existing evaluator
+        const response = await fetch("/api/evaluators", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(evaluator),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to update evaluator");
+        }
+
+        const result = await response.json();
+        console.log("Evaluator updated:", result);
+        alert("Evaluator updated successfully");
+      }
+
       setIsModalOpen(false);
+      // Refresh the evaluators list
+      await fetchEvaluators();
     } catch (error) {
       console.error("Error saving evaluator:", error);
+      alert(
+        `Error: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
     }
   };
 
@@ -191,13 +191,39 @@ export default function EvaluatorsPage() {
     setIsDeleteModalOpen(true);
   };
 
-  const confirmDelete = () => {
-    // TODO: Implement API call to delete evaluator
-    console.log("Deleting evaluator:", evaluatorToDelete);
-    setIsDeleteModalOpen(false);
-    setEvaluatorToDelete(null);
-  };
+  const confirmDelete = async () => {
+    try {
+      if (!evaluatorToDelete?.id) {
+        throw new Error("Evaluator ID is missing");
+      }
 
+      const response = await fetch(
+        `/api/evaluators?id=${evaluatorToDelete.id}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to delete evaluator");
+      }
+
+      const result = await response.json();
+      console.log("Evaluator deleted:", result);
+      alert("Evaluator deleted successfully");
+
+      setIsDeleteModalOpen(false);
+      setEvaluatorToDelete(null);
+      // Refresh the evaluators list
+      await fetchEvaluators();
+    } catch (error) {
+      console.error("Error deleting evaluator:", error);
+      alert(
+        `Error: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    }
+  };
   const cities = ["Johor", "Kuala Lumpur", "Penang", "Selangor"];
   const statuses = ["Assigned", "Unassigned"];
 
@@ -332,13 +358,19 @@ export default function EvaluatorsPage() {
       </div>
 
       <div className="bg-white rounded-lg">
-        <TableComponent
-          columns={columns}
-          data={users}
-          onEdit={handleEditEvaluator}
-          onView={handleViewEvaluator}
-          onDelete={handleDeleteEvaluator}
-        />
+        {isLoading ? (
+          <div className="flex justify-center items-center py-8">
+            <p className="text-gray-500">Loading evaluators...</p>
+          </div>
+        ) : (
+          <TableComponent
+            columns={columns}
+            data={evaluators}
+            onEdit={handleEditEvaluator}
+            onView={handleViewEvaluator}
+            onDelete={handleDeleteEvaluator}
+          />
+        )}
       </div>
 
       <div className="flex justify-center items-center mt-4">

@@ -6,7 +6,14 @@ import { MdClose } from "react-icons/md";
 export interface FieldConfig {
   name: string;
   label: string;
-  type: "text" | "email" | "tel" | "textarea" | "select" | "multiselect";
+  type:
+    | "text"
+    | "email"
+    | "tel"
+    | "password"
+    | "textarea"
+    | "select"
+    | "multiselect";
   placeholder?: string;
   required?: boolean;
   options?: string[]; // For select and multiselect
