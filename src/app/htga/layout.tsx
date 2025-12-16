@@ -1,4 +1,5 @@
 import { AuthProvider } from "../../htga-app/context/AuthContext";
+import PushNotificationsProvider from "@/components/notifications/PushNotificationsProvider";
 import "../../htga-app/styles/htga.css";
 import type { Metadata } from "next";
 
@@ -13,8 +14,10 @@ export default function HTGALayout({
   children: React.ReactNode;
 }) {
   return (
-    <AuthProvider>
-      <div className="max-w-md mx-auto">{children}</div>
-    </AuthProvider>
+    <PushNotificationsProvider>
+      <AuthProvider>
+        <div className="max-w-md mx-auto">{children}</div>
+      </AuthProvider>
+    </PushNotificationsProvider>
   );
 }
