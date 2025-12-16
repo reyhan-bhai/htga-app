@@ -1,9 +1,16 @@
 // Types for HTGA Application
 
 export type EstablishmentStatus = "Active" | "Removed" | "Temporarily Closed";
-export type HalalStatus = "Muslim-friendly" | "Halal Certified by JAKIM" | "Muslim-Owned";
+export type HalalStatus =
+  | "Muslim-friendly"
+  | "Halal Certified by JAKIM"
+  | "Muslim-Owned";
 export type EvaluatorRole = "evaluator1" | "evaluator2";
-export type EvaluationStatus = "Completed" | "Not Completed" | "Continue" | "Start";
+export type EvaluationStatus =
+  | "Completed"
+  | "Not Completed"
+  | "Continue"
+  | "Start";
 
 export interface CompletionStatus {
   allCompleted: boolean;
@@ -47,7 +54,8 @@ export interface Establishment {
 export interface User {
   id: string;
   name: string;
-  username: string;
+  username?: string;
+  email: string;
   role: "evaluator";
   avatar?: string;
 }

@@ -3,7 +3,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 import { FaGoogle, FaFacebook, FaLinkedin } from "react-icons/fa";
-import { AiOutlineUser, AiOutlineEyeInvisible, AiOutlineEye } from "react-icons/ai";
+import {
+  AiOutlineUser,
+  AiOutlineEyeInvisible,
+  AiOutlineEye,
+} from "react-icons/ai";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -14,15 +18,15 @@ export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    const success = login(username, password);
-    if (success) {
+    const result = await login(username, password);
+    if (result.success) {
       router.push("/htga/nda");
     } else {
-      setError("Invalid username or password");
+      setError(result.error || "Invalid email or password");
     }
   };
 
@@ -54,11 +58,11 @@ export default function LoginPage() {
         {/* Login Form Card */}
         <div className="w-full max-w-md bg-white rounded-t-3xl px-6 pt-8 pb-6 flex-1">
           <form onSubmit={handleSubmit} className="flex flex-col">
-            {/* Username Input */}
+            {/* Email Input */}
             <div className="relative mb-4">
               <input
-                type="text"
-                placeholder="Type your username here"
+                type="email"
+                placeholder="Type your email here"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full htga-input pr-12"
@@ -154,7 +158,7 @@ export default function LoginPage() {
 
       {/* Helper Text */}
       <div className="text-center py-4 text-xs text-gray-500">
-        Demo credentials: username: <strong>evaluator</strong>, password: <strong>123456</strong>
+        Use your email and password sent by admin to login
       </div>
     </div>
   );

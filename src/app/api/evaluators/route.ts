@@ -92,9 +92,28 @@ export async function GET(request: Request) {
     const id = searchParams.get("id");
 
     if (id) {
-      // Get specific evaluator
-      const snapshot = await db.ref(`evaluators/${id}`).once("value");
-      const evaluator = snapshot.val();
+      // Get specific evaluator by UID or custom ID
+      let snapshot = await db.ref(`evaluators/${id}`).once("value");
+      let evaluator = snapshot.val();
+      let evaluatorId = id;
+
+      // If not found by direct ID, search by firebaseUid
+      if (!evaluator) {
+        const allSnapshot = await db.ref("evaluators").once("value");
+        const allEvaluators = allSnapshot.val();
+
+        if (allEvaluators) {
+          // Search for evaluator by firebaseUid
+          const foundEntry = Object.entries(allEvaluators).find(
+            ([, data]: [string, any]) =>
+              data.firebaseUid === id || data.uid === id
+          );
+
+          if (foundEntry) {
+            [evaluatorId, evaluator] = foundEntry;
+          }
+        }
+      }
 
       if (!evaluator) {
         return NextResponse.json(
@@ -107,7 +126,7 @@ export async function GET(request: Request) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...evaluatorWithoutPassword } = evaluator;
       return NextResponse.json({
-        evaluator: { id, ...evaluatorWithoutPassword },
+        evaluator: { id: evaluatorId, ...evaluatorWithoutPassword },
       });
     }
 
