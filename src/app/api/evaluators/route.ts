@@ -1,4 +1,4 @@
-import { db } from "@/lib/firebase-admin";
+import admin, { db } from "@/lib/firebase-admin";
 import { Evaluator } from "@/types/restaurant";
 import { NextResponse } from "next/server";
 
@@ -58,39 +58,31 @@ function hashPassword(password: string): string {
   return password;
 }
 
-// Helper function to send email with credentials (placeholder for future implementation)
+// Helper function to send email with credentials
 async function sendCredentialsEmail(
   email: string,
   name: string,
   evaluatorId: string,
   password: string
-): Promise<void> {
-  // TODO: Implement email sending functionality
-  // This is where you'll integrate with email service (SendGrid, AWS SES, etc.)
-  console.log(`
-    ========================================
-    EMAIL TO BE SENT:
-    To: ${email}
-    Subject: Your HTGA Evaluator Account Credentials
-    
-    Dear ${name},
-    
-    Your evaluator account has been created successfully.
-    
-    Login Credentials:
-    - Evaluator ID: ${evaluatorId}
-    - Email: ${email}
-    - Password: ${password}
-    
-    Please keep these credentials safe and change your password after first login.
-    
-    Best regards,
-    HTGA Team
-    ========================================
-  `);
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Import the email service
+    const { sendEvaluatorCredentials } = await import("@/lib/emailService");
 
-  // Return a promise to simulate async email sending
-  return Promise.resolve();
+    // Send the email using the email service
+    const result = await sendEvaluatorCredentials(email, email, password);
+
+    if (result.success) {
+      console.log(`✅ Credentials email sent successfully to ${email}`);
+      return { success: true };
+    } else {
+      console.error(`❌ Failed to send email to ${email}:`, result.error);
+      return { success: false, error: result.error };
+    }
+  } catch (error: any) {
+    console.error(`❌ Error sending email to ${email}:`, error);
+    return { success: false, error: error.message };
+  }
 }
 
 // GET - Get all evaluators or specific evaluator by ID
@@ -196,6 +188,13 @@ export async function POST(request: Request) {
     // Auto-generate password
     const generatedPassword = generatePassword(12);
 
+    // Create Firebase Authentication user
+    const firebaseUser = await admin.auth().createUser({
+      email,
+      password: generatedPassword,
+      displayName: name,
+    });
+
     // Parse specialties if it's a string
     let specialtiesArray: string[] = [];
     if (typeof specialties === "string") {
@@ -212,6 +211,7 @@ export async function POST(request: Request) {
       name,
       email,
       specialties: specialtiesArray,
+      firebaseUid: firebaseUser.uid,
       password: hashPassword(generatedPassword),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -227,16 +227,34 @@ export async function POST(request: Request) {
 
     await db.ref(`evaluators/${evaluatorId}`).set(newEvaluator);
 
-    // Send credentials email (async, don't wait for it to complete)
-    sendCredentialsEmail(email, name, evaluatorId, generatedPassword)
-      .then(() => console.log(`Credentials email sent to ${email}`))
-      .catch((error) =>
-        console.error(`Failed to send email to ${email}:`, error)
-      );
+    // Send credentials email
+    const emailResult = await sendCredentialsEmail(
+      email,
+      name,
+      evaluatorId,
+      generatedPassword
+    );
 
     // Don't return password in response
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _, ...evaluatorWithoutPassword } = newEvaluator;
+
+    // If email failed, include warning in response
+    if (!emailResult.success) {
+      return NextResponse.json(
+        {
+          message:
+            "Evaluator created successfully, but failed to send credentials email.",
+          warning: emailResult.error,
+          evaluator: { id: evaluatorId, ...evaluatorWithoutPassword },
+          credentials: {
+            email,
+            password: generatedPassword, // Include password since email failed
+          },
+        },
+        { status: 201 }
+      );
+    }
 
     return NextResponse.json(
       {
@@ -351,16 +369,17 @@ export async function PUT(request: Request) {
     await db.ref(`evaluators/${id}`).update(updates);
 
     // Send new credentials email if password was regenerated
+    let emailSent = false;
     if (newPassword) {
       const updatedEmail = email || currentEvaluator.email;
       const updatedName = name || currentEvaluator.name;
-      sendCredentialsEmail(updatedEmail, updatedName, id, newPassword)
-        .then(() =>
-          console.log(`New credentials email sent to ${updatedEmail}`)
-        )
-        .catch((error) =>
-          console.error(`Failed to send email to ${updatedEmail}:`, error)
-        );
+      const emailResult = await sendCredentialsEmail(
+        updatedEmail,
+        updatedName,
+        id,
+        newPassword
+      );
+      emailSent = emailResult.success;
     }
 
     const updatedSnapshot = await db.ref(`evaluators/${id}`).once("value");
@@ -370,10 +389,15 @@ export async function PUT(request: Request) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _, ...evaluatorWithoutPassword } = updatedData;
 
-    return NextResponse.json({
-      message: newPassword
+    let message = "Evaluator updated successfully";
+    if (newPassword) {
+      message = emailSent
         ? "Evaluator updated successfully. New credentials have been sent to their email."
-        : "Evaluator updated successfully",
+        : "Evaluator updated successfully, but failed to send credentials email.";
+    }
+
+    return NextResponse.json({
+      message,
       evaluator: { id, ...evaluatorWithoutPassword },
     });
   } catch (error: any) {

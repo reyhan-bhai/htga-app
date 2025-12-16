@@ -1,5 +1,5 @@
-import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
+import nodemailer from "nodemailer";
 
 // Email transporter configuration
 const createTransporter = (): Transporter => {
@@ -92,25 +92,25 @@ export async function sendEvaluatorCredentials(
 
     const mailOptions = {
       from: {
-        name: "Admin - Restaurant Evaluation",
+        name: "HTGA - Restaurant Evaluation System",
         address: gmailFrom!,
       },
       to,
-      subject: "Akun Evaluator Anda",
+      subject: "Your Evaluator Account Credentials",
       text: `
-Halo,
+Hello,
 
-Akun evaluator Anda telah berhasil dibuat oleh admin. Berikut adalah kredensial login Anda:
+Your evaluator account has been successfully created by the admin. Here are your login credentials:
 
 Username: ${username}
 Password: ${password}
 
-Silakan login ke sistem: ${loginUrl}
+Please login to the system: ${loginUrl}
 
-PENTING: Harap ganti password Anda segera setelah login pertama kali untuk keamanan akun Anda.
+IMPORTANT: Please change your password immediately after your first login for account security.
 
-Terima kasih,
-Admin Team
+Thank you,
+HTGA Admin Team
       `.trim(),
       html: `
 <!DOCTYPE html>
@@ -118,25 +118,26 @@ Admin Team
 <head>
   <style>
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .header { background: linear-gradient(135deg, #A67C37 0%, #8B6B30 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
     .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
-    .credentials { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea; }
+    .credentials { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #A67C37; }
     .credential-item { margin: 15px 0; }
-    .label { font-weight: bold; color: #667eea; }
+    .label { font-weight: bold; color: #A67C37; }
     .value { font-family: 'Courier New', monospace; background: #f0f0f0; padding: 8px 12px; border-radius: 4px; display: inline-block; margin-top: 5px; }
     .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px; }
+    .button { display: inline-block; padding: 12px 30px; background: #A67C37; color: white; text-decoration: none; border-radius: 4px; margin: 10px 5px; }
     .footer { text-align: center; color: #666; margin-top: 30px; font-size: 14px; }
-    a { color: #667eea; text-decoration: none; }
+    a { color: #A67C37; text-decoration: none; }
   </style>
 </head>
 <body>
   <div class="header">
-    <h1>🔐 Akun Evaluator Anda</h1>
-    <p>Selamat Datang di Restaurant Evaluation System</p>
+    <h1>🔐 Your Evaluator Account</h1>
+    <p>Welcome to HTGA Restaurant Evaluation System</p>
   </div>
   <div class="content">
-    <p>Halo,</p>
-    <p>Akun evaluator Anda telah berhasil dibuat oleh admin. Berikut adalah kredensial login Anda:</p>
+    <p>Hello,</p>
+    <p>Your evaluator account has been successfully created by the admin. Here are your login credentials:</p>
     
     <div class="credentials">
       <div class="credential-item">
@@ -150,21 +151,18 @@ Admin Team
     </div>
 
     <div class="warning">
-      <strong>⚠️ PENTING:</strong> Harap ganti password Anda segera setelah login pertama kali untuk keamanan akun Anda.
+      <strong>⚠️ IMPORTANT:</strong> Please change your password immediately after your first login for account security.
     </div>
 
     <p style="text-align: center; margin: 30px 0;">
-      <a href="${loginUrl}" style="display: inline-block; padding: 12px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 4px;">
-        Balas
-      </a>
-      <a href="${loginUrl}" style="display: inline-block; padding: 12px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 4px; margin-left: 10px;">
-        Teruskan
+      <a href="${loginUrl}" class="button">
+        Login to System
       </a>
     </p>
 
     <div class="footer">
-      <p>Jika Anda tidak mengharapkan email ini, silakan abaikan atau hubungi admin.</p>
-      <p>Terima kasih,<br>Admin Team</p>
+      <p>If you did not expect this email, please ignore it or contact the admin.</p>
+      <p>Thank you,<br>HTGA Admin Team</p>
     </div>
   </div>
 </body>
