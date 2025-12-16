@@ -32,3 +32,79 @@ GET https://localhost:8080/api/evaluators
 
 ### Get All Establishments
 GET https://localhost:8080/api/establishments
+###
+
+# ========================================
+# ADMIN - CREATE EVALUATOR WITH EMAIL
+# ========================================
+
+### Health Check - Create Evaluator API
+GET http://localhost:3000/api/admin/create-evaluator
+
+###
+
+### Create Evaluator - Minimal Data (Email Only)
+POST http://localhost:3000/api/admin/create-evaluator
+Content-Type: application/json
+x-admin-token: admin-secret-token-12345
+
+{
+  "email": "evaluator-minimal@example.com"
+}
+
+###
+
+### Create Evaluator - Full Data
+POST http://localhost:3000/api/admin/create-evaluator
+Content-Type: application/json
+
+{
+  "email": "evaluator-full@example.com",
+  "displayName": "Full Test Evaluator",
+  "specialties": ["Italian", "Fine Dining", "Asian Fusion"],
+  "maxAssignments": 10,
+  "adminToken": "admin-secret-token-12345"
+}
+
+###
+
+### Create Evaluator - Invalid Email (Should Fail)
+POST http://localhost:3000/api/admin/create-evaluator
+Content-Type: application/json
+x-admin-token: admin-secret-token-12345
+
+{
+  "email": "not-an-email-format"
+}
+
+###
+
+### Create Evaluator - Missing Token (Should Fail 401)
+POST http://localhost:3000/api/admin/create-evaluator
+Content-Type: application/json
+
+{
+  "email": "test@example.com"
+}
+
+###
+
+### Create Evaluator - Wrong Token (Should Fail 401)
+POST http://localhost:3000/api/admin/create-evaluator
+Content-Type: application/json
+x-admin-token: wrong-token
+
+{
+  "email": "test@example.com"
+}
+
+###
+
+### Create Evaluator - Missing Email (Should Fail 400)
+POST http://localhost:3000/api/admin/create-evaluator
+Content-Type: application/json
+x-admin-token: admin-secret-token-12345
+
+{
+  "displayName": "No Email User"
+}
