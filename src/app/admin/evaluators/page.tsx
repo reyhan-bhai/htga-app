@@ -21,6 +21,7 @@ import {
 } from "@nextui-org/react";
 import React from "react";
 import { MdAdd, MdClose, MdFilterList, MdSearch } from "react-icons/md";
+import Swal from "sweetalert2";
 
 const columns = [
   { name: "ID", uid: "id" },
@@ -106,7 +107,11 @@ export default function EvaluatorsPage() {
       setEvaluators(data.evaluators || []);
     } catch (error) {
       console.error("Error fetching evaluators:", error);
-      alert("Failed to load evaluators");
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to load evaluators",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -143,12 +148,18 @@ export default function EvaluatorsPage() {
 
         const result = await response.json();
         console.log("Evaluator created:", result);
-        alert(
-          `Evaluator created successfully!\n\n` +
-            `ID: ${result.evaluator.id}\n` +
-            `Email: ${result.evaluator.email}\n\n` +
-            `Login credentials have been sent to the evaluator's email address.`
-        );
+        await Swal.fire({
+          icon: "success",
+          title: "Evaluator Created!",
+          html: `
+            <div class="text-left">
+              <p><strong>ID:</strong> ${result.evaluator.id}</p>
+              <p><strong>Email:</strong> ${result.evaluator.email}</p>
+              <p class="mt-2">Login credentials have been sent to the evaluator's email address.</p>
+            </div>
+          `,
+          confirmButtonColor: "#A67C37",
+        });
       } else if (modalMode === "edit") {
         // Update existing evaluator
         const response = await fetch("/api/evaluators", {
@@ -166,7 +177,12 @@ export default function EvaluatorsPage() {
 
         const result = await response.json();
         console.log("Evaluator updated:", result);
-        alert("Evaluator updated successfully");
+        await Swal.fire({
+          icon: "success",
+          title: "Success",
+          text: "Evaluator updated successfully",
+          confirmButtonColor: "#A67C37",
+        });
       }
 
       setIsModalOpen(false);
@@ -174,9 +190,12 @@ export default function EvaluatorsPage() {
       await fetchEvaluators();
     } catch (error) {
       console.error("Error saving evaluator:", error);
-      alert(
-        `Error: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
+      await Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: error instanceof Error ? error.message : "Unknown error",
+        confirmButtonColor: "#A67C37",
+      });
     }
   };
 
@@ -211,7 +230,12 @@ export default function EvaluatorsPage() {
 
       const result = await response.json();
       console.log("Evaluator deleted:", result);
-      alert("Evaluator deleted successfully");
+      await Swal.fire({
+        icon: "success",
+        title: "Success",
+        text: "Evaluator deleted successfully",
+        confirmButtonColor: "#A67C37",
+      });
 
       setIsDeleteModalOpen(false);
       setEvaluatorToDelete(null);
@@ -219,9 +243,12 @@ export default function EvaluatorsPage() {
       await fetchEvaluators();
     } catch (error) {
       console.error("Error deleting evaluator:", error);
-      alert(
-        `Error: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
+      await Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: error instanceof Error ? error.message : "Unknown error",
+        confirmButtonColor: "#A67C37",
+      });
     }
   };
   const cities = ["Johor", "Kuala Lumpur", "Penang", "Selangor"];
