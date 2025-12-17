@@ -1,85 +1,28 @@
-"use client";
-import { SubscribeButton } from "@/components/notifications/SubscribeButton";
-import {
-  Box,
-  Card,
-  CardContent,
-  Container,
-  IconButton,
-  InputAdornment,
-  TextField,
-} from "@mui/material";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { useCurrentUser } from "@/utils/useCurrentUser";
-import NotificationForm from "@/components/notifications/SendNotification";
-import { UnsubscribeButton } from "@/components/notifications/UnsubscribeButton";
-import InstallPrompt from "@/components/InstallPrompt";
-import DarkThemeProvider from "@/components/ThemeProvider";
-import PushNotificationsProvider from "@/components/notifications/PushNotificationsProvider";
-import { UserProvider } from "@/utils/useCurrentUser";
-
 export default function Home() {
   return (
-    <DarkThemeProvider>
-      <UserProvider>
-        <PushNotificationsProvider>
-          <HomeContent />
-        </PushNotificationsProvider>
-      </UserProvider>
-    </DarkThemeProvider>
-  );
-}
-
-function HomeContent() {
-  const { token, user, isAdmin } = useCurrentUser();
-
-  const handleContentCopyClick = () => {
-    navigator.clipboard.writeText(user?.data.firebaseToken || "");
-  };
-  
-  return (
-    <div className="grid grid-rows-[20px_auto_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-8 sm:p-20 font-[family-name:var(--font-geist-sans)] bg-[#262626] text-[#ededed]">
-      <main className="w-full gap-5 flex flex-col row-start-2 items-center">
-        <InstallPrompt />
-
-        <Card className="w-full flex-grow">
-          <Container maxWidth="sm">
-            <CardContent className="flex flex-col gap-3">
-              <TextField
-                value={token || ""}
-                id="outlined-basic"
-                label="Your Firebase Token"
-                variant="outlined"
-                disabled
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton onClick={handleContentCopyClick} edge="end">
-                        <ContentCopyIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              <Box className="flex gap-3 justify-around">
-                <SubscribeButton />
-                <UnsubscribeButton />
-              </Box>
-            </CardContent>
-          </Container>
-        </Card>
-
-        {/* Tampilkan form hanya jika admin */}
-        {isAdmin && (
-          <Card className="w-full flex-grow">
-            <CardContent className="flex flex-col gap-3">
-              <NotificationForm />
-            </CardContent>
-          </Card>
-        )}
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center"></footer>
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold text-gray-800 mb-4">
+          Welcome to HTGA
+        </h1>
+        <p className="text-gray-600 mb-8">
+          HalalTrip Gastronomy Award Application
+        </p>
+        <div className="flex gap-4 justify-center">
+          <a
+            href="/admin"
+            className="px-6 py-3 bg-[#A67C37] text-white rounded-lg hover:bg-[#8B6830] transition"
+          >
+            Admin Panel
+          </a>
+          <a
+            href="/htga/login"
+            className="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition"
+          >
+            Evaluator Login
+          </a>
+        </div>
+      </div>
     </div>
   );
 }
-

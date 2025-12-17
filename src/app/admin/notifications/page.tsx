@@ -10,14 +10,18 @@ import {
   Textarea,
   Chip,
 } from "@nextui-org/react";
-import { MdSend, MdNotifications } from "react-icons/md";
+import { MdSend, MdNotifications, MdContentCopy } from "react-icons/md";
 import Swal from "sweetalert2";
+import { SubscribeButton } from "@/components/notifications/SubscribeButton";
+import { UnsubscribeButton } from "@/components/notifications/UnsubscribeButton";
+import { useCurrentUser } from "@/utils/useCurrentUser";
 
 export default function NotificationsPage() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(false);
   const [subscriberCount, setSubscriberCount] = useState<number | null>(null);
+  const { token, user } = useCurrentUser();
 
   // Fetch subscriber count on mount
   useState(() => {
@@ -115,6 +119,17 @@ export default function NotificationsPage() {
     }
   };
 
+  const handleContentCopyClick = () => {
+    navigator.clipboard.writeText(token || "");
+    Swal.fire({
+      icon: "success",
+      title: "Copied!",
+      text: "Token copied to clipboard",
+      timer: 1500,
+      showConfirmButton: false,
+    });
+  };
+
   return (
     <div className="text-black flex flex-col gap-6">
       <div className="flex justify-between items-center">
@@ -131,6 +146,45 @@ export default function NotificationsPage() {
         </Chip>
       </div>
 
+      {/* Firebase Token Display */}
+      <Card className="max-w-2xl">
+        <CardHeader className="flex gap-3 bg-gray-100">
+          <div className="flex flex-col">
+            <p className="text-md font-bold text-gray-800">
+              Your Firebase Token
+            </p>
+            <p className="text-sm text-gray-600">
+              Copy your token for testing or debugging
+            </p>
+          </div>
+        </CardHeader>
+        <CardBody className="gap-4">
+          <div className="flex gap-2">
+            <Input
+              value={token || "Loading..."}
+              isReadOnly
+              variant="bordered"
+              classNames={{
+                input: "text-black text-xs",
+              }}
+            />
+            <Button
+              isIconOnly
+              color="primary"
+              variant="flat"
+              onPress={handleContentCopyClick}
+            >
+              <MdContentCopy size={20} />
+            </Button>
+          </div>
+          <div className="flex gap-3 justify-around">
+            <SubscribeButton />
+            <UnsubscribeButton />
+          </div>
+        </CardBody>
+      </Card>
+
+      {/* Send Notification Form */}
       <Card className="max-w-2xl">
         <CardHeader className="flex gap-3 bg-[#A67C37] text-white">
           <MdSend size={24} />
