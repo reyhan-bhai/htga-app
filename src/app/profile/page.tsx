@@ -1,23 +1,30 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../../htga-app/context/AuthContext";
+import { useAuth } from "../../htga-app/context/AuthContext";
+import { MobileLayoutWrapper } from "../layout-wrapper";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   const handleEditProfile = () => {
     alert("Edit Profile functionality - Coming Soon!");
   };
 
   const handleBack = () => {
-    router.push("/htga/dashboard");
+    router.push("/dashboard");
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/");
   };
 
   return (
-    <div className="min-h-screen bg-cream">
-      {/* Header with Notification */}
-      <div className="bg-cream pt-12 pb-6 px-6">
+    <MobileLayoutWrapper>
+      <div className="min-h-screen bg-cream">
+        {/* Header with Notification */}
+        <div className="bg-cream pt-12 pb-6 px-6">
         <div className="flex justify-between items-center">
           <button
             onClick={handleBack}
@@ -71,14 +78,23 @@ export default function ProfilePage() {
         {/* Edit Profile Button */}
         <button
           onClick={handleEditProfile}
-          className="w-full max-w-xs bg-[#FFA200] hover:bg-[#FF9500] text-white font-semibold py-4 rounded-full htga-button"
+          className="w-full max-w-xs bg-[#FFA200] hover:bg-[#FF9500] text-white font-semibold py-4 rounded-full htga-button mb-4"
         >
           Edit Profile
         </button>
+
+        {/* Logout Button */}
+        <button
+          onClick={handleLogout}
+          className="w-full max-w-xs bg-red-600 hover:bg-red-700 text-white font-semibold py-4 rounded-full htga-button"
+        >
+          Logout
+        </button>
       </div>
 
-      {/* Bottom Navigation Bar */}
-      <div className="fixed bottom-0 left-0 right-0 h-1 bg-black"></div>
-    </div>
+        {/* Bottom Navigation Bar */}
+        <div className="fixed bottom-0 left-0 right-0 h-1 bg-black"></div>
+      </div>
+    </MobileLayoutWrapper>
   );
 }
