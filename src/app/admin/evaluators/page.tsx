@@ -22,7 +22,7 @@ import {
 import React from "react";
 import { MdAdd, MdClose, MdFilterList, MdSearch } from "react-icons/md";
 import Swal from "sweetalert2";
-
+import { useEvaluators } from "@/context/EvaluatorContext";
 const columns = [
   { name: "ID", uid: "id" },
   { name: "Evaluator Name", uid: "name" },
@@ -80,6 +80,9 @@ const evaluatorFields: FieldConfig[] = [
 ];
 
 export default function EvaluatorsPage() {
+  const { evaluators, isLoading, refetchEvaluators } = useEvaluators();
+
+
   const [page, setPage] = React.useState(1);
   const [selectedCities, setSelectedCities] = React.useState<string[]>([]);
   const [selectedStatus, setSelectedStatus] = React.useState<string[]>([]);
@@ -88,34 +91,33 @@ export default function EvaluatorsPage() {
   const [modalMode, setModalMode] = useState<"add" | "edit" | "view">("add");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [evaluatorToDelete, setEvaluatorToDelete] = useState<any>(null);
-  const [evaluators, setEvaluators] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+ 
 
-  // Fetch evaluators on component mount
-  React.useEffect(() => {
-    fetchEvaluators();
-  }, []);
+  // // Fetch evaluators on component mount
+  // React.useEffect(() => {
+  //   fetchEvaluators();
+  // }, []);
 
-  const fetchEvaluators = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch("/api/evaluators");
-      if (!response.ok) {
-        throw new Error("Failed to fetch evaluators");
-      }
-      const data = await response.json();
-      setEvaluators(data.evaluators || []);
-    } catch (error) {
-      console.error("Error fetching evaluators:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Failed to load evaluators",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // const fetchEvaluators = async () => {
+  //   try {
+  //     setIsLoading(true);
+  //     const response = await fetch("/api/evaluators");
+  //     if (!response.ok) {
+  //       throw new Error("Failed to fetch evaluators");
+  //     }
+  //     const data = await response.json();
+  //     setEvaluators(data.evaluators || []);
+  //   } catch (error) {
+  //     console.error("Error fetching evaluators:", error);
+  //     Swal.fire({
+  //       icon: "error",
+  //       title: "Error",
+  //       text: "Failed to load evaluators",
+  //     });
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
 
   const handleAddEvaluator = () => {
     setSelectedEvaluator(null);
@@ -187,7 +189,7 @@ export default function EvaluatorsPage() {
 
       setIsModalOpen(false);
       // Refresh the evaluators list
-      await fetchEvaluators();
+      await refetchEvaluators();
     } catch (error) {
       console.error("Error saving evaluator:", error);
       await Swal.fire({
@@ -240,7 +242,7 @@ export default function EvaluatorsPage() {
       setIsDeleteModalOpen(false);
       setEvaluatorToDelete(null);
       // Refresh the evaluators list
-      await fetchEvaluators();
+      await refetchEvaluators();
     } catch (error) {
       console.error("Error deleting evaluator:", error);
       await Swal.fire({

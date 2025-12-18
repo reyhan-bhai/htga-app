@@ -6,6 +6,7 @@ import React, { useState } from "react";
 import { MdMenu } from "react-icons/md";
 import { UserProvider } from "@/utils/useCurrentUser";
 import PushNotificationsProvider from "@/components/notifications/PushNotificationsProvider";
+import { EvaluatorsProvider } from "@/context/EvaluatorContext";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -45,7 +46,9 @@ export default function AdminLayout({
             </header>
 
             <main className={`flex-1 overflow-auto p-6 ${poppins.className}`}>
-              {children}
+              <EvaluatorsProvider>
+                {children}
+              </EvaluatorsProvider>
             </main>
           </div>
         </div>
