@@ -3,13 +3,9 @@
 import TableComponent from "@/components/table/Table";
 import {
   evaluatorColumns,
-  evaluatorData,
-  evaluatorsList,
   matchStatuses,
   ndaStatuses,
   restaurantColumns,
-  restaurantData,
-  restaurantsList,
 } from "@/constants/assignedData";
 import {
   Button,
@@ -30,7 +26,7 @@ import {
   Tab,
   Tabs,
 } from "@nextui-org/react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   MdClose,
   MdFilterList,
@@ -40,6 +36,7 @@ import {
   MdSearch,
   MdShuffle,
 } from "react-icons/md";
+import Swal from "sweetalert2";
 
 /* TODO: Implement API helpers - See guidance below
  * 1. Data fetching: src/lib/api/assignments.ts
@@ -57,6 +54,44 @@ export default function AssignedPage() {
   const [isManualMatchOpen, setIsManualMatchOpen] = useState(false);
   const [selectedEvaluator, setSelectedEvaluator] = useState<string>("");
   const [selectedRestaurant, setSelectedRestaurant] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [assignments, setAssignments] = useState<any[]>([]);
+  const [evaluators, setEvaluators] = useState<any[]>([]);
+  const [establishments, setEstablishments] = useState<any[]>([]);
+
+  // Fetch data on mount
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      const [assignmentsRes, evaluatorsRes, establishmentsRes] =
+        await Promise.all([
+          fetch("/api/assignments?includeDetails=true"),
+          fetch("/api/evaluators"),
+          fetch("/api/establishments"),
+        ]);
+
+      const assignmentsData = await assignmentsRes.json();
+      const evaluatorsData = await evaluatorsRes.json();
+      const establishmentsData = await establishmentsRes.json();
+
+      setAssignments(assignmentsData.assignments || []);
+      setEvaluators(evaluatorsData.evaluators || []);
+      setEstablishments(establishmentsData.establishments || []);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      await Swal.fire({
+        icon: "error",
+        title: "Failed to Load Data",
+        text: "Unable to fetch assignments data. Please refresh the page.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const toggleNDAStatus = (status: string) => {
     setSelectedNDAStatus((prev) =>
@@ -82,21 +117,251 @@ export default function AssignedPage() {
   const activeFiltersCount =
     selectedNDAStatus.length + selectedMatchStatus.length;
 
-  const handleMatchEvaluator = () => {
-    // TODO: Implement matchmaking algorithm
-    console.log("Matchmaking algorithm triggered");
+  // Transform assignments data for evaluator view
+  const getEvaluatorViewData = () => {
+    if (!evaluators || evaluators.length === 0) return [];
+
+    const evaluatorMap = new Map();
+
+    evaluators.forEach((evaluator) => {
+      const evaluatorAssignments = assignments.filter(
+        (a) =>
+          a.evaluator1Id === evaluator.id || a.evaluator2Id === evaluator.id
+      );
+
+      const totalRestaurants = evaluatorAssignments.length;
+      const completedRestaurants = evaluatorAssignments.filter(
+        (a) => a.status === "completed"
+      ).length;
+
+      // TODO: Get real NDA status from evaluator record
+      const ndaStatus = evaluator.ndaStatus || "Not Sent";
+
+      // Handle specialties - could be array or string
+      const specialtyDisplay = Array.isArray(evaluator.specialties)
+        ? evaluator.specialties.join(", ")
+        : evaluator.specialties || "";
+
+      evaluatorMap.set(evaluator.id, {
+        key: evaluator.id, // Add key for table
+        eva_id: evaluator.id,
+        name: evaluator.name,
+        email: evaluator.email || "",
+        phone: evaluator.phone || "",
+        specialty: specialtyDisplay,
+        nda_status: ndaStatus,
+        total_restaurant: totalRestaurants,
+        restaurant_completed: completedRestaurants,
+      });
+    });
+
+    return Array.from(evaluatorMap.values());
+  };
+
+  // Transform assignments data for restaurant view
+  const getRestaurantViewData = () => {
+    if (!establishments || establishments.length === 0) return [];
+
+    return establishments.map((establishment) => {
+      const assignment = assignments.find(
+        (a) => a.establishmentId === establishment.id
+      );
+
+      if (!assignment) {
+        return {
+          key: establishment.id, // Add key for table
+          res_id: establishment.id,
+          name: establishment.name,
+          category: establishment.category,
+          matched: "No",
+          date_assigned: "-",
+          evaluator_1: "-",
+          evaluator_2: "-",
+          completed_eva_1: "-",
+          completed_eva_2: "-",
+        };
+      }
+
+      const evaluator1 = evaluators.find(
+        (e) => e.id === assignment.evaluator1Id
+      );
+      const evaluator2 = evaluators.find(
+        (e) => e.id === assignment.evaluator2Id
+      );
+
+      return {
+        key: establishment.id, // Add key for table
+        res_id: establishment.id,
+        name: establishment.name,
+        category: establishment.category,
+        matched: "Yes",
+        date_assigned: new Date(assignment.assignedAt).toLocaleDateString(),
+        evaluator_1: evaluator1?.name || "-",
+        evaluator_2: evaluator2?.name || "-",
+        completed_eva_1: assignment.status === "completed" ? "Yes" : "No",
+        completed_eva_2: assignment.status === "completed" ? "Yes" : "No",
+      };
+    });
+  };
+
+  const evaluatorViewData = getEvaluatorViewData();
+  const restaurantViewData = getRestaurantViewData();
+
+  const handleMatchEvaluator = async () => {
+    try {
+      setIsLoading(true);
+
+      // Find unassigned restaurants
+      const assignedEstablishmentIds = assignments.map(
+        (a) => a.establishmentId
+      );
+      const unassignedEstablishments = establishments.filter(
+        (est) => !assignedEstablishmentIds.includes(est.id)
+      );
+
+      if (unassignedEstablishments.length === 0) {
+        await Swal.fire({
+          icon: "info",
+          title: "No Unassigned Restaurants",
+          text: "All restaurants have been assigned to evaluators.",
+        });
+        return;
+      }
+
+      // Auto-assign each unassigned restaurant
+      const results = await Promise.allSettled(
+        unassignedEstablishments.map((establishment) =>
+          fetch("/api/assignments", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ establishmentId: establishment.id }),
+          }).then((res) => res.json())
+        )
+      );
+
+      const successful = results.filter((r) => r.status === "fulfilled").length;
+      const failed = results.filter((r) => r.status === "rejected").length;
+
+      await Swal.fire({
+        icon: successful > 0 ? "success" : "error",
+        title: "Auto-Assignment Complete",
+        html: `
+          <p><strong>Successfully assigned:</strong> ${successful} restaurants</p>
+          ${failed > 0 ? `<p><strong>Failed:</strong> ${failed} restaurants</p>` : ""}
+        `,
+      });
+
+      // Refresh data
+      await fetchData();
+    } catch (error) {
+      console.error("Error in auto-assignment:", error);
+      await Swal.fire({
+        icon: "error",
+        title: "Assignment Failed",
+        text: "An error occurred during auto-assignment.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleManualMatch = () => {
     setIsManualMatchOpen(true);
   };
 
-  const handleSaveManualMatch = () => {
-    // TODO: Implement manual match save
-    console.log("Manual match:", { selectedEvaluator, selectedRestaurant });
-    setIsManualMatchOpen(false);
-    setSelectedEvaluator("");
-    setSelectedRestaurant("");
+  const handleSaveManualMatch = async () => {
+    if (!selectedEvaluator || !selectedRestaurant) return;
+
+    try {
+      setIsLoading(true);
+
+      // Get the restaurant details
+      const restaurant = establishments.find(
+        (e) => e.id === selectedRestaurant
+      );
+      const evaluator = evaluators.find((e) => e.id === selectedEvaluator);
+
+      if (!restaurant || !evaluator) {
+        throw new Error("Restaurant or evaluator not found");
+      }
+
+      // Check if evaluator specialty matches restaurant category
+      if (!evaluator.specialties.includes(restaurant.category)) {
+        await Swal.fire({
+          icon: "error",
+          title: "Specialty Mismatch",
+          text: `Evaluator ${evaluator.name} does not have specialty "${restaurant.category}" required for ${restaurant.name}.`,
+        });
+        return;
+      }
+
+      // Check if restaurant already has 2 evaluators
+      const existingAssignments = assignments.filter(
+        (a) => a.establishmentId === selectedRestaurant
+      );
+
+      if (existingAssignments.length > 0) {
+        const assignment = existingAssignments[0];
+
+        // Check if this evaluator is already assigned
+        if (
+          assignment.evaluator1Id === selectedEvaluator ||
+          assignment.evaluator2Id === selectedEvaluator
+        ) {
+          await Swal.fire({
+            icon: "warning",
+            title: "Already Assigned",
+            text: `${evaluator.name} is already assigned to ${restaurant.name}.`,
+          });
+          return;
+        }
+
+        // If restaurant has 2 evaluators, show error
+        await Swal.fire({
+          icon: "warning",
+          title: "Maximum Evaluators Reached",
+          text: `${restaurant.name} already has 2 evaluators assigned.`,
+        });
+        return;
+      }
+
+      // Create new assignment (API will auto-select second evaluator)
+      const response = await fetch("/api/assignments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          establishmentId: selectedRestaurant,
+          evaluator1Id: selectedEvaluator,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to create assignment");
+      }
+
+      await Swal.fire({
+        icon: "success",
+        title: "Assignment Created",
+        text: `Successfully assigned ${evaluator.name} to ${restaurant.name}.`,
+      });
+
+      // Refresh data
+      await fetchData();
+      setIsManualMatchOpen(false);
+      setSelectedEvaluator("");
+      setSelectedRestaurant("");
+    } catch (error: any) {
+      console.error("Error in manual assignment:", error);
+      await Swal.fire({
+        icon: "error",
+        title: "Assignment Failed",
+        text: error.message || "An error occurred during assignment.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Clean handler functions similar to evaluators/restaurants pages
@@ -317,64 +582,98 @@ export default function AssignedPage() {
           </div>
 
           {/* Summary Stats */}
-          <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm">
-            {selectedView === "evaluator" ? (
-              <>
-                <div className="flex items-center gap-1 sm:gap-2">
-                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
-                  <span className="text-gray-600 whitespace-nowrap">
-                    <span className="hidden sm:inline">NDA Signed: </span>
-                    <span className="sm:hidden">Signed: </span>2
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 sm:gap-2">
-                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
-                  <span className="text-gray-600 whitespace-nowrap">
-                    Pending: 1
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 sm:gap-2">
-                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
-                  <span className="text-gray-600 whitespace-nowrap">
-                    <span className="hidden sm:inline">Not Sent: </span>
-                    <span className="sm:hidden">Unsent: </span>1
-                  </span>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="flex items-center gap-1 sm:gap-2">
-                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
-                  <span className="text-gray-600 whitespace-nowrap">
-                    Matched: 3
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 sm:gap-2">
-                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
-                  <span className="text-gray-600 whitespace-nowrap">
-                    Partial: 1
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 sm:gap-2">
-                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
-                  <span className="text-gray-600 whitespace-nowrap">
-                    <span className="hidden sm:inline">Unassigned: </span>
-                    <span className="sm:hidden">None: </span>1
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
+          {(evaluatorViewData.length > 0 || restaurantViewData.length > 0) && (
+            <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm">
+              {selectedView === "evaluator" ? (
+                <>
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
+                    <span className="text-gray-600 whitespace-nowrap">
+                      <span className="hidden sm:inline">NDA Signed: </span>
+                      <span className="sm:hidden">Signed: </span>
+                      {
+                        evaluatorViewData.filter(
+                          (e) => e.nda_status === "Signed"
+                        ).length
+                      }
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
+                    <span className="text-gray-600 whitespace-nowrap">
+                      Pending:{" "}
+                      {
+                        evaluatorViewData.filter(
+                          (e) => e.nda_status === "Pending"
+                        ).length
+                      }
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
+                    <span className="text-gray-600 whitespace-nowrap">
+                      <span className="hidden sm:inline">Not Sent: </span>
+                      <span className="sm:hidden">Unsent: </span>
+                      {
+                        evaluatorViewData.filter(
+                          (e) => e.nda_status === "Not Sent"
+                        ).length
+                      }
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
+                    <span className="text-gray-600 whitespace-nowrap">
+                      Matched:{" "}
+                      {
+                        restaurantViewData.filter((r) => r.matched === "Yes")
+                          .length
+                      }
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
+                    <span className="text-gray-600 whitespace-nowrap">
+                      Partial:{" "}
+                      {
+                        restaurantViewData.filter(
+                          (r) => r.matched === "Partial"
+                        ).length
+                      }
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
+                    <span className="text-gray-600 whitespace-nowrap">
+                      <span className="hidden sm:inline">Unassigned: </span>
+                      <span className="sm:hidden">None: </span>
+                      {
+                        restaurantViewData.filter((r) => r.matched === "No")
+                          .length
+                      }
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Table Section */}
       <div className="bg-white rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
-          {selectedView === "evaluator" ? (
+          {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#A67C37]"></div>
+            </div>
+          ) : selectedView === "evaluator" ? (
             <TableComponent
               columns={evaluatorColumns}
-              data={evaluatorData}
+              data={evaluatorViewData}
               onView={handleViewDetails}
               onEdit={handleEdit}
               hideActions={false}
@@ -386,23 +685,33 @@ export default function AssignedPage() {
                 })
               }
               emptyMessage={{
-                title: "No evaluators assigned",
+                title:
+                  evaluators.length === 0
+                    ? "No evaluators yet"
+                    : "No assignments yet",
                 description:
-                  "Click 'Match Evaluator' to start assigning evaluators to restaurants.",
+                  evaluators.length === 0
+                    ? "Add evaluators first in the Evaluators page."
+                    : "Click 'Match Evaluator' to start assigning evaluators to restaurants.",
               }}
             />
           ) : (
             <TableComponent
               columns={restaurantColumns}
-              data={restaurantData}
+              data={restaurantViewData}
               onView={handleViewDetails}
               onEdit={handleEdit}
               hideActions={false}
               renderCell={renderRestaurantCell}
               emptyMessage={{
-                title: "No restaurants assigned",
+                title:
+                  establishments.length === 0
+                    ? "No restaurants yet"
+                    : "No assignments yet",
                 description:
-                  "Click 'Match Evaluator' to start assigning restaurants to evaluators.",
+                  establishments.length === 0
+                    ? "Add restaurants first in the Restaurants page."
+                    : "Click 'Match Evaluator' to start assigning restaurants to evaluators.",
               }}
             />
           )}
@@ -479,7 +788,7 @@ export default function AssignedPage() {
                         value: "text-black",
                       }}
                     >
-                      {evaluatorsList.map((evaluator) => (
+                      {evaluators.map((evaluator) => (
                         <SelectItem
                           key={evaluator.id}
                           textValue={evaluator.name}
@@ -487,7 +796,9 @@ export default function AssignedPage() {
                           <div className="flex flex-col">
                             <span className="text-black">{evaluator.name}</span>
                             <span className="text-xs text-gray-500">
-                              {evaluator.id}
+                              {Array.isArray(evaluator.specialties)
+                                ? evaluator.specialties.join(", ")
+                                : evaluator.specialties || "No specialty"}
                             </span>
                           </div>
                         </SelectItem>
@@ -514,7 +825,7 @@ export default function AssignedPage() {
                         value: "text-black",
                       }}
                     >
-                      {restaurantsList.map((restaurant) => (
+                      {establishments.map((restaurant) => (
                         <SelectItem
                           key={restaurant.id}
                           textValue={restaurant.name}
@@ -524,7 +835,7 @@ export default function AssignedPage() {
                               {restaurant.name}
                             </span>
                             <span className="text-xs text-gray-500">
-                              {restaurant.id}
+                              {restaurant.category}
                             </span>
                           </div>
                         </SelectItem>

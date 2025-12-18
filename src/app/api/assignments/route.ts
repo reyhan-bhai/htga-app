@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase-admin";
 import {
   Assignment,
   AssignmentWithDetails,
-  Evaluator,
   Establishment,
+  Evaluator,
 } from "@/types/restaurant";
+import { NextResponse } from "next/server";
 
 // Helper function to get assignment with details
 async function getAssignmentWithDetails(
@@ -168,71 +168,105 @@ export async function POST(request: Request) {
     let selectedEvaluator1Id = evaluator1Id;
     let selectedEvaluator2Id = evaluator2Id;
 
-    // If evaluators not provided, auto-assign based on specialty and constraints
-    if (!evaluator1Id || !evaluator2Id) {
-      const evaluatorsSnap = await db.ref("evaluators").once("value");
-      const evaluatorsData = evaluatorsSnap.val();
+    // Get all evaluators with matching specialty
+    const evaluatorsSnap = await db.ref("evaluators").once("value");
+    const evaluatorsData = evaluatorsSnap.val();
 
-      if (!evaluatorsData) {
-        return NextResponse.json(
-          { error: "No evaluators available" },
-          { status: 400 }
+    if (!evaluatorsData) {
+      return NextResponse.json(
+        { error: "No evaluators available" },
+        { status: 400 }
+      );
+    }
+
+    const allEvaluators: Evaluator[] = Object.entries(evaluatorsData).map(
+      ([id, data]: [string, any]) => ({ id, ...data })
+    );
+
+    // Filter evaluators by specialty match
+    const matchingEvaluators = allEvaluators.filter((evaluator) =>
+      evaluator.specialties.includes(establishment.category)
+    );
+
+    if (matchingEvaluators.length < 2) {
+      return NextResponse.json(
+        {
+          error: `Not enough evaluators with specialty "${establishment.category}". Need at least 2, found ${matchingEvaluators.length}.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Get current assignments count for each evaluator
+    const assignmentsSnap = await db.ref("assignments").once("value");
+    const assignmentsData = assignmentsSnap.val();
+
+    const evaluatorAssignmentCounts = new Map<string, number>();
+    if (assignmentsData) {
+      Object.values(assignmentsData).forEach((assignment: any) => {
+        evaluatorAssignmentCounts.set(
+          assignment.evaluator1Id,
+          (evaluatorAssignmentCounts.get(assignment.evaluator1Id) || 0) + 1
         );
-      }
+        evaluatorAssignmentCounts.set(
+          assignment.evaluator2Id,
+          (evaluatorAssignmentCounts.get(assignment.evaluator2Id) || 0) + 1
+        );
+      });
+    }
 
-      const allEvaluators: Evaluator[] = Object.entries(evaluatorsData).map(
-        ([id, data]: [string, any]) => ({ id, ...data })
-      );
+    // Sort by least assignments first
+    const sortedEvaluators = matchingEvaluators.sort((a, b) => {
+      const aCount = evaluatorAssignmentCounts.get(a.id) || 0;
+      const bCount = evaluatorAssignmentCounts.get(b.id) || 0;
+      return aCount - bCount;
+    });
 
-      // Filter evaluators by specialty match
-      const matchingEvaluators = allEvaluators.filter((evaluator) =>
-        evaluator.specialties.includes(establishment.category)
-      );
+    // If evaluators not provided, auto-assign both
+    if (!evaluator1Id && !evaluator2Id) {
+      selectedEvaluator1Id = sortedEvaluators[0].id;
+      selectedEvaluator2Id = sortedEvaluators[1].id;
 
-      if (matchingEvaluators.length < 2) {
+      console.log("Auto-assigned both evaluators:", {
+        evaluator1: sortedEvaluators[0].name,
+        evaluator2: sortedEvaluators[1].name,
+        establishment: establishment.name,
+      });
+    }
+    // If only evaluator1 provided, auto-assign evaluator2
+    else if (evaluator1Id && !evaluator2Id) {
+      // Validate evaluator1 has matching specialty
+      const evaluator1 = matchingEvaluators.find((e) => e.id === evaluator1Id);
+      if (!evaluator1) {
         return NextResponse.json(
           {
-            error: `Not enough evaluators with specialty "${establishment.category}". Need at least 2, found ${matchingEvaluators.length}.`,
+            error: `Evaluator does not have specialty "${establishment.category}"`,
           },
           { status: 400 }
         );
       }
 
-      // Get current assignments count for each evaluator
-      const assignmentsSnap = await db.ref("assignments").once("value");
-      const assignmentsData = assignmentsSnap.val();
-
-      const evaluatorAssignmentCounts = new Map<string, number>();
-      if (assignmentsData) {
-        Object.values(assignmentsData).forEach((assignment: any) => {
-          evaluatorAssignmentCounts.set(
-            assignment.evaluator1Id,
-            (evaluatorAssignmentCounts.get(assignment.evaluator1Id) || 0) + 1
-          );
-          evaluatorAssignmentCounts.set(
-            assignment.evaluator2Id,
-            (evaluatorAssignmentCounts.get(assignment.evaluator2Id) || 0) + 1
-          );
-        });
+      // Find best match for evaluator2 (excluding evaluator1)
+      const availableEvaluators = sortedEvaluators.filter(
+        (e) => e.id !== evaluator1Id
+      );
+      if (availableEvaluators.length === 0) {
+        return NextResponse.json(
+          { error: "No other evaluators available with matching specialty" },
+          { status: 400 }
+        );
       }
 
-      // Sort by least assignments first
-      const sortedEvaluators = matchingEvaluators.sort((a, b) => {
-        const aCount = evaluatorAssignmentCounts.get(a.id) || 0;
-        const bCount = evaluatorAssignmentCounts.get(b.id) || 0;
-        return aCount - bCount;
-      });
+      selectedEvaluator2Id = availableEvaluators[0].id;
 
-      // Select top 2 evaluators with least assignments
-      selectedEvaluator1Id = sortedEvaluators[0].id;
-      selectedEvaluator2Id = sortedEvaluators[1].id;
-
-      console.log("Auto-assigned evaluators:", {
-        evaluator1: sortedEvaluators[0].name,
-        evaluator2: sortedEvaluators[1].name,
+      console.log("Auto-assigned evaluator2:", {
+        evaluator1: evaluator1.name,
+        evaluator2: availableEvaluators[0].name,
         establishment: establishment.name,
       });
-    } else {
+    }
+    // If both evaluators provided, validate them
+    else {
       // Validate manually provided evaluators
       if (selectedEvaluator1Id === selectedEvaluator2Id) {
         return NextResponse.json(
