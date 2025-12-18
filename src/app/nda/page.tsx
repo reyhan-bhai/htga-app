@@ -1,8 +1,9 @@
 "use client";
 import { useState, useRef, useEffect, useContext } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../../htga-app/context/AuthContext";
+import { useAuth } from "../../htga-app/context/AuthContext";
 import { PushNotificationsContext } from "@/components/notifications/PushNotificationsProvider";
+import { MobileLayoutWrapper } from "../layout-wrapper";
 import {
   getFCMToken,
   saveFCMTokenToServer,
@@ -221,7 +222,7 @@ export default function NDAPage() {
     }
 
     signNDA();
-    router.push("/htga/restaurants");
+    router.push("/dashboard");
   };
 
   const startDrawing = (
@@ -288,9 +289,10 @@ export default function NDAPage() {
   };
 
   return (
-    <div className="min-h-screen bg-cream">
-      {/* Header */}
-      <div className="bg-cream pt-12 pb-4 px-6">
+    <MobileLayoutWrapper>
+      <div className="min-h-screen bg-cream">
+        {/* Header */}
+        <div className="bg-cream pt-12 pb-4 px-6">
         <div className="flex justify-between items-start mb-2">
           <div>
             <h2 className="text-2xl font-bold text-[#1B1B1B]">Good Morning,</h2>
@@ -424,8 +426,9 @@ export default function NDAPage() {
         </button>
       </div>
 
-      {/* Bottom Navigation Bar */}
-      <div className="fixed bottom-0 left-0 right-0 h-1 bg-black"></div>
-    </div>
+        {/* Bottom Navigation Bar */}
+        <div className="fixed bottom-0 left-0 right-0 h-1 bg-black"></div>
+      </div>
+    </MobileLayoutWrapper>
   );
 }
