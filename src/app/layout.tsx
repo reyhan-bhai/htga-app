@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "../htga-app/context/AuthContext";
+import PushNotificationsProvider from "@/components/notifications/PushNotificationsProvider";
+import "../htga-app/styles/htga.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,13 +16,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Push Notifications Demo",
-  description: "Demo aplikasi push notifications",
+  title: "HTGA - HalalTrip Gastronomy Award",
+  description: "Evaluator App for HalalTrip Gastronomy Award",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "PushDemo",
+    title: "HTGA",
   },
 };
 
@@ -54,7 +57,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
-        {children}
+        <PushNotificationsProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </PushNotificationsProvider>
       </body>
     </html>
   );
