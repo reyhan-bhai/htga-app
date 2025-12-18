@@ -5,6 +5,7 @@ import { useState } from "react";
 import Swal from "sweetalert2";
 
 import TableComponent from "@/components/table/Table";
+import { useRestaurants } from "@/context/RestaurantContext";
 import {
   Button,
   Checkbox,
@@ -35,7 +36,6 @@ const columns = [
   { name: "Remarks", uid: "remarks" },
   { name: "Actions", uid: "actions" },
 ];
-
 
 // Restaurant field configuration for the modal
 const restaurantFields: FieldConfig[] = [
@@ -95,8 +95,7 @@ const restaurantFields: FieldConfig[] = [
 ];
 
 export default function RestaurantsPage() {
-  const [restaurants, setRestaurants] = React.useState<any[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
+  const { restaurants, isLoading, refetchRestaurants } = useRestaurants();
   const [page, setPage] = React.useState(1);
   const [selectedCities, setSelectedCities] = React.useState<string[]>([]);
   const [selectedStatus, setSelectedStatus] = React.useState<string[]>([]);
@@ -105,30 +104,6 @@ export default function RestaurantsPage() {
   const [modalMode, setModalMode] = useState<"add" | "edit" | "view">("add");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [restaurantToDelete, setRestaurantToDelete] = useState<any>(null);
-
-  React.useEffect(() => {
-    fetchRestaurants();
-  }, []);
-
-  const fetchRestaurants = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch("/api/establishments");
-      if (!response.ok) throw new Error("Failed to fetch restaurants");
-      const data = await response.json();
-      setRestaurants(data.establishments || []);
-    } catch (error) {
-      console.error("Error fetching restaurants:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Failed to load restaurants",
-        confirmButtonColor: "#A67C37",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleAddRestaurant = () => {
     setSelectedRestaurant(null);
@@ -183,7 +158,7 @@ export default function RestaurantsPage() {
       }
 
       setIsModalOpen(false);
-      fetchRestaurants();
+      refetchRestaurants();
     } catch (error) {
       await Swal.fire({
         icon: "error",
@@ -232,7 +207,7 @@ export default function RestaurantsPage() {
 
       setIsDeleteModalOpen(false);
       setRestaurantToDelete(null);
-      fetchRestaurants();
+      refetchRestaurants();
     } catch (error) {
       console.error("Error deleting restaurant:", error);
       await Swal.fire({
