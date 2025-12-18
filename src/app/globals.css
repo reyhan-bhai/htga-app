@@ -60,3 +60,15 @@ textarea::placeholder {
 ::-webkit-scrollbar-thumb:hover {
   background: #505050;
 }
+
+/* Remove text cursor/caret outside input fields */
+* {
+  caret-color: transparent;
+}
+
+/* Show cursor only in input fields */
+input,
+textarea,
+[contenteditable="true"] {
+  caret-color: auto;
+}
