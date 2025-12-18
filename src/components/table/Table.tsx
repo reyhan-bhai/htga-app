@@ -76,9 +76,12 @@ export default function TableComponent({
             </div>
           );
         case "remarks":
-          const trimmedValue = cellValue?.trim();
+          const trimmedValue = cellValue ? String(cellValue).trim() : "";
+          console.log("trimmedValue:", trimmedValue);
           {
-            return (
+            return trimmedValue.length === 0 ? (
+              <span className="text-gray-400 italic">No remarks</span>
+            ) : (
               <a
                 href={trimmedValue}
                 target="_blank"
@@ -89,6 +92,34 @@ export default function TableComponent({
               </a>
             );
           }
+        case "halalStatus":
+          const halalValue = cellValue ? String(cellValue).trim() : "";
+          return halalValue.length === 0 ? (
+            <span className="text-gray-400 italic">No Halal Status</span>
+          ) : (
+            halalValue
+          );
+        case "budget":
+          const budgetValue = cellValue ? String(cellValue).trim() : "";
+          return budgetValue.length === 0 ? (
+            <span className="text-gray-400 italic">No Budget</span>
+          ) : (
+            budgetValue
+          );
+        case "rating":
+          const ratingValue = cellValue ? String(cellValue).trim() : "";
+          return ratingValue.length === 0 ? (
+            <span className="text-gray-400 italic">No Rating</span>
+          ) : (
+            ratingValue
+          );
+        case "contactInfo":
+          const contactValue = cellValue ? String(cellValue).trim() : "";
+          return contactValue.length === 0 ? (
+            <span className="text-gray-400 italic">No Contact</span>
+          ) : (
+            contactValue
+          );
         default:
           return cellValue;
       }

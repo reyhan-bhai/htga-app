@@ -93,7 +93,7 @@ export async function GET(request: Request) {
 
     if (id) {
       // Get specific evaluator by UID or custom ID
-      let snapshot = await db.ref(`evaluators/${id}`).once("value");
+      const snapshot = await db.ref(`evaluators/${id}`).once("value");
       let evaluator = snapshot.val();
       let evaluatorId = id;
 

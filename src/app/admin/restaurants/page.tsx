@@ -2,6 +2,7 @@
 
 import EntityModal, { FieldConfig } from "@/components/admin/EntityModal";
 import { useState } from "react";
+import Swal from "sweetalert2";
 
 import TableComponent from "@/components/table/Table";
 import {
@@ -23,115 +24,33 @@ import React from "react";
 import { MdAdd, MdClose, MdFilterList, MdSearch } from "react-icons/md";
 
 const columns = [
-  { name: "ID", uid: "id" },
-  { name: "Eating Establishments", uid: "eating_establishments" },
+  // { name: "ID", uid: "id" },
+  { name: "Restaurant Name", uid: "name" },
+  { name: "Category", uid: "category" },
   { name: "Address", uid: "address" },
-  { name: "Contact", uid: "contact" },
+  { name: "Contact", uid: "contactInfo" },
   { name: "Rating", uid: "rating" },
   { name: "Budget (MYR)", uid: "budget" },
-  { name: "Halal Status", uid: "halal_status" },
+  { name: "Halal Status", uid: "halalStatus" },
   { name: "Remarks", uid: "remarks" },
   { name: "Actions", uid: "actions" },
 ];
 
-const restaurants = [
-  {
-    id: "09989",
-    eating_establishments: "Adam's Kitchen - Taman Kota Masai",
-    address:
-      "53 Jalan Ekoperniagaan 2 Taman Kota Masai 81700 Pasir Gudang, Johor",
-    contact: "+60188708556",
-    rating: "4.7",
-    budget: "50",
-    halal_status: "Muslim-Owned",
-    remarks:
-      "Source: https://www.facebook.com/100090730221994/videos/%F0%9D%9F%AD%F0%9D%9F%B5-%F0%9D%97%A0%F0%9D%97%AE%F0%9D%97%BF%F0%9D%97%B0%F0%9D%97%B5-%F0%9D%9F%AE%F0%9D%9F%AC%F0%9D%9F%AE%F0%9D%9F%B0%F0%9D%97%9C%F0%9D%98%81%F0%9D%98%80-%F0%9D%97%AE%F0%9D%97%BB-%F0%9D%97%B5%F0%9D%97%BC%F0%9D%97%BB%F0%9D%97%BC%F0%9D%98%82%F0%9D%97%BF-%F0%9D%98%81%F0%9D%97%BC-%F0%9D%97%B5%F0%9D%97%AE%F0%9D%98%83%F0%9D%97%B2-%F0%9D%97%96%F0%9D%97%B5%F0%9D%97%B2%F0%9D%97%B3-%F0%9D%97%A0%F0%9D%98%82%F0%9D%97%B5%F0%9D%97%AE%F0%9D%97%BA%F0%9D%97%BA%F0%9D%97%AE%F0%9D%97%B1-%F0%9D%97%A5%F0%9D%97%B2%F0%9D%97%B1%F0%9D%98%87%F0%9D%98%82%F0%9D%97%AE%F0%9D%97%BB-%F0%9D%97%A7%F0%9D%97%B5%F0%9D%97%B6%F0%9D%97%AE%F0%9D%97%BB-%F0%9D%97%A3%F0%9D%97%BB-%F0%9D%97%A6%F0%9D%97%B5%F0%9D%97%AE%F0%9D%98%87%F0%9D%97%AE%F0%9D%97%BB%F0%9D%97%AE-%F0%9D%97%A2%F0%9D%98%84%F0%9D%97%BB%F0%9D%97%B2%F0%9D%97%BF-/1596492297819022/",
-  },
-  {
-    id: "09990",
-    eating_establishments: "ADS Corner's - Pusat Perdagangan Kebun Teh",
-    address:
-      "No 44, Jalan Kebun Teh 1, Pusat Perdagangan Kebun Teh 80250 Johor Bahru, Johor",
-    contact: "+60142449717",
-    rating: "4.3",
-    budget: "50",
-    halal_status: "Muslim-friendly",
-    remarks: "Source: Their menu",
-  },
-  {
-    id: "09991",
-    eating_establishments: "Alina Bakery",
-    address:
-      "S11-01, Pusat Komersil Visi Medini Persiaran Medini 2, Iskandar Puteri, 79250 Johor Bahru, Johor Darul Ta'zim",
-    contact: "075102287",
-    rating: "4.9",
-    budget: "50",
-    halal_status: "Muslim-friendly",
-    remarks: "Source: https://www.instagram.com/reel/DGX0pTBpavo/?hl=en",
-  },
-  {
-    id: "09992",
-    eating_establishments: "Beriani Bonda House 1969 - BBU",
-    address:
-      "No 29, Jalan Padi Emas 3/1 Bandar Baru Uda 81200 Johor Bahru, Johor",
-    contact: "+60127933310",
-    rating: "4.6",
-    budget: "50",
-    halal_status: "Muslim-Owned",
-    remarks:
-      "Source: https://www.google.com/search?q=Beriani+Bonda+House+1969+story",
-  },
-  {
-    id: "09993",
-    eating_establishments: "Big Food - Taman Nong Chik",
-    address:
-      "No 1, Jln Kolam Air, Tmn Nong Chik Height 80200 Johor Bahru Johor",
-    contact: "+60177313386",
-    rating: "4.2",
-    budget: "100",
-    halal_status: "Muslim-Owned",
-    remarks: "Source: https://www.instagram.com/p/BdzQkzcH8HJ/?hl=en",
-  },
-  {
-    id: "09994",
-    eating_establishments: "Bite By Majid Murtabak - Larkin Jaya",
-    address: "No.11, Jalan Cenderawasih, Larkin Jaya 80350 Johor Bahru, Johor",
-    contact: "+60177555305",
-    rating: "4.5",
-    budget: "50",
-    halal_status: "Muslim-friendly",
-    remarks: "Their menu",
-  },
-  {
-    id: "09995",
-    eating_establishments: "Brew & Chill - Lovell @ Country Garden Danga Bay",
-    address:
-      "Lovell @ Country Garden Danga Bay, Unit 3-02 Danga Avenue, Persiaran Danga Perdana, Country Garden Danga Bay 80200 Johor Bahru, Johor",
-    contact: "+60146116908",
-    rating: "4.6",
-    budget: "50",
-    halal_status: "Muslim-Owned",
-    remarks: "https://www.instagram.com/brewnchill.my/?hl=en",
-  },
-  {
-    id: "09996",
-    eating_establishments: "Bubur Nasi No 1 - Jalan Dataran Larkin 6",
-    address: "No. 12, Jalan Dataran Larkin 6, Larkin 80350 Johor Bahru, Johor",
-    contact: "+60177169699",
-    rating: "4.6",
-    budget: "50",
-    halal_status: "Muslim-Owned",
-    remarks: "https://www.instagram.com/p/CZ61Dk6JlOu/",
-  },
-];
 
 // Restaurant field configuration for the modal
 const restaurantFields: FieldConfig[] = [
   {
-    name: "eating_establishments",
+    name: "name",
     label: "Restaurant Name",
     type: "text",
     placeholder: "Type your Restaurant Name...",
+    required: true,
+  },
+  {
+    name: "category",
+    label: "Category",
+    type: "text",
+    placeholder: "e.g., Bakery, FastFood, Italian",
     required: true,
   },
   {
@@ -142,7 +61,7 @@ const restaurantFields: FieldConfig[] = [
     rows: 3,
   },
   {
-    name: "contact",
+    name: "contactInfo",
     label: "Restaurant Contact",
     type: "text",
     placeholder: "Contact / Website",
@@ -160,7 +79,7 @@ const restaurantFields: FieldConfig[] = [
     placeholder: "e.g., 50",
   },
   {
-    name: "halal_status",
+    name: "halalStatus",
     label: "Halal Status",
     type: "select",
     placeholder: "Select Halal Status",
@@ -176,6 +95,8 @@ const restaurantFields: FieldConfig[] = [
 ];
 
 export default function RestaurantsPage() {
+  const [restaurants, setRestaurants] = React.useState<any[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
   const [page, setPage] = React.useState(1);
   const [selectedCities, setSelectedCities] = React.useState<string[]>([]);
   const [selectedStatus, setSelectedStatus] = React.useState<string[]>([]);
@@ -184,6 +105,30 @@ export default function RestaurantsPage() {
   const [modalMode, setModalMode] = useState<"add" | "edit" | "view">("add");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [restaurantToDelete, setRestaurantToDelete] = useState<any>(null);
+
+  React.useEffect(() => {
+    fetchRestaurants();
+  }, []);
+
+  const fetchRestaurants = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch("/api/establishments");
+      if (!response.ok) throw new Error("Failed to fetch restaurants");
+      const data = await response.json();
+      setRestaurants(data.establishments || []);
+    } catch (error) {
+      console.error("Error fetching restaurants:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to load restaurants",
+        confirmButtonColor: "#A67C37",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleAddRestaurant = () => {
     setSelectedRestaurant(null);
@@ -199,11 +144,53 @@ export default function RestaurantsPage() {
 
   const handleSaveRestaurant = async (restaurant: any) => {
     try {
-      // TODO: Implement API call to save restaurant
-      console.log("Saving restaurant:", restaurant);
+      if (modalMode === "add") {
+        const response = await fetch("/api/establishments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(restaurant),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to create restaurant");
+        }
+
+        await Swal.fire({
+          icon: "success",
+          title: "Restaurant Created!",
+          text: "Restaurant has been added successfully.",
+          confirmButtonColor: "#A67C37",
+        });
+      } else if (modalMode === "edit") {
+        const response = await fetch("/api/establishments", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(restaurant),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to update restaurant");
+        }
+
+        await Swal.fire({
+          icon: "success",
+          title: "Success",
+          text: "Restaurant updated successfully",
+          confirmButtonColor: "#A67C37",
+        });
+      }
+
       setIsModalOpen(false);
+      fetchRestaurants();
     } catch (error) {
-      console.error("Error saving restaurant:", error);
+      await Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: error instanceof Error ? error.message : "Unknown error",
+        confirmButtonColor: "#A67C37",
+      });
     }
   };
 
@@ -218,11 +205,43 @@ export default function RestaurantsPage() {
     setIsDeleteModalOpen(true);
   };
 
-  const confirmDelete = () => {
-    // TODO: Implement API call to delete restaurant
-    console.log("Deleting restaurant:", restaurantToDelete);
-    setIsDeleteModalOpen(false);
-    setRestaurantToDelete(null);
+  const confirmDelete = async () => {
+    try {
+      if (!restaurantToDelete?.id) {
+        throw new Error("Restaurant ID is missing");
+      }
+
+      const response = await fetch(
+        `/api/establishments?id=${restaurantToDelete.id}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to delete restaurant");
+      }
+
+      await Swal.fire({
+        icon: "success",
+        title: "Success",
+        text: "Restaurant deleted successfully",
+        confirmButtonColor: "#A67C37",
+      });
+
+      setIsDeleteModalOpen(false);
+      setRestaurantToDelete(null);
+      fetchRestaurants();
+    } catch (error) {
+      console.error("Error deleting restaurant:", error);
+      await Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: error instanceof Error ? error.message : "Unknown error",
+        confirmButtonColor: "#A67C37",
+      });
+    }
   };
 
   const cities = ["Johor", "Kuala Lumpur", "Penang", "Selangor"];
@@ -359,13 +378,19 @@ export default function RestaurantsPage() {
       </div>
 
       <div className="bg-white rounded-lg">
-        <TableComponent
-          columns={columns}
-          data={restaurants}
-          onEdit={handleEditRestaurant}
-          onView={handleViewRestaurant}
-          onDelete={handleDeleteRestaurant}
-        />
+        {isLoading ? (
+          <div className="flex justify-center items-center py-8">
+            <p className="text-gray-500">Loading restaurants...</p>
+          </div>
+        ) : (
+          <TableComponent
+            columns={columns}
+            data={restaurants}
+            onEdit={handleEditRestaurant}
+            onView={handleViewRestaurant}
+            onDelete={handleDeleteRestaurant}
+          />
+        )}
       </div>
 
       <div className="flex justify-center items-center mt-4">

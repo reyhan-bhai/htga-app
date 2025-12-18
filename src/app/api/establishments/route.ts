@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase-admin";
 import { Establishment } from "@/types/restaurant";
+import { NextResponse } from "next/server";
 
 // GET - Get all establishments or specific establishment by ID
 export async function GET(request: Request) {
@@ -57,7 +57,16 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, category, address } = body;
+    const {
+      name,
+      category,
+      address,
+      contactInfo,
+      rating,
+      budget,
+      halalStatus,
+      remarks,
+    } = body;
 
     // Validation
     if (!name || !category) {
@@ -70,13 +79,19 @@ export async function POST(request: Request) {
     const establishmentRef = db.ref("establishments").push();
     const establishmentId = establishmentRef.key!;
 
-    const newEstablishment: Omit<Establishment, "id"> = {
+    const newEstablishment: any = {
       name,
       category,
-      address: address || undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+
+    if (address) newEstablishment.address = address;
+    if (contactInfo) newEstablishment.contactInfo = contactInfo;
+    if (rating) newEstablishment.rating = rating;
+    if (budget) newEstablishment.budget = budget;
+    if (halalStatus) newEstablishment.halalStatus = halalStatus;
+    if (remarks) newEstablishment.remarks = remarks;
 
     await establishmentRef.set(newEstablishment);
 
@@ -97,7 +112,17 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    const { id, name, category, address } = body;
+    const {
+      id,
+      name,
+      category,
+      address,
+      contactInfo,
+      rating,
+      budget,
+      halalStatus,
+      remarks,
+    } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -115,13 +140,18 @@ export async function PUT(request: Request) {
       );
     }
 
-    const updates: Partial<Establishment> = {
+    const updates: any = {
       updatedAt: new Date().toISOString(),
     };
 
     if (name) updates.name = name;
     if (category) updates.category = category;
-    if (address !== undefined) updates.address = address;
+    if (address) updates.address = address;
+    if (contactInfo) updates.contactInfo = contactInfo;
+    if (rating) updates.rating = rating;
+    if (budget) updates.budget = budget;
+    if (halalStatus) updates.halalStatus = halalStatus;
+    if (remarks) updates.remarks = remarks;
 
     await db.ref(`establishments/${id}`).update(updates);
 

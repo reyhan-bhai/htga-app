@@ -17,6 +17,11 @@ export interface Establishment {
   name: string;
   category: string; // "Bakery", "FastFood", "Italy"
   address?: string;
+  contactInfo?: string;
+  rating?: number; // Average rating from evaluators
+  budget?: string;
+  halalStatus?: string;
+  remarks?: string;
   createdAt: string;
   updatedAt: string;
 }
