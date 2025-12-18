@@ -32,7 +32,7 @@ const sampleEvaluators = [
     phone: "+60123456789",
     position: "Senior Evaluator",
     company: "HTGA Corp",
-    specialties: ["Bakery", "Italy", "FastFood"],
+    specialties: "Bakery",
     maxAssignments: 5,
   },
   {
@@ -41,7 +41,7 @@ const sampleEvaluators = [
     phone: "+60123456790",
     position: "Food Critic",
     company: "Culinary Reviews",
-    specialties: ["Italy", "FastFood", "Bakery"],
+    specialties: "Italy",
     maxAssignments: 4,
   },
   {
@@ -50,7 +50,7 @@ const sampleEvaluators = [
     phone: "+60123456791",
     position: "Restaurant Inspector",
     company: "Food Safety Inc",
-    specialties: ["FastFood", "Bakery"],
+    specialties: "FastFood",
     maxAssignments: 6,
   },
   {
@@ -59,7 +59,7 @@ const sampleEvaluators = [
     phone: "+60123456792",
     position: "Quality Assurance",
     company: "Dining Standards",
-    specialties: ["Bakery", "Italy"],
+    specialties: "Bakery",
     maxAssignments: 5,
   },
   {
@@ -68,7 +68,7 @@ const sampleEvaluators = [
     phone: "+60123456793",
     position: "Field Evaluator",
     company: "Restaurant Reviews Co",
-    specialties: ["FastFood", "Italy"],
+    specialties: "FastFood",
     maxAssignments: 7,
   },
   {
@@ -77,7 +77,7 @@ const sampleEvaluators = [
     phone: "+60123456794",
     position: "Senior Analyst",
     company: "Food Quality Labs",
-    specialties: ["Bakery", "FastFood"],
+    specialties: "Bakery",
     maxAssignments: 4,
   },
   {
@@ -86,7 +86,7 @@ const sampleEvaluators = [
     phone: "+60123456795",
     position: "Operations Manager",
     company: "Culinary Excellence",
-    specialties: ["Italy", "Bakery"],
+    specialties: "Italy",
     maxAssignments: 6,
   },
   {
@@ -95,7 +95,7 @@ const sampleEvaluators = [
     phone: "+60123456796",
     position: "International Evaluator",
     company: "Global Food Standards",
-    specialties: ["Italy", "FastFood", "Bakery"],
+    specialties: "Italy",
     maxAssignments: 5,
   },
   {
@@ -104,7 +104,7 @@ const sampleEvaluators = [
     phone: "+60123456797",
     position: "Compliance Officer",
     company: "Food Safety Authority",
-    specialties: ["FastFood", "Bakery"],
+    specialties: "FastFood",
     maxAssignments: 8,
   },
   {
@@ -113,7 +113,7 @@ const sampleEvaluators = [
     phone: "+60123456798",
     position: "Research Analyst",
     company: "Dining Research Institute",
-    specialties: ["Italy", "FastFood"],
+    specialties: "Italy",
     maxAssignments: 5,
   },
 ];
