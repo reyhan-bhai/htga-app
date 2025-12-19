@@ -1,9 +1,758 @@
 "use client";
 
-import EditAssignmentModal from "./assignmentpage/EditAssignmentModal";
-import ManualMatchModal from "./assignmentpage/ManualMatchModal";
-import ConfirmDeleteModal from "./ConfirmDeleteModal";
-import EntityModal, { FieldConfig } from "./EntityModal";
+import {
+  Button,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Select,
+  SelectItem,
+} from "@nextui-org/react";
+import React, { useEffect, useState } from "react";
+import { MdClose } from "react-icons/md";
+
+// --- EntityModal Implementation ---
+
+export interface FieldConfig {
+  name: string;
+  label: string;
+  type:
+    | "text"
+    | "email"
+    | "tel"
+    | "password"
+    | "textarea"
+    | "select"
+    | "multiselect";
+  placeholder?: string;
+  required?: boolean;
+  options?: string[]; // For select and multiselect
+  rows?: number; // For textarea
+}
+
+interface EntityModalProps<T> {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (data: Partial<T>) => void;
+  entity?: T | null;
+  mode: "add" | "edit" | "view";
+  title: {
+    add: string;
+    edit: string;
+    view: string;
+  };
+  fields: FieldConfig[];
+  idField?: string; // Field name for the ID (e.g., 'id')
+}
+
+function EntityModal<T extends Record<string, any>>({
+  isOpen,
+  onClose,
+  onSave,
+  entity,
+  mode,
+  title,
+  fields,
+  idField = "id",
+}: EntityModalProps<T>) {
+  const [formData, setFormData] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    if (entity && (mode === "edit" || mode === "view")) {
+      const initialData: Record<string, any> = {};
+      fields.forEach((field) => {
+        initialData[field.name] =
+          entity[field.name] || (field.type === "multiselect" ? [] : "");
+      });
+      setFormData(initialData);
+    } else {
+      const initialData: Record<string, any> = {};
+      fields.forEach((field) => {
+        initialData[field.name] = field.type === "multiselect" ? [] : "";
+      });
+      setFormData(initialData);
+    }
+  }, [entity, mode, isOpen, fields]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (mode !== "view") {
+      const saveData: any = { ...formData };
+      if (entity && entity[idField]) {
+        saveData[idField] = entity[idField];
+      }
+      onSave(saveData);
+    }
+  };
+
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleMultiSelectToggle = (fieldName: string, value: string) => {
+    if (mode === "view") return;
+
+    setFormData((prev) => {
+      const currentValues = prev[fieldName] || [];
+      const newValues = currentValues.includes(value)
+        ? currentValues.filter((v: string) => v !== value)
+        : [...currentValues, value];
+      return { ...prev, [fieldName]: newValues };
+    });
+  };
+
+  if (!isOpen) return null;
+
+  const isViewMode = mode === "view";
+  const modalTitle =
+    mode === "add" ? title.add : mode === "edit" ? title.edit : title.view;
+
+  return (
+    <div className="fixed inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-hidden relative">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#FF6B00] to-[#FFA200] text-white p-4 rounded-t-lg flex items-center justify-between">
+          <h2 className="text-lg font-bold">{modalTitle}</h2>
+          <button
+            onClick={onClose}
+            className="hover:bg-white/20 p-1 rounded transition"
+          >
+            <MdClose size={24} />
+          </button>
+        </div>
+
+        {/* Form */}
+        <form
+          onSubmit={handleSubmit}
+          className="p-6 space-y-4 overflow-y-auto max-h-[calc(90vh-120px)]"
+        >
+          {/* ID Field (view mode only) */}
+          {isViewMode && entity && entity[idField] && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                ID
+              </label>
+              <input
+                type="text"
+                value={entity[idField]}
+                disabled
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600"
+              />
+            </div>
+          )}
+
+          {/* Dynamic Fields */}
+          {fields.map((field) => {
+            if (field.type === "textarea") {
+              return (
+                <div key={field.name}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {field.label}
+                  </label>
+                  <textarea
+                    name={field.name}
+                    value={formData[field.name] || ""}
+                    onChange={handleChange}
+                    disabled={isViewMode}
+                    placeholder={field.placeholder}
+                    rows={field.rows || 3}
+                    required={!isViewMode && field.required}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400  focus:ring-1 focus:ring-orange-500 focus:border-orange-500 outline-none disabled:bg-gray-100 disabled:text-gray-600"
+                  />
+                </div>
+              );
+            }
+
+            if (field.type === "select") {
+              return (
+                <div key={field.name}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {field.label}
+                  </label>
+                  <div className="relative">
+                    <select
+                      name={field.name}
+                      value={formData[field.name] || ""}
+                      onChange={handleChange}
+                      disabled={isViewMode}
+                      required={!isViewMode && field.required}
+                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 outline-none disabled:bg-gray-100 disabled:text-gray-600 appearance-none"
+                    >
+                      <option value="">
+                        {field.placeholder || `Select ${field.label}`}
+                      </option>
+                      {field.options?.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">
+                      <svg
+                        className="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            if (field.type === "multiselect") {
+              return (
+                <div key={field.name}>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {field.label}
+                  </label>
+                  <div className="flex gap-2 flex-wrap">
+                    {field.options?.map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() =>
+                          handleMultiSelectToggle(field.name, option)
+                        }
+                        disabled={isViewMode}
+                        className={`px-4 py-2 rounded-md border transition ${
+                          (formData[field.name] || []).includes(option)
+                            ? "bg-gradient-to-r from-[#FF6B00] to-[#FFA200] text-white border-orange-500"
+                            : "bg-white text-gray-700 border-gray-300 hover:border-orange-500"
+                        } ${
+                          isViewMode
+                            ? "opacity-60 cursor-not-allowed"
+                            : "cursor-pointer"
+                        }`}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+
+            // Default: text, email, tel
+            return (
+              <div key={field.name}>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {field.label}
+                </label>
+                <input
+                  type={field.type}
+                  name={field.name}
+                  value={formData[field.name] || ""}
+                  onChange={handleChange}
+                  disabled={isViewMode}
+                  placeholder={field.placeholder}
+                  required={!isViewMode && field.required}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400  focus:ring-1 focus:ring-orange-500 focus:border-orange-500 outline-none disabled:bg-gray-100 disabled:text-gray-600"
+                />
+              </div>
+            );
+          })}
+
+          {/* Buttons */}
+          <div className="flex gap-3 pt-2">
+            {!isViewMode ? (
+              <>
+                <button
+                  type="submit"
+                  className="flex-1 bg-gradient-to-r from-[#FF6B00] to-[#FFA200] text-white py-2 px-4 rounded-md hover:shadow-lg transition font-medium"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition font-medium"
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition font-medium"
+              >
+                Close
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// --- ConfirmDeleteModal Implementation ---
+
+interface ConfirmDeleteModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  entityName: string;
+  onConfirm: () => void;
+}
+
+function ConfirmDeleteModal({
+  isOpen,
+  onClose,
+  entityName,
+  onConfirm,
+}: ConfirmDeleteModalProps) {
+  return (
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <ModalContent>
+        {(onClose) => (
+          <>
+            <ModalHeader className="flex flex-col gap-1 text-black">
+              Confirm Delete
+            </ModalHeader>
+            <ModalBody>
+              <p className="text-black">
+                Are you sure you want to delete{" "}
+                <span className="font-bold">{entityName}</span>? This action
+                cannot be undone.
+              </p>
+            </ModalBody>
+            <ModalFooter>
+              <Button color="default" variant="light" onPress={onClose}>
+                Cancel
+              </Button>
+              <Button color="danger" onPress={onConfirm}>
+                Delete
+              </Button>
+            </ModalFooter>
+          </>
+        )}
+      </ModalContent>
+    </Modal>
+  );
+}
+
+// --- ManualMatchModal Implementation ---
+
+interface ManualMatchModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  selectedEvaluator: string;
+  setSelectedEvaluator: (id: string) => void;
+  selectedRestaurant: string;
+  setSelectedRestaurant: (id: string) => void;
+  evaluators: any[];
+  establishments: any[];
+  assignments: any[];
+  setIsLoading: (loading: boolean) => void;
+  fetchData: () => Promise<void>;
+  handleSaveManualMatch: (
+    selectedEvaluator: string,
+    selectedRestaurant: string,
+    establishments: any[],
+    evaluators: any[],
+    assignments: any[],
+    setIsLoading: (loading: boolean) => void,
+    fetchData: () => Promise<void>,
+    onClose: () => void,
+    setSelectedEvaluator: (id: string) => void,
+    setSelectedRestaurant: (id: string) => void
+  ) => Promise<void>;
+}
+
+function ManualMatchModal({
+  isOpen,
+  onClose,
+  selectedEvaluator,
+  setSelectedEvaluator,
+  selectedRestaurant,
+  setSelectedRestaurant,
+  evaluators,
+  establishments,
+  assignments,
+  setIsLoading,
+  fetchData,
+  handleSaveManualMatch,
+}: ManualMatchModalProps) {
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="lg"
+      className="mx-4"
+      scrollBehavior="inside"
+    >
+      <ModalContent>
+        {(onClose) => (
+          <>
+            <ModalHeader className="flex flex-col gap-1 text-black uppercase font-bold">
+              Manual Assignment
+            </ModalHeader>
+            <ModalBody>
+              <div className="flex flex-col gap-6">
+                <p className="text-gray-600 text-sm">
+                  Manually assign an evaluator to a restaurant. Select the
+                  evaluator and restaurant from the dropdowns below.
+                </p>
+
+                {/* Evaluator Selection */}
+                <div className="flex flex-col gap-2">
+                  <label className="font-semibold text-sm text-gray-700">
+                    Select Evaluator
+                  </label>
+                  <Select
+                    placeholder="Choose an evaluator..."
+                    selectedKeys={selectedEvaluator ? [selectedEvaluator] : []}
+                    onSelectionChange={(keys) => {
+                      const selected = Array.from(keys)[0] as string;
+                      setSelectedEvaluator(selected);
+                    }}
+                    classNames={{
+                      trigger: "bg-white border border-gray-300",
+                      value: "text-black",
+                    }}
+                  >
+                    {evaluators.map((evaluator) => (
+                      <SelectItem key={evaluator.id} textValue={evaluator.name}>
+                        <div className="flex flex-col">
+                          <span className="text-black">{evaluator.name}</span>
+                          <span className="text-xs text-gray-500">
+                            {Array.isArray(evaluator.specialties)
+                              ? evaluator.specialties.join(", ")
+                              : evaluator.specialties || "No specialty"}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </Select>
+                </div>
+
+                {/* Restaurant Selection */}
+                <div className="flex flex-col gap-2">
+                  <label className="font-semibold text-sm text-gray-700">
+                    Select Restaurant
+                  </label>
+                  <Select
+                    placeholder="Choose a restaurant..."
+                    selectedKeys={
+                      selectedRestaurant ? [selectedRestaurant] : []
+                    }
+                    onSelectionChange={(keys) => {
+                      const selected = Array.from(keys)[0] as string;
+                      setSelectedRestaurant(selected);
+                    }}
+                    classNames={{
+                      trigger: "bg-white border border-gray-300",
+                      value: "text-black",
+                    }}
+                  >
+                    {establishments.map((restaurant) => (
+                      <SelectItem
+                        key={restaurant.id}
+                        textValue={restaurant.name}
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-black">{restaurant.name}</span>
+                          <span className="text-xs text-gray-500">
+                            {restaurant.category}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </Select>
+                </div>
+
+                {/* Info Box */}
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <p className="text-sm text-amber-800">
+                    <strong>Note:</strong> Each restaurant can be assigned up to
+                    2 evaluators. Each evaluator can be assigned multiple
+                    restaurants.
+                  </p>
+                </div>
+              </div>
+            </ModalBody>
+            <ModalFooter>
+              <Button color="default" variant="light" onPress={onClose}>
+                Cancel
+              </Button>
+              <Button
+                className="bg-[#A67C37] text-white"
+                onPress={() =>
+                  handleSaveManualMatch(
+                    selectedEvaluator,
+                    selectedRestaurant,
+                    establishments,
+                    evaluators,
+                    assignments,
+                    setIsLoading,
+                    fetchData,
+                    onClose,
+                    setSelectedEvaluator,
+                    setSelectedRestaurant
+                  )
+                }
+                isDisabled={!selectedEvaluator || !selectedRestaurant}
+              >
+                Assign
+              </Button>
+            </ModalFooter>
+          </>
+        )}
+      </ModalContent>
+    </Modal>
+  );
+}
+
+// --- EditAssignmentModal Implementation ---
+
+interface EditAssignmentModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  editingRestaurant: any;
+  setEditingRestaurant: (restaurant: any) => void;
+  editEvaluator1: string;
+  setEditEvaluator1: (id: string) => void;
+  editEvaluator2: string;
+  setEditEvaluator2: (id: string) => void;
+  evaluators: any[];
+  assignments: any[];
+  establishments: any[];
+  isLoading: boolean;
+  setIsLoading: (loading: boolean) => void;
+  fetchData: () => Promise<void>;
+  handleSaveEdit: (
+    editingRestaurant: any,
+    editEvaluator1: string,
+    editEvaluator2: string,
+    assignments: any[],
+    establishments: any[],
+    evaluators: any[],
+    setIsLoading: (loading: boolean) => void,
+    fetchData: () => Promise<void>,
+    onClose: () => void,
+    setEditingRestaurant: (restaurant: any) => void,
+    setEditEvaluator1: (id: string) => void,
+    setEditEvaluator2: (id: string) => void
+  ) => Promise<void>;
+}
+
+function EditAssignmentModal({
+  isOpen,
+  onClose,
+  editingRestaurant,
+  setEditingRestaurant,
+  editEvaluator1,
+  setEditEvaluator1,
+  editEvaluator2,
+  setEditEvaluator2,
+  evaluators,
+  assignments,
+  establishments,
+  isLoading,
+  setIsLoading,
+  fetchData,
+  handleSaveEdit,
+}: EditAssignmentModalProps) {
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={() => {
+        onClose();
+        setEditingRestaurant(null);
+        setEditEvaluator1("");
+        setEditEvaluator2("");
+      }}
+      size="lg"
+      className="mx-4"
+      scrollBehavior="inside"
+    >
+      <ModalContent>
+        {(onClose) => (
+          <>
+            <ModalHeader className="flex flex-col gap-1 text-black uppercase font-bold">
+              Edit Assignment - {editingRestaurant?.name}
+            </ModalHeader>
+            <ModalBody>
+              <div className="flex flex-col gap-6">
+                <p className="text-gray-600 text-sm">
+                  Reassign or remove evaluators from this restaurant. Leave a
+                  field empty to remove that evaluator. Clear both to delete the
+                  assignment entirely.
+                </p>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+                  <strong>Restaurant Category:</strong>{" "}
+                  {editingRestaurant?.category}
+                </div>
+
+                {/* Evaluator 1 Selection */}
+                <div className="flex flex-col gap-2">
+                  <label className="font-semibold text-sm text-gray-700">
+                    Evaluator 1
+                  </label>
+                  <Select
+                    placeholder="Select evaluator 1 or leave empty"
+                    selectedKeys={editEvaluator1 ? [editEvaluator1] : []}
+                    onSelectionChange={(keys) => {
+                      const selected = Array.from(keys)[0];
+                      setEditEvaluator1(selected ? String(selected) : "");
+                    }}
+                    variant="bordered"
+                    classNames={{
+                      trigger: "bg-white border-gray-300",
+                      value: "text-black",
+                    }}
+                  >
+                    {evaluators
+                      .filter((e) =>
+                        e.specialties.includes(editingRestaurant?.category)
+                      )
+                      .map((evaluator) => (
+                        <SelectItem
+                          key={evaluator.id}
+                          value={evaluator.id}
+                          textValue={evaluator.name}
+                          className="text-black"
+                        >
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {evaluator.name}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {Array.isArray(evaluator.specialties)
+                                ? evaluator.specialties.join(", ")
+                                : evaluator.specialties}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                  </Select>
+                  {editEvaluator1 && (
+                    <Button
+                      size="sm"
+                      color="danger"
+                      variant="flat"
+                      onPress={() => setEditEvaluator1("")}
+                      startContent={<MdClose size={16} />}
+                    >
+                      Remove Evaluator 1
+                    </Button>
+                  )}
+                </div>
+
+                {/* Evaluator 2 Selection */}
+                <div className="flex flex-col gap-2">
+                  <label className="font-semibold text-sm text-gray-700">
+                    Evaluator 2
+                  </label>
+                  <Select
+                    placeholder="Select evaluator 2 or leave empty"
+                    selectedKeys={editEvaluator2 ? [editEvaluator2] : []}
+                    onSelectionChange={(keys) => {
+                      const selected = Array.from(keys)[0];
+                      setEditEvaluator2(selected ? String(selected) : "");
+                    }}
+                    variant="bordered"
+                    classNames={{
+                      trigger: "bg-white border-gray-300",
+                      value: "text-black",
+                    }}
+                  >
+                    {evaluators
+                      .filter(
+                        (e) =>
+                          e.specialties.includes(editingRestaurant?.category) &&
+                          e.id !== editEvaluator1
+                      )
+                      .map((evaluator) => (
+                        <SelectItem
+                          key={evaluator.id}
+                          value={evaluator.id}
+                          textValue={evaluator.name}
+                          className="text-black"
+                        >
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {evaluator.name}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {Array.isArray(evaluator.specialties)
+                                ? evaluator.specialties.join(", ")
+                                : evaluator.specialties}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                  </Select>
+                  {editEvaluator2 && (
+                    <Button
+                      size="sm"
+                      color="danger"
+                      variant="flat"
+                      onPress={() => setEditEvaluator2("")}
+                      startContent={<MdClose size={16} />}
+                    >
+                      Remove Evaluator 2
+                    </Button>
+                  )}
+                </div>
+
+                {!editEvaluator1 && !editEvaluator2 && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+                    ⚠️ Both evaluators are empty. This will delete the entire
+                    assignment.
+                  </div>
+                )}
+              </div>
+            </ModalBody>
+            <ModalFooter>
+              <Button color="default" variant="light" onPress={onClose}>
+                Cancel
+              </Button>
+              <Button
+                className="bg-[#A67C37] text-white"
+                onPress={() =>
+                  handleSaveEdit(
+                    editingRestaurant,
+                    editEvaluator1,
+                    editEvaluator2,
+                    assignments,
+                    establishments,
+                    evaluators,
+                    setIsLoading,
+                    fetchData,
+                    onClose,
+                    setEditingRestaurant,
+                    setEditEvaluator1,
+                    setEditEvaluator2
+                  )
+                }
+                isLoading={isLoading}
+              >
+                {!editEvaluator1 && !editEvaluator2
+                  ? "Delete Assignment"
+                  : "Update Assignment"}
+              </Button>
+            </ModalFooter>
+          </>
+        )}
+      </ModalContent>
+    </Modal>
+  );
+}
 
 // Evaluator field configuration
 const evaluatorFields: FieldConfig[] = [
