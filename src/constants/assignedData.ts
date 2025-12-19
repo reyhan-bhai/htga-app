@@ -5,14 +5,13 @@ export const evaluatorColumns = [
   { name: "Email", uid: "email" },
   { name: "Phone", uid: "phone" },
   { name: "Specialty", uid: "specialty" },
-  { name: "NDA Sent", uid: "nda_sent" },
-  { name: "NDA Reminder", uid: "nda_reminder" },
   { name: "NDA Status", uid: "nda_status" },
-  { name: "Rest. 1", uid: "restaurant_1" },
-  { name: "Rest. 2", uid: "restaurant_2" },
+  { name: "Send NDA", uid: "nda_sent" },
+  { name: "Send Reminder", uid: "nda_reminder" },
+  // { name: "Rest. 1", uid: "restaurant_1" },
+  // { name: "Rest. 2", uid: "restaurant_2" },
   { name: "Total", uid: "total_restaurant" },
   { name: "Completed", uid: "restaurant_completed" },
-  // { name: "Actions", uid: "actions" },
 ];
 
 // Columns for Restaurant View
@@ -25,7 +24,7 @@ export const restaurantColumns = [
   { name: "Eva 1 Done", uid: "completed_eva_1" },
   { name: "Evaluator 2", uid: "evaluator_2" },
   { name: "Eva 2 Done", uid: "completed_eva_2" },
-  // { name: "Actions", uid: "actions" },
+  { name: "Actions", uid: "actions" },
 ];
 
 // Dummy data for Evaluator View

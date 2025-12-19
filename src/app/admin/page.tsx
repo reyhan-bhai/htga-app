@@ -58,6 +58,10 @@ export default function AssignedPage() {
   const [assignments, setAssignments] = useState<any[]>([]);
   const [evaluators, setEvaluators] = useState<any[]>([]);
   const [establishments, setEstablishments] = useState<any[]>([]);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingRestaurant, setEditingRestaurant] = useState<any>(null);
+  const [editEvaluator1, setEditEvaluator1] = useState<string>("");
+  const [editEvaluator2, setEditEvaluator2] = useState<string>("");
 
   // Fetch data on mount
   useEffect(() => {
@@ -143,6 +147,7 @@ export default function AssignedPage() {
         : evaluator.specialties || "";
 
       evaluatorMap.set(evaluator.id, {
+        id: evaluator.id, // Required by Table component
         key: evaluator.id, // Add key for table
         eva_id: evaluator.id,
         name: evaluator.name,
@@ -169,6 +174,7 @@ export default function AssignedPage() {
 
       if (!assignment) {
         return {
+          id: establishment.id, // Required by Table component
           key: establishment.id, // Add key for table
           res_id: establishment.id,
           name: establishment.name,
@@ -190,6 +196,7 @@ export default function AssignedPage() {
       );
 
       return {
+        id: establishment.id, // Required by Table component
         key: establishment.id, // Add key for table
         res_id: establishment.id,
         name: establishment.name,
@@ -295,7 +302,7 @@ export default function AssignedPage() {
         return;
       }
 
-      // Check if restaurant already has 2 evaluators
+      // Check if restaurant already has assignments
       const existingAssignments = assignments.filter(
         (a) => a.establishmentId === selectedRestaurant
       );
@@ -317,15 +324,17 @@ export default function AssignedPage() {
         }
 
         // If restaurant has 2 evaluators, show error
-        await Swal.fire({
-          icon: "warning",
-          title: "Maximum Evaluators Reached",
-          text: `${restaurant.name} already has 2 evaluators assigned.`,
-        });
-        return;
+        if (assignment.evaluator1Id && assignment.evaluator2Id) {
+          await Swal.fire({
+            icon: "warning",
+            title: "Maximum Evaluators Reached",
+            text: `${restaurant.name} already has 2 evaluators assigned.`,
+          });
+          return;
+        }
       }
 
-      // Create new assignment (API will auto-select second evaluator)
+      // Create new assignment (API will auto-select second evaluator if available)
       const response = await fetch("/api/assignments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -388,7 +397,128 @@ export default function AssignedPage() {
   };
 
   const handleEdit = (item: any) => {
-    console.log("Edit:", item);
+    if (selectedView === "restaurant") {
+      // Find the assignment for this restaurant
+      const assignment = assignments.find(
+        (a) => a.establishmentId === item.res_id
+      );
+
+      setEditingRestaurant(item);
+      setEditEvaluator1(assignment?.evaluator1Id || "");
+      setEditEvaluator2(assignment?.evaluator2Id || "");
+      setIsEditModalOpen(true);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingRestaurant) return;
+
+    try {
+      setIsLoading(true);
+
+      // Find the existing assignment
+      const assignment = assignments.find(
+        (a) => a.establishmentId === editingRestaurant.res_id
+      );
+
+      if (!assignment) {
+        await Swal.fire({
+          icon: "error",
+          title: "No Assignment Found",
+          text: "This restaurant doesn't have an assignment to edit.",
+        });
+        return;
+      }
+
+      // Validate specialty matches
+      const restaurant = establishments.find(
+        (e) => e.id === editingRestaurant.res_id
+      );
+
+      if (editEvaluator1) {
+        const evaluator1 = evaluators.find((e) => e.id === editEvaluator1);
+        if (
+          evaluator1 &&
+          !evaluator1.specialties.includes(restaurant?.category)
+        ) {
+          await Swal.fire({
+            icon: "error",
+            title: "Specialty Mismatch",
+            text: `Evaluator 1 (${evaluator1.name}) does not have specialty "${restaurant?.category}".`,
+          });
+          return;
+        }
+      }
+
+      if (editEvaluator2) {
+        const evaluator2 = evaluators.find((e) => e.id === editEvaluator2);
+        if (
+          evaluator2 &&
+          !evaluator2.specialties.includes(restaurant?.category)
+        ) {
+          await Swal.fire({
+            icon: "error",
+            title: "Specialty Mismatch",
+            text: `Evaluator 2 (${evaluator2.name}) does not have specialty "${restaurant?.category}".`,
+          });
+          return;
+        }
+      }
+
+      // If both evaluators are removed, delete the assignment
+      if (!editEvaluator1 && !editEvaluator2) {
+        const response = await fetch(`/api/assignments/${assignment.id}`, {
+          method: "DELETE",
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to delete assignment");
+        }
+
+        await Swal.fire({
+          icon: "success",
+          title: "Assignment Removed",
+          text: `Successfully removed all evaluators from ${editingRestaurant.name}.`,
+        });
+      } else {
+        // Update the assignment
+        const response = await fetch(`/api/assignments/${assignment.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            evaluator1Id: editEvaluator1 || null,
+            evaluator2Id: editEvaluator2 || null,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to update assignment");
+        }
+
+        await Swal.fire({
+          icon: "success",
+          title: "Assignment Updated",
+          text: `Successfully updated evaluators for ${editingRestaurant.name}.`,
+        });
+      }
+
+      // Refresh data
+      await fetchData();
+      setIsEditModalOpen(false);
+      setEditingRestaurant(null);
+      setEditEvaluator1("");
+      setEditEvaluator2("");
+    } catch (error: any) {
+      console.error("Error updating assignment:", error);
+      await Swal.fire({
+        icon: "error",
+        title: "Update Failed",
+        text:
+          error.message || "An error occurred while updating the assignment.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -676,7 +806,7 @@ export default function AssignedPage() {
               data={evaluatorViewData}
               onView={handleViewDetails}
               onEdit={handleEdit}
-              hideActions={false}
+              hideActions={true}
               renderCell={(item, columnKey) =>
                 renderEvaluatorCell(item, columnKey, {
                   onSendNDAEmail: handleSendNDAEmail,
@@ -699,10 +829,15 @@ export default function AssignedPage() {
             <TableComponent
               columns={restaurantColumns}
               data={restaurantViewData}
-              onView={handleViewDetails}
               onEdit={handleEdit}
               hideActions={false}
-              renderCell={renderRestaurantCell}
+              renderCell={(item, columnKey) => {
+                // Let default handler manage actions
+                if (columnKey === "actions") {
+                  return undefined;
+                }
+                return renderRestaurantCell(item, columnKey);
+              }}
               emptyMessage={{
                 title:
                   establishments.length === 0
@@ -869,6 +1004,178 @@ export default function AssignedPage() {
           )}
         </ModalContent>
       </Modal>
+
+      {/* Edit Assignment Modal */}
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingRestaurant(null);
+          setEditEvaluator1("");
+          setEditEvaluator2("");
+        }}
+        size="lg"
+        className="mx-4"
+        scrollBehavior="inside"
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1 text-black uppercase font-bold">
+                Edit Assignment - {editingRestaurant?.name}
+              </ModalHeader>
+              <ModalBody>
+                <div className="flex flex-col gap-6">
+                  <p className="text-gray-600 text-sm">
+                    Reassign or remove evaluators from this restaurant. Leave a
+                    field empty to remove that evaluator. Clear both to delete
+                    the assignment entirely.
+                  </p>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+                    <strong>Restaurant Category:</strong>{" "}
+                    {editingRestaurant?.category}
+                  </div>
+
+                  {/* Evaluator 1 Selection */}
+                  <div className="flex flex-col gap-2">
+                    <label className="font-semibold text-sm text-gray-700">
+                      Evaluator 1
+                    </label>
+                    <Select
+                      placeholder="Select evaluator 1 or leave empty"
+                      selectedKeys={editEvaluator1 ? [editEvaluator1] : []}
+                      onSelectionChange={(keys) => {
+                        const selected = Array.from(keys)[0];
+                        setEditEvaluator1(selected ? String(selected) : "");
+                      }}
+                      variant="bordered"
+                      classNames={{
+                        trigger: "bg-white border-gray-300",
+                        value: "text-black",
+                      }}
+                    >
+                      {evaluators
+                        .filter((e) =>
+                          e.specialties.includes(editingRestaurant?.category)
+                        )
+                        .map((evaluator) => (
+                          <SelectItem
+                            key={evaluator.id}
+                            value={evaluator.id}
+                            textValue={evaluator.name}
+                            className="text-black"
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {evaluator.name}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {Array.isArray(evaluator.specialties)
+                                  ? evaluator.specialties.join(", ")
+                                  : evaluator.specialties}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                    </Select>
+                    {editEvaluator1 && (
+                      <Button
+                        size="sm"
+                        color="danger"
+                        variant="flat"
+                        onPress={() => setEditEvaluator1("")}
+                        startContent={<MdClose size={16} />}
+                      >
+                        Remove Evaluator 1
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Evaluator 2 Selection */}
+                  <div className="flex flex-col gap-2">
+                    <label className="font-semibold text-sm text-gray-700">
+                      Evaluator 2
+                    </label>
+                    <Select
+                      placeholder="Select evaluator 2 or leave empty"
+                      selectedKeys={editEvaluator2 ? [editEvaluator2] : []}
+                      onSelectionChange={(keys) => {
+                        const selected = Array.from(keys)[0];
+                        setEditEvaluator2(selected ? String(selected) : "");
+                      }}
+                      variant="bordered"
+                      classNames={{
+                        trigger: "bg-white border-gray-300",
+                        value: "text-black",
+                      }}
+                    >
+                      {evaluators
+                        .filter(
+                          (e) =>
+                            e.specialties.includes(
+                              editingRestaurant?.category
+                            ) && e.id !== editEvaluator1
+                        )
+                        .map((evaluator) => (
+                          <SelectItem
+                            key={evaluator.id}
+                            value={evaluator.id}
+                            textValue={evaluator.name}
+                            className="text-black"
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {evaluator.name}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {Array.isArray(evaluator.specialties)
+                                  ? evaluator.specialties.join(", ")
+                                  : evaluator.specialties}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                    </Select>
+                    {editEvaluator2 && (
+                      <Button
+                        size="sm"
+                        color="danger"
+                        variant="flat"
+                        onPress={() => setEditEvaluator2("")}
+                        startContent={<MdClose size={16} />}
+                      >
+                        Remove Evaluator 2
+                      </Button>
+                    )}
+                  </div>
+
+                  {!editEvaluator1 && !editEvaluator2 && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+                      ⚠️ Both evaluators are empty. This will delete the entire
+                      assignment.
+                    </div>
+                  )}
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <Button color="default" variant="light" onPress={onClose}>
+                  Cancel
+                </Button>
+                <Button
+                  className="bg-[#A67C37] text-white"
+                  onPress={handleSaveEdit}
+                  isLoading={isLoading}
+                >
+                  {!editEvaluator1 && !editEvaluator2
+                    ? "Delete Assignment"
+                    : "Update Assignment"}
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   );
 }
@@ -923,8 +1230,36 @@ const renderEvaluatorCell = (
         </div>
       );
 
+    case "nda_sent":
+      const isNotSent = item.nda_status === "Not Sent";
+
+      if (!isNotSent) {
+        return (
+          <div className="flex items-center justify-center">
+            <div className="px-2 sm:px-3 py-1 sm:py-2 bg-gray-100 text-gray-500 rounded-lg border border-gray-200 text-xs font-medium">
+              <span className="hidden sm:inline">✓ Sent</span>
+              <span className="sm:hidden">✓</span>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="flex items-center justify-center">
+          <button
+            onClick={() => handlers.onSendNDAEmail(item)}
+            className="px-2 sm:px-3 py-1 sm:py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-xs font-medium shadow-sm flex items-center gap-1"
+            title="Send NDA Email"
+          >
+            <span className="hidden sm:inline">📧 Send NDA</span>
+            <span className="sm:hidden">📧</span>
+          </button>
+        </div>
+      );
+
     case "nda_reminder":
       const isSigned = item.nda_status === "Signed";
+      const isPending = item.nda_status === "Pending";
 
       if (isSigned) {
         return (
@@ -937,31 +1272,27 @@ const renderEvaluatorCell = (
         );
       }
 
-      const isPending = item.nda_status === "Pending";
-      const isNotSent = item.nda_status === "Not Sent";
+      if (!isPending) {
+        return (
+          <div className="flex items-center justify-center">
+            <div className="px-2 sm:px-3 py-1 sm:py-2 bg-gray-100 text-gray-400 rounded-lg border border-gray-200 text-xs font-medium">
+              <span className="hidden sm:inline">—</span>
+              <span className="sm:hidden">—</span>
+            </div>
+          </div>
+        );
+      }
 
       return (
         <div className="flex items-center justify-center">
-          {isPending && (
-            <button
-              onClick={() => handlers.onSendNDAReminder(item)}
-              className="px-2 sm:px-3 py-1 sm:py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors text-xs font-medium shadow-sm flex items-center gap-1"
-              title="Send NDA Reminder"
-            >
-              <span className="hidden sm:inline">🔔 Remind</span>
-              <span className="sm:hidden">🔔</span>
-            </button>
-          )}
-          {isNotSent && (
-            <button
-              onClick={() => handlers.onSendNDAEmail(item)}
-              className="px-2 sm:px-3 py-1 sm:py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-xs font-medium shadow-sm flex items-center gap-1"
-              title="Send NDA Email"
-            >
-              <span className="hidden sm:inline">📧 Send NDA</span>
-              <span className="sm:hidden">📧</span>
-            </button>
-          )}
+          <button
+            onClick={() => handlers.onSendNDAReminder(item)}
+            className="px-2 sm:px-3 py-1 sm:py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors text-xs font-medium shadow-sm flex items-center gap-1"
+            title="Send NDA Reminder"
+          >
+            <span className="hidden sm:inline">� Send Reminder</span>
+            <span className="sm:hidden">�</span>
+          </button>
         </div>
       );
 

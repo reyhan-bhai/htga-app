@@ -127,7 +127,19 @@ export default function TableComponent({
     [onEdit, onDelete, onView, hideActions]
   );
 
-  const renderCell = customRenderCell || defaultRenderCell;
+  const renderCell = React.useCallback(
+    (item: any, columnKey: React.Key) => {
+      if (customRenderCell) {
+        const customResult = customRenderCell(item, columnKey);
+        // If custom render returns undefined, fall back to default
+        if (customResult !== undefined) {
+          return customResult;
+        }
+      }
+      return defaultRenderCell(item, columnKey);
+    },
+    [customRenderCell, defaultRenderCell]
+  );
 
   return (
     <Table
