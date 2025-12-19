@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useCallback, useContext, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import Swal from "sweetalert2";
 
 interface AssignedContextType {
@@ -65,6 +65,11 @@ export const AssignedProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
 
   return (
     <AssignedContext.Provider
