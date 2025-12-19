@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect, useContext } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../htga-app/context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 import { PushNotificationsContext } from "@/components/notifications/PushNotificationsProvider";
 import { MobileLayoutWrapper } from "../layout-wrapper";
 import {

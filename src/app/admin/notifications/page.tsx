@@ -21,7 +21,7 @@ export default function NotificationsPage() {
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(false);
   const [subscriberCount, setSubscriberCount] = useState<number | null>(null);
-  const { token, user } = useCurrentUser();
+  const { token } = useCurrentUser();
 
   // Fetch subscriber count on mount
   useState(() => {

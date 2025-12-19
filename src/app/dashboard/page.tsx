@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../htga-app/context/AuthContext";
-import { dummyEstablishments } from "../../htga-app/data/dummyData";
+import { useAuth } from "@/context/AuthContext";
+import { dummyEstablishments } from "@/data/dummyData";
 import { MobileLayoutWrapper } from "../layout-wrapper";
 
 type CategoryFilter = "All" | "Concept" | "Ethnic" | "Specialty";

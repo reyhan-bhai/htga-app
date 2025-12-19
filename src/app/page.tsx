@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../htga-app/context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 import { MobileLayoutWrapper } from "./layout-wrapper";
 
 export default function LoginPage() {

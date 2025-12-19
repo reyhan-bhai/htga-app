@@ -1,5 +1,5 @@
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../../htga-app/context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 
 export const useProfileLogic = () => {
   const router = useRouter();
