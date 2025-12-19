@@ -1,12 +1,12 @@
 "use client";
 
-import AssignmentHeader from "@/components/admin/assignmentpage/AssigmentHeader";
-import AssignmentTableSection from "@/components/admin/assignmentpage/AssignmentTableSection";
-import AssignmentFiltersSection from "@/components/admin/assignmentpage/AssignmentViewControl";
-import EditAssignmentModal from "@/components/admin/assignmentpage/EditAssignmentModal";
-import ManualMatchModal from "@/components/admin/assignmentpage/ManualMatchModal";
+import AdminHeader from "@/components/admin/AdminHeader";
+import AdminModal from "@/components/admin/AdminModal";
+import AdminTable from "@/components/admin/AdminTable";
+import AdminViewControl from "@/components/admin/AdminViewControl";
 import { useAssignedContext } from "@/context/AssignedContext";
 import {
+  clearFilters,
   getActiveFiltersCount,
   getEvaluatorViewData,
   getRestaurantViewData,
@@ -61,7 +61,8 @@ export default function AssignedPage() {
   return (
     <div className="text-black flex flex-col gap-4 lg:gap-6 p-4 sm:p-6">
       {/* Header Section */}
-      <AssignmentHeader
+      <AdminHeader
+        type="assignment"
         assignments={assignments}
         establishments={establishments}
         setIsLoading={setIsLoading}
@@ -70,7 +71,8 @@ export default function AssignedPage() {
       />
 
       {/* View Toggle & Search/Filter Section */}
-      <AssignmentFiltersSection
+      <AdminViewControl
+        type="assignment"
         selectedView={selectedView}
         setSelectedView={setSelectedView}
         selectedNDAStatus={selectedNDAStatus}
@@ -80,10 +82,14 @@ export default function AssignedPage() {
         activeFiltersCount={activeFiltersCount}
         evaluatorViewData={evaluatorViewData}
         restaurantViewData={restaurantViewData}
+        clearFilters={() =>
+          clearFilters(setSelectedNDAStatus, setSelectedMatchStatus)
+        }
       />
 
       {/* Table Section */}
-      <AssignmentTableSection
+      <AdminTable
+        type="assignment"
         selectedView={selectedView}
         isLoading={isLoading}
         evaluatorViewData={evaluatorViewData}
@@ -133,7 +139,9 @@ export default function AssignedPage() {
       </div>
 
       {/* Manual Match Modal */}
-      <ManualMatchModal
+      <AdminModal
+        type="assignment"
+        subtype="manual-match"
         isOpen={isManualMatchOpen}
         onClose={() => setIsManualMatchOpen(false)}
         selectedEvaluator={selectedEvaluator}
@@ -149,7 +157,9 @@ export default function AssignedPage() {
       />
 
       {/* Edit Assignment Modal */}
-      <EditAssignmentModal
+      <AdminModal
+        type="assignment"
+        subtype="edit"
         isOpen={isEditModalOpen}
         onClose={() => {
           setIsEditModalOpen(false);
