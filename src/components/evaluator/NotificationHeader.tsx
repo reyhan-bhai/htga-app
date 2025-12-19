@@ -28,7 +28,7 @@ export const NotificationHeader: React.FC<NotificationHeaderProps> = ({
           </svg>
         </button>
         <h1 className="text-black text-xl font-bold font-['Poppins']">Notification</h1>
-        <div></div>
+        <br />
       </div>
     </div>
   );

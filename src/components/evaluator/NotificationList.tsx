@@ -56,7 +56,7 @@ export const NotificationList: React.FC<NotificationListProps> = ({
         <div className="text-center py-12">
           <p className="text-gray-500">No notifications yet</p>
         </div>
-      )}
+      )}    
     </div>
   );
 };
