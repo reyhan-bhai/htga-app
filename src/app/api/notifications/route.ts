@@ -13,14 +13,14 @@ async function getAllTokens(): Promise<{ token: string; userId: string }[]> {
     // Iterate through all evaluators and their fcmTokens
     Object.entries(allEvaluators).forEach(
       ([userId, evaluatorData]: [string, any]) => {
-        if (evaluatorData && evaluatorData.fcmTokens) {
-          Object.values(evaluatorData.fcmTokens).forEach((tokenData: any) => {
-            if (tokenData && tokenData.token) {
-              tokens.push({
-                token: tokenData.token,
-                userId: userId,
-              });
-            }
+        if (
+          evaluatorData &&
+          evaluatorData.fcmTokens &&
+          typeof evaluatorData.fcmTokens === "string"
+        ) {
+          tokens.push({
+            token: evaluatorData.fcmTokens,
+            userId: userId,
           });
         }
       }
@@ -39,8 +39,7 @@ async function removeInvalidToken(
   token: string
 ): Promise<void> {
   try {
-    const tokenId = token.substring(0, 20);
-    await db.ref(`evaluators/${userId}/fcmTokens/${tokenId}`).remove();
+    await db.ref(`evaluators/${userId}/fcmTokens`).remove();
     console.log(`🗑️ Removed invalid token for user ${userId}`);
   } catch (error) {
     console.error("Error removing invalid token:", error);

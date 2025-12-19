@@ -8,17 +8,15 @@ export async function GET(request: Request) {
     const userId = searchParams.get("userId");
 
     if (userId) {
-      // Get tokens for specific user from evaluators/{userId}/fcmTokens
-      const tokensRef = db.ref(`evaluators/${userId}/fcmTokens`);
-      const snapshot = await tokensRef.once("value");
-      const userTokensData = snapshot.val() || {};
+      // Get token for specific user from evaluators/{userId}/fcmTokens
+      const tokenRef = db.ref(`evaluators/${userId}/fcmTokens`);
+      const snapshot = await tokenRef.once("value");
+      const token = snapshot.val();
 
       const tokens: string[] = [];
-      Object.values(userTokensData).forEach((tokenData: any) => {
-        if (tokenData && tokenData.token) {
-          tokens.push(tokenData.token);
-        }
-      });
+      if (token && typeof token === "string") {
+        tokens.push(token);
+      }
 
       return NextResponse.json({
         userId,
@@ -34,12 +32,12 @@ export async function GET(request: Request) {
       // Flatten all user tokens
       const tokens: string[] = [];
       Object.values(allEvaluators).forEach((evaluatorData: any) => {
-        if (evaluatorData && evaluatorData.fcmTokens) {
-          Object.values(evaluatorData.fcmTokens).forEach((tokenData: any) => {
-            if (tokenData && tokenData.token) {
-              tokens.push(tokenData.token);
-            }
-          });
+        if (
+          evaluatorData &&
+          evaluatorData.fcmTokens &&
+          typeof evaluatorData.fcmTokens === "string"
+        ) {
+          tokens.push(evaluatorData.fcmTokens);
         }
       });
 
@@ -58,24 +56,15 @@ export async function POST(request: Request) {
     if (!token) throw new Error("Token is required");
     if (!userId) throw new Error("UserId is required");
 
-    const tokensRef = db.ref(`evaluators/${userId}/fcmTokens`);
+    const tokenRef = db.ref(`evaluators/${userId}/fcmTokens`);
 
-    // Save token with timestamp
-    const tokenId = token.substring(0, 20); // Use part of token as ID
-    await tokensRef.child(tokenId).set({
-      token,
-      createdAt: Date.now(),
-      lastUsed: Date.now(),
-    });
-
-    // Get total tokens for this user
-    const snapshot = await tokensRef.once("value");
-    const userTokens = snapshot.val() || {};
+    // Save token string directly
+    await tokenRef.set(token);
 
     return NextResponse.json({
       message: "Token saved",
       userId,
-      totalTokens: Object.keys(userTokens).length,
+      totalTokens: 1,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -87,13 +76,11 @@ export async function DELETE(request: Request) {
   try {
     const { token, userId } = await request.json();
 
-    if (!token) throw new Error("Token is required");
     if (!userId) throw new Error("UserId is required");
 
-    const tokenId = token.substring(0, 20);
-    const tokensRef = db.ref(`evaluators/${userId}/fcmTokens/${tokenId}`);
+    const tokenRef = db.ref(`evaluators/${userId}/fcmTokens`);
 
-    await tokensRef.remove();
+    await tokenRef.remove();
 
     return NextResponse.json({
       message: "Token removed",
