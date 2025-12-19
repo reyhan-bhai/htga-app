@@ -14,6 +14,11 @@ import {
   onAuthStateChanged,
   User as FirebaseUser,
 } from "firebase/auth";
+import {
+  removeFCMTokenFromServer,
+  getStoredFCMToken,
+  removeFCMToken,
+} from "@/lib/fcmTokenHelper";
 
 interface AuthContextType {
   user: User | null;
@@ -156,6 +161,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
+      // Remove FCM token from server before logout
+      if (user?.id) {
+        const storedToken = getStoredFCMToken();
+        if (storedToken) {
+          await removeFCMTokenFromServer(storedToken, user.id);
+          removeFCMToken(); // Remove from localStorage
+          console.log("✅ FCM token removed on logout");
+        }
+      }
+
       await signOut(auth);
       setUser(null);
       setNdaSigned(false);
