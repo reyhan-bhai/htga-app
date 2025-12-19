@@ -1,42 +1,46 @@
 import { NextResponse } from "next/server";
-import admin from "firebase-admin";
-import fs from "fs";
-import path from "path";
+import admin, { db } from "@/lib/firebase-admin";
 
-if (!admin.apps.length) {
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+// Get all tokens from Firebase Realtime Database
+async function getAllTokens(): Promise<{ token: string; userId: string }[]> {
+  try {
+    const tokensRef = db.ref("fcmTokens");
+    const snapshot = await tokensRef.once("value");
+    const allTokens = snapshot.val() || {};
 
-  if (!projectId || !privateKey || !clientEmail) {
-    throw new Error("Missing Firebase Admin credentials");
-  }
+    const tokens: { token: string; userId: string }[] = [];
 
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId,
-      privateKey: privateKey.replace(/\\n/g, "\n"),
-      clientEmail,
-    }),
-  });
-}
+    // Iterate through all users and their tokens
+    Object.entries(allTokens).forEach(([userId, userTokens]: [string, any]) => {
+      Object.values(userTokens).forEach((tokenData: any) => {
+        if (tokenData && tokenData.token) {
+          tokens.push({
+            token: tokenData.token,
+            userId: userId,
+          });
+        }
+      });
+    });
 
-function getTokens(): string[] {
-  const TOKENS_FILE = path.join(process.cwd(), "data", "tokens.json");
-  if (!fs.existsSync(TOKENS_FILE)) {
+    return tokens;
+  } catch (error) {
+    console.error("Error getting tokens from database:", error);
     return [];
   }
-  const data = fs.readFileSync(TOKENS_FILE, "utf-8");
-  return JSON.parse(data);
 }
 
-function saveTokens(tokens: string[]) {
-  const dir = path.join(process.cwd(), "data");
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+// Remove invalid token from database
+async function removeInvalidToken(
+  userId: string,
+  token: string
+): Promise<void> {
+  try {
+    const tokenId = token.substring(0, 20);
+    await db.ref(`fcmTokens/${userId}/${tokenId}`).remove();
+    console.log(`🗑️ Removed invalid token for user ${userId}`);
+  } catch (error) {
+    console.error("Error removing invalid token:", error);
   }
-  const TOKENS_FILE = path.join(dir, "tokens.json");
-  fs.writeFileSync(TOKENS_FILE, JSON.stringify(tokens, null, 2));
 }
 
 export async function POST(request: Request) {
@@ -46,10 +50,10 @@ export async function POST(request: Request) {
 
     console.log("=== SENDING NOTIFICATION TO ALL SUBSCRIBERS ===");
 
-    const tokens = getTokens();
-    console.log(`Total subscribers: ${tokens.length}`);
+    const tokenData = await getAllTokens();
+    console.log(`Total subscribers: ${tokenData.length}`);
 
-    if (tokens.length === 0) {
+    if (tokenData.length === 0) {
       return NextResponse.json(
         { message: "No subscribers found" },
         { status: 404 }
@@ -65,6 +69,7 @@ export async function POST(request: Request) {
     };
 
     // Kirim ke semua tokens
+    const tokens = tokenData.map((t) => t.token);
     const results = await admin.messaging().sendEachForMulticast({
       tokens: tokens,
       notification: payload.notification,
@@ -74,12 +79,21 @@ export async function POST(request: Request) {
     console.log(`✅ Successfully sent: ${results.successCount}`);
     console.log(`❌ Failed: ${results.failureCount}`);
 
-    // Hapus token yang invalid
+    // Hapus token yang invalid dari database
     if (results.failureCount > 0) {
-      const validTokens = tokens.filter((token, index) => {
-        return results.responses[index].success;
-      });
-      saveTokens(validTokens);
+      const removePromises = results.responses
+        .map((response, index) => {
+          if (!response.success) {
+            return removeInvalidToken(
+              tokenData[index].userId,
+              tokenData[index].token
+            );
+          }
+          return null;
+        })
+        .filter((p) => p !== null);
+
+      await Promise.all(removePromises);
       console.log(`🗑️ Removed ${results.failureCount} invalid tokens`);
     }
 
@@ -87,7 +101,7 @@ export async function POST(request: Request) {
       message: "Notification sent to all subscribers",
       successCount: results.successCount,
       failureCount: results.failureCount,
-      totalSubscribers: tokens.length,
+      totalSubscribers: tokenData.length,
     });
   } catch (error: any) {
     console.error("❌ Error sending notification:", error);

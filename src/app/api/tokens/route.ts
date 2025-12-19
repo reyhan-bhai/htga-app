@@ -1,60 +1,79 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
+import { db } from "@/lib/firebase-admin";
 
-const TOKENS_FILE = path.join(process.cwd(), "data", "tokens.json");
-
-// Pastikan folder data ada
-function ensureDataDir() {
-  const dir = path.join(process.cwd(), "data");
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-}
-
-// Baca semua tokens
-function getTokens(): string[] {
-  ensureDataDir();
-  if (!fs.existsSync(TOKENS_FILE)) {
-    return [];
-  }
-  const data = fs.readFileSync(TOKENS_FILE, "utf-8");
-  return JSON.parse(data);
-}
-
-// Simpan tokens
-function saveTokens(tokens: string[]) {
-  ensureDataDir();
-  fs.writeFileSync(TOKENS_FILE, JSON.stringify(tokens, null, 2));
-}
-
-// GET - Ambil semua tokens
-export async function GET() {
+// GET - Ambil semua tokens atau tokens per user
+export async function GET(request: Request) {
   try {
-    const tokens = getTokens();
-    return NextResponse.json({ tokens, count: tokens.length });
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get("userId");
+
+    const tokensRef = db.ref("fcmTokens");
+
+    if (userId) {
+      // Get tokens for specific user
+      const snapshot = await tokensRef.child(userId).once("value");
+      const userTokensData = snapshot.val() || {};
+
+      const tokens: string[] = [];
+      Object.values(userTokensData).forEach((tokenData: any) => {
+        if (tokenData && tokenData.token) {
+          tokens.push(tokenData.token);
+        }
+      });
+
+      return NextResponse.json({
+        userId,
+        tokens,
+        count: tokens.length,
+      });
+    } else {
+      // Get all tokens from all users
+      const snapshot = await tokensRef.once("value");
+      const allTokens = snapshot.val() || {};
+
+      // Flatten all user tokens
+      const tokens: string[] = [];
+      Object.values(allTokens).forEach((userTokens: any) => {
+        Object.values(userTokens).forEach((tokenData: any) => {
+          if (tokenData && tokenData.token) {
+            tokens.push(tokenData.token);
+          }
+        });
+      });
+
+      return NextResponse.json({ tokens, count: tokens.length });
+    }
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// POST - Tambah token baru
+// POST - Tambah token untuk user
 export async function POST(request: Request) {
   try {
-    const { token } = await request.json();
+    const { token, userId } = await request.json();
+
     if (!token) throw new Error("Token is required");
+    if (!userId) throw new Error("UserId is required");
 
-    const tokens = getTokens();
+    const tokensRef = db.ref(`fcmTokens/${userId}`);
 
-    // Cek jika token sudah ada
-    if (!tokens.includes(token)) {
-      tokens.push(token);
-      saveTokens(tokens);
-    }
+    // Save token with timestamp
+    const tokenId = token.substring(0, 20); // Use part of token as ID
+    await tokensRef.child(tokenId).set({
+      token,
+      createdAt: Date.now(),
+      lastUsed: Date.now(),
+    });
+
+    // Get total tokens for this user
+    const snapshot = await tokensRef.once("value");
+    const userTokens = snapshot.val() || {};
 
     return NextResponse.json({
       message: "Token saved",
-      totalTokens: tokens.length,
+      userId,
+      totalTokens: Object.keys(userTokens).length,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -64,16 +83,19 @@ export async function POST(request: Request) {
 // DELETE - Hapus token
 export async function DELETE(request: Request) {
   try {
-    const { token } = await request.json();
-    if (!token) throw new Error("Token is required");
+    const { token, userId } = await request.json();
 
-    let tokens = getTokens();
-    tokens = tokens.filter((t) => t !== token);
-    saveTokens(tokens);
+    if (!token) throw new Error("Token is required");
+    if (!userId) throw new Error("UserId is required");
+
+    const tokenId = token.substring(0, 20);
+    const tokensRef = db.ref(`fcmTokens/${userId}/${tokenId}`);
+
+    await tokensRef.remove();
 
     return NextResponse.json({
       message: "Token removed",
-      totalTokens: tokens.length,
+      userId,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Button,
   Card,
@@ -24,9 +24,9 @@ export default function NotificationsPage() {
   const { token, user } = useCurrentUser();
 
   // Fetch subscriber count on mount
-  useState(() => {
+  useEffect(() => {
     fetchSubscriberCount();
-  });
+  }, []);
 
   async function fetchSubscriberCount() {
     try {

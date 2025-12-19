@@ -44,16 +44,19 @@ export async function getFCMToken(
 }
 
 /**
- * Save FCM token to server
+ * Save FCM token to server with userId
  */
-export async function saveFCMTokenToServer(token: string): Promise<boolean> {
+export async function saveFCMTokenToServer(
+  token: string,
+  userId: string
+): Promise<boolean> {
   try {
     const response = await fetch("/api/tokens", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ token }),
+      body: JSON.stringify({ token, userId }),
     });
 
     if (!response.ok) {
@@ -61,7 +64,7 @@ export async function saveFCMTokenToServer(token: string): Promise<boolean> {
     }
 
     const data = await response.json();
-    console.log("✅ Token sent to server. Total tokens:", data.totalTokens);
+    console.log("✅ Token saved for user:", userId);
     return true;
   } catch (error) {
     console.error("Error saving token:", error);
@@ -73,7 +76,8 @@ export async function saveFCMTokenToServer(token: string): Promise<boolean> {
  * Remove FCM token from server
  */
 export async function removeFCMTokenFromServer(
-  token: string
+  token: string,
+  userId: string
 ): Promise<boolean> {
   try {
     const response = await fetch("/api/tokens", {
@@ -81,7 +85,7 @@ export async function removeFCMTokenFromServer(
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ token }),
+      body: JSON.stringify({ token, userId }),
     });
 
     if (!response.ok) {

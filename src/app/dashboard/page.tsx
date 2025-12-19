@@ -1,9 +1,16 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../htga-app/context/AuthContext";
 import { dummyEstablishments } from "../../htga-app/data/dummyData";
 import { MobileLayoutWrapper } from "../layout-wrapper";
+import { PushNotificationsContext } from "@/components/notifications/PushNotificationsProvider";
+import {
+  getFCMToken,
+  saveFCMTokenToServer,
+  storeFCMToken,
+  isNotificationPermissionGranted,
+} from "@/lib/fcmTokenHelper";
 
 type CategoryFilter = "All" | "Concept" | "Ethnic" | "Specialty";
 
@@ -12,6 +19,33 @@ export default function DashboardPage() {
     useState<CategoryFilter>("All");
   const router = useRouter();
   const { user } = useAuth();
+  const messaging = useContext(PushNotificationsContext);
+
+  // Silent auto-collection of FCM token in background
+  useEffect(() => {
+    const collectToken = async () => {
+      if (!user?.id || !messaging) return;
+
+      // Only auto-collect if permission already granted (silent)
+      if (isNotificationPermissionGranted()) {
+        try {
+          const token = await getFCMToken(messaging);
+          if (token) {
+            const saved = await saveFCMTokenToServer(token, user.id);
+            if (saved) {
+              storeFCMToken(token);
+              console.log("✅ Notification token auto-saved");
+            }
+          }
+        } catch (error) {
+          console.error("Silent token collection error:", error);
+          // Fail silently - don't interrupt user experience
+        }
+      }
+    };
+
+    collectToken();
+  }, [user, messaging]);
 
   const handleDownloadGuide = () => {
     alert("Download Guide functionality - Coming Soon!");
