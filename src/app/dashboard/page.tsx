@@ -21,6 +21,10 @@ export default function DashboardPage() {
     router.push("/profile");
   };
 
+  const handleNotifications = () => {
+    router.push("/notifications");
+  }
+
   const filteredEstablishments = dummyEstablishments.filter((est) => {
     if (selectedCategory === "All") return true;
     return est.category.toLowerCase() === selectedCategory.toLowerCase();
@@ -91,7 +95,7 @@ export default function DashboardPage() {
               </h2>
             </div>
             <div className="flex items-center gap-3">
-              <button className="relative">
+              <button onClick={handleNotifications} className="relative">
                 <svg
                   className="w-6 h-6 text-[#1B1B1B]"
                   fill="currentColor"
