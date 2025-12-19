@@ -23,6 +23,7 @@ export default function EvaluatorsPage() {
   const [modalMode, setModalMode] = useState<"add" | "edit" | "view">("add");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [evaluatorToDelete, setEvaluatorToDelete] = useState<any>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleAddEvaluator = () => {
     setSelectedEvaluator(null);
@@ -37,6 +38,7 @@ export default function EvaluatorsPage() {
   };
 
   const handleSaveEvaluator = async (evaluator: any) => {
+    setIsSaving(true);
     try {
       if (modalMode === "add") {
         // Create new evaluator
@@ -103,6 +105,8 @@ export default function EvaluatorsPage() {
         text: error instanceof Error ? error.message : "Unknown error",
         confirmButtonColor: "#A67C37",
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -118,6 +122,7 @@ export default function EvaluatorsPage() {
   };
 
   const confirmDelete = async () => {
+    setIsSaving(true);
     try {
       if (!evaluatorToDelete?.id) {
         throw new Error("Evaluator ID is missing");
@@ -156,6 +161,8 @@ export default function EvaluatorsPage() {
         text: error instanceof Error ? error.message : "Unknown error",
         confirmButtonColor: "#A67C37",
       });
+    } finally {
+      setIsSaving(false);
     }
   };
   const cities = ["Johor", "Kuala Lumpur", "Penang", "Selangor"];
@@ -242,6 +249,7 @@ export default function EvaluatorsPage() {
         onSave={handleSaveEvaluator}
         entity={selectedEvaluator}
         mode={modalMode}
+        isLoading={isSaving}
       />
 
       {/* Delete Confirmation Modal */}
@@ -251,6 +259,7 @@ export default function EvaluatorsPage() {
         onClose={() => setIsDeleteModalOpen(false)}
         entityName={evaluatorToDelete?.name || ""}
         onConfirm={confirmDelete}
+        isLoading={isSaving}
       />
     </div>
   );
