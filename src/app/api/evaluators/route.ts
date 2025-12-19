@@ -438,7 +438,7 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // Check if evaluator exists
+    // Check if evaluator exists in database
     const snapshot = await db.ref(`evaluators/${id}`).once("value");
     if (!snapshot.exists()) {
       return NextResponse.json(
@@ -447,7 +447,9 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // Check if evaluator has assignments
+    const evaluatorData = snapshot.val();
+
+    // Check if evaluator has assignments (existing logic)
     const assignmentsSnapshot = await db
       .ref("assignments")
       .orderByChild("evaluator1Id")
@@ -470,10 +472,40 @@ export async function DELETE(request: Request) {
       );
     }
 
+    // Get the Firebase UID from the evaluator data
+    const firebaseUid = evaluatorData.firebaseUid;
+    
+    if (!firebaseUid) {
+      return NextResponse.json(
+        {
+          error: "Evaluator does not have a Firebase UID. Cannot delete from authentication.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Delete from Firebase Authentication using the Firebase UID
+    try {
+      await admin.auth().deleteUser(firebaseUid);
+    } catch (authError: any) {
+      console.error("Error deleting Auth user:", authError);
+      // If Auth deletion fails, do NOT delete from DB and return error for SweetAlert
+      return NextResponse.json(
+        {
+          error:
+            "Failed to delete evaluator from authentication. Please try again or contact support.",
+          details: authError.message,
+        },
+        { status: 500 }
+      );
+    }
+
+    // Only delete from Realtime Database if Auth deletion succeeded
     await db.ref(`evaluators/${id}`).remove();
 
     return NextResponse.json({
-      message: "Evaluator deleted successfully",
+      message:
+        "Evaluator deleted successfully from database and authentication.",
     });
   } catch (error: any) {
     console.error("Error deleting evaluator:", error);
