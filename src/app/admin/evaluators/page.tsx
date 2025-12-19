@@ -1,69 +1,19 @@
 "use client";
 
-import EntityModal, { FieldConfig } from "@/components/admin/EntityModal";
-import { useState } from "react";
-
-import {
-
-  Pagination,
-
-} from "@nextui-org/react";
-import React from "react";
-import Swal from "sweetalert2";
+import AdminHeader from "@/components/admin/AdminHeader";
+import AdminModal from "@/components/admin/AdminModal";
+import AdminTable from "@/components/admin/AdminTable";
+import AdminViewControl from "@/components/admin/AdminViewControl";
 import { useEvaluators } from "@/context/EvaluatorContext";
-import EvaluatorFiltersSection from "@/components/admin/evaluatorpage/EvaluatorFiltersSection";
-import EvaluatorTableSection from "@/components/admin/evaluatorpage/EvaluatorsTableSection";
-import ConfirmDeleteModal from "@/components/admin/ConfirmDeleteModal";
-
+import { Pagination } from "@nextui-org/react";
+import React, { useState } from "react";
+import Swal from "sweetalert2";
 
 // Dummy data removed - now using real data from Firebase
 // const users = [...];
 
-// Evaluator field configuration for the modal
-const evaluatorFields: FieldConfig[] = [
-  {
-    name: "name",
-    label: "Evaluator Name",
-    type: "text",
-    placeholder: "Type evaluator name...",
-    required: true,
-  },
-  {
-    name: "email",
-    label: "Email/Contact",
-    type: "email",
-    placeholder: "evaluator@email.com",
-    required: true,
-  },
-  {
-    name: "phone",
-    label: "Phone Number",
-    type: "tel",
-    placeholder: "+62xxx...",
-  },
-  {
-    name: "position",
-    label: "Current Position",
-    type: "text",
-    placeholder: "e.g., Chef Manager, Food Inspector",
-  },
-  {
-    name: "company",
-    label: "Company/Organization",
-    type: "text",
-    placeholder: "Organization name",
-  },
-  {
-    name: "specialties",
-    label: "Specialties",
-    type: "text",
-    placeholder: "e.g., Bakery, Italian, Fast Food",
-  },
-];
-
 export default function EvaluatorsPage() {
   const { evaluators, isLoading, refetchEvaluators } = useEvaluators();
-
 
   const [page, setPage] = React.useState(1);
   const [selectedCities, setSelectedCities] = React.useState<string[]>([]);
@@ -73,7 +23,6 @@ export default function EvaluatorsPage() {
   const [modalMode, setModalMode] = useState<"add" | "edit" | "view">("add");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [evaluatorToDelete, setEvaluatorToDelete] = useState<any>(null);
- 
 
   const handleAddEvaluator = () => {
     setSelectedEvaluator(null);
@@ -235,28 +184,30 @@ export default function EvaluatorsPage() {
 
   return (
     <div className="text-black flex flex-col gap-6">
-      <h2 className="text-2xl font-bold uppercase">Evaluator Management</h2>
+      <AdminHeader type="evaluator" />
 
-    <EvaluatorFiltersSection
-      selectedCities={selectedCities}
-      setSelectedCities={setSelectedCities}
-      selectedStatus={selectedStatus}
-      setSelectedStatus={setSelectedStatus}
-      activeFiltersCount={activeFiltersCount}
-      cities={cities}
-      statuses={statuses}
-      toggleCity={toggleCity}
-      toggleStatus={toggleStatus}
-      clearFilters={clearFilters}
-      handleAddEvaluator={handleAddEvaluator}
-    />
-    <EvaluatorTableSection
-      isLoading={isLoading}
-      evaluators={evaluators}
-      handleEditEvaluator={handleEditEvaluator}
-      handleViewEvaluator={handleViewEvaluator}
-      handleDeleteEvaluator={handleDeleteEvaluator}
-    />
+      <AdminViewControl
+        type="evaluator"
+        selectedCities={selectedCities}
+        setSelectedCities={setSelectedCities}
+        selectedStatus={selectedStatus}
+        setSelectedStatus={setSelectedStatus}
+        activeFiltersCount={activeFiltersCount}
+        cities={cities}
+        statuses={statuses}
+        toggleCity={toggleCity}
+        toggleStatus={toggleStatus}
+        clearFilters={clearFilters}
+        handleAddEvaluator={handleAddEvaluator}
+      />
+      <AdminTable
+        type="evaluator"
+        isLoading={isLoading}
+        data={evaluators}
+        handleEditItem={handleEditEvaluator}
+        handleViewItem={handleViewEvaluator}
+        handleDeleteItem={handleDeleteEvaluator}
+      />
       <div className="flex justify-center items-center mt-4">
         <div className="block md:hidden">
           <Pagination
@@ -284,27 +235,23 @@ export default function EvaluatorsPage() {
         </div>
       </div>
 
-      <EntityModal
+      <AdminModal
+        type="evaluator"
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveEvaluator}
         entity={selectedEvaluator}
         mode={modalMode}
-        fields={evaluatorFields}
-        title={{
-          add: "ADD / EDIT EVALUATOR",
-          edit: "ADD / EDIT EVALUATOR",
-          view: "Detail Evaluator",
-        }}
       />
 
       {/* Delete Confirmation Modal */}
-    <ConfirmDeleteModal
-      isOpen={isDeleteModalOpen}
-      onClose={() => setIsDeleteModalOpen(false)}
-      entityName={evaluatorToDelete?.name || ""}
-      onConfirm={confirmDelete}
-    />
+      <AdminModal
+        type="delete"
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        entityName={evaluatorToDelete?.name || ""}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

@@ -41,11 +41,42 @@ export const getActiveFiltersCount = (
 
 // Data transformation functions (pure functions)
 export const getEvaluatorViewData = (evaluators: any[], assignments: any[]) => {
-  if (!evaluators || evaluators.length === 0) return [];
+  // Add dummy evaluators for testing NDA statuses
+  // const dummyEvaluators = [
+  //   {
+  //     id: "dummy-1",
+  //     name: "John Doe (Dummy - Pending)",
+  //     email: "john.doe@example.com",
+  //     ndaStatus: "Pending",  // Note: Use "ndaStatus" to match the evaluator object structure
+  //     specialties: ["Italian", "Mexican"],
+  //     assignments: [],  // Mock assignments if needed
+  //   },
+  //   {
+  //     id: "dummy-2",
+  //     name: "Jane Smith (Dummy - Completed)",
+  //     email: "jane.smith@example.com",
+  //     ndaStatus: "Signed",  // Assuming "Completed" maps to "Signed" in the UI (adjust if needed)
+  //     specialties: ["Chinese", "Japanese"],
+  //     assignments: [],
+  //   },
+  //   // Add more dummies as needed (e.g., for "Not Sent")
+  //   {
+  //     id: "dummy-3",
+  //     name: "Bob Wilson (Dummy - Not Sent)",
+  //     email: "bob.wilson@example.com",
+  //     ndaStatus: "Not Sent",
+  //     specialties: ["French"],
+  //     assignments: [],
+  //   },
+  // ];
+
+  const allEvaluators = [...evaluators];
+
+  if (!allEvaluators || allEvaluators.length === 0) return [];
 
   const evaluatorMap = new Map();
 
-  evaluators.forEach((evaluator) => {
+  allEvaluators.forEach((evaluator) => {
     const evaluatorAssignments = assignments.filter(
       (a) => a.evaluator1Id === evaluator.id || a.evaluator2Id === evaluator.id
     );
@@ -55,7 +86,7 @@ export const getEvaluatorViewData = (evaluators: any[], assignments: any[]) => {
       (a) => a.status === "completed"
     ).length;
 
-    // TODO: Get real NDA status from evaluator record
+    // Use ndaStatus from evaluator (now includes dummy data)
     const ndaStatus = evaluator.ndaStatus || "Not Sent";
 
     // Handle specialties - could be array or string
@@ -79,7 +110,6 @@ export const getEvaluatorViewData = (evaluators: any[], assignments: any[]) => {
 
   return Array.from(evaluatorMap.values());
 };
-
 export const getRestaurantViewData = (
   establishments: any[],
   assignments: any[],
