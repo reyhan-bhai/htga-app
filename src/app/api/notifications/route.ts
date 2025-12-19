@@ -4,23 +4,27 @@ import admin, { db } from "@/lib/firebase-admin";
 // Get all tokens from Firebase Realtime Database
 async function getAllTokens(): Promise<{ token: string; userId: string }[]> {
   try {
-    const tokensRef = db.ref("fcmTokens");
-    const snapshot = await tokensRef.once("value");
-    const allTokens = snapshot.val() || {};
+    const evaluatorsRef = db.ref("evaluators");
+    const snapshot = await evaluatorsRef.once("value");
+    const allEvaluators = snapshot.val() || {};
 
     const tokens: { token: string; userId: string }[] = [];
 
-    // Iterate through all users and their tokens
-    Object.entries(allTokens).forEach(([userId, userTokens]: [string, any]) => {
-      Object.values(userTokens).forEach((tokenData: any) => {
-        if (tokenData && tokenData.token) {
-          tokens.push({
-            token: tokenData.token,
-            userId: userId,
+    // Iterate through all evaluators and their fcmTokens
+    Object.entries(allEvaluators).forEach(
+      ([userId, evaluatorData]: [string, any]) => {
+        if (evaluatorData && evaluatorData.fcmTokens) {
+          Object.values(evaluatorData.fcmTokens).forEach((tokenData: any) => {
+            if (tokenData && tokenData.token) {
+              tokens.push({
+                token: tokenData.token,
+                userId: userId,
+              });
+            }
           });
         }
-      });
-    });
+      }
+    );
 
     return tokens;
   } catch (error) {
@@ -36,7 +40,7 @@ async function removeInvalidToken(
 ): Promise<void> {
   try {
     const tokenId = token.substring(0, 20);
-    await db.ref(`fcmTokens/${userId}/${tokenId}`).remove();
+    await db.ref(`evaluators/${userId}/fcmTokens/${tokenId}`).remove();
     console.log(`🗑️ Removed invalid token for user ${userId}`);
   } catch (error) {
     console.error("Error removing invalid token:", error);

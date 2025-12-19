@@ -7,11 +7,10 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
 
-    const tokensRef = db.ref("fcmTokens");
-
     if (userId) {
-      // Get tokens for specific user
-      const snapshot = await tokensRef.child(userId).once("value");
+      // Get tokens for specific user from evaluators/{userId}/fcmTokens
+      const tokensRef = db.ref(`evaluators/${userId}/fcmTokens`);
+      const snapshot = await tokensRef.once("value");
       const userTokensData = snapshot.val() || {};
 
       const tokens: string[] = [];
@@ -27,18 +26,21 @@ export async function GET(request: Request) {
         count: tokens.length,
       });
     } else {
-      // Get all tokens from all users
-      const snapshot = await tokensRef.once("value");
-      const allTokens = snapshot.val() || {};
+      // Get all tokens from all users under evaluators/*/fcmTokens
+      const evaluatorsRef = db.ref("evaluators");
+      const snapshot = await evaluatorsRef.once("value");
+      const allEvaluators = snapshot.val() || {};
 
       // Flatten all user tokens
       const tokens: string[] = [];
-      Object.values(allTokens).forEach((userTokens: any) => {
-        Object.values(userTokens).forEach((tokenData: any) => {
-          if (tokenData && tokenData.token) {
-            tokens.push(tokenData.token);
-          }
-        });
+      Object.values(allEvaluators).forEach((evaluatorData: any) => {
+        if (evaluatorData && evaluatorData.fcmTokens) {
+          Object.values(evaluatorData.fcmTokens).forEach((tokenData: any) => {
+            if (tokenData && tokenData.token) {
+              tokens.push(tokenData.token);
+            }
+          });
+        }
       });
 
       return NextResponse.json({ tokens, count: tokens.length });
@@ -56,7 +58,7 @@ export async function POST(request: Request) {
     if (!token) throw new Error("Token is required");
     if (!userId) throw new Error("UserId is required");
 
-    const tokensRef = db.ref(`fcmTokens/${userId}`);
+    const tokensRef = db.ref(`evaluators/${userId}/fcmTokens`);
 
     // Save token with timestamp
     const tokenId = token.substring(0, 20); // Use part of token as ID
@@ -89,7 +91,7 @@ export async function DELETE(request: Request) {
     if (!userId) throw new Error("UserId is required");
 
     const tokenId = token.substring(0, 20);
-    const tokensRef = db.ref(`fcmTokens/${userId}/${tokenId}`);
+    const tokensRef = db.ref(`evaluators/${userId}/fcmTokens/${tokenId}`);
 
     await tokensRef.remove();
 
