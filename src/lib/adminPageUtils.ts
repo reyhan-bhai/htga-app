@@ -1,7 +1,6 @@
 // filepath: src/lib/adminPageUtils.ts
 import Swal from "sweetalert2";
 
-
 // Filter toggle functions
 export const toggleNDAStatus = (
   status: string,
@@ -48,8 +47,7 @@ export const getEvaluatorViewData = (evaluators: any[], assignments: any[]) => {
 
   evaluators.forEach((evaluator) => {
     const evaluatorAssignments = assignments.filter(
-      (a) =>
-        a.evaluator1Id === evaluator.id || a.evaluator2Id === evaluator.id
+      (a) => a.evaluator1Id === evaluator.id || a.evaluator2Id === evaluator.id
     );
 
     const totalRestaurants = evaluatorAssignments.length;
@@ -82,7 +80,11 @@ export const getEvaluatorViewData = (evaluators: any[], assignments: any[]) => {
   return Array.from(evaluatorMap.values());
 };
 
-export const getRestaurantViewData = (establishments: any[], assignments: any[], evaluators: any[]) => {
+export const getRestaurantViewData = (
+  establishments: any[],
+  assignments: any[],
+  evaluators: any[]
+) => {
   if (!establishments || establishments.length === 0) return [];
 
   return establishments.map((establishment) => {
@@ -106,12 +108,8 @@ export const getRestaurantViewData = (establishments: any[], assignments: any[],
       };
     }
 
-    const evaluator1 = evaluators.find(
-      (e) => e.id === assignment.evaluator1Id
-    );
-    const evaluator2 = evaluators.find(
-      (e) => e.id === assignment.evaluator2Id
-    );
+    const evaluator1 = evaluators.find((e) => e.id === assignment.evaluator1Id);
+    const evaluator2 = evaluators.find((e) => e.id === assignment.evaluator2Id);
 
     return {
       id: establishment.id, // Required by Table component
@@ -140,9 +138,7 @@ export const handleMatchEvaluator = async (
     setIsLoading(true);
 
     // Find unassigned restaurants
-    const assignedEstablishmentIds = assignments.map(
-      (a) => a.establishmentId
-    );
+    const assignedEstablishmentIds = assignments.map((a) => a.establishmentId);
     const unassignedEstablishments = establishments.filter(
       (est) => !assignedEstablishmentIds.includes(est.id)
     );
@@ -193,7 +189,9 @@ export const handleMatchEvaluator = async (
   }
 };
 
-export const handleManualMatch = (setIsManualMatchOpen: (open: boolean) => void) => {
+export const handleManualMatch = (
+  setIsManualMatchOpen: (open: boolean) => void
+) => {
   setIsManualMatchOpen(true);
 };
 
@@ -215,9 +213,7 @@ export const handleSaveManualMatch = async (
     setIsLoading(true);
 
     // Get the restaurant details
-    const restaurant = establishments.find(
-      (e) => e.id === selectedRestaurant
-    );
+    const restaurant = establishments.find((e) => e.id === selectedRestaurant);
     const evaluator = evaluators.find((e) => e.id === selectedEvaluator);
 
     if (!restaurant || !evaluator) {
@@ -419,7 +415,7 @@ export const handleSaveEdit = async (
 
     // If both evaluators are removed, delete the assignment
     if (!editEvaluator1 && !editEvaluator2) {
-      const response = await fetch(`/api/assignments/${assignment.id}`, {
+      const response = await fetch(`/api/assignments?id=${assignment.id}`, {
         method: "DELETE",
       });
 
@@ -434,10 +430,11 @@ export const handleSaveEdit = async (
       });
     } else {
       // Update the assignment
-      const response = await fetch(`/api/assignments/${assignment.id}`, {
+      const response = await fetch(`/api/assignments`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          id: assignment.id,
           evaluator1Id: editEvaluator1 || null,
           evaluator2Id: editEvaluator2 || null,
         }),
@@ -465,8 +462,7 @@ export const handleSaveEdit = async (
     await Swal.fire({
       icon: "error",
       title: "Update Failed",
-      text:
-        error.message || "An error occurred while updating the assignment.",
+      text: error.message || "An error occurred while updating the assignment.",
     });
   } finally {
     setIsLoading(false);

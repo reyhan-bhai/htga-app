@@ -353,11 +353,11 @@ export async function POST(request: Request) {
   }
 }
 
-// PUT - Update assignment status
+// PUT - Update assignment status and evaluators
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    const { id, status, notes } = body;
+    const { id, status, notes, evaluator1Id, evaluator2Id } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -375,6 +375,31 @@ export async function PUT(request: Request) {
       );
     }
 
+    // Validate evaluators if provided and not empty
+    if (evaluator1Id) {
+      const evaluator1Snap = await db
+        .ref(`evaluators/${evaluator1Id}`)
+        .once("value");
+      if (!evaluator1Snap.exists()) {
+        return NextResponse.json(
+          { error: "Evaluator 1 not found" },
+          { status: 404 }
+        );
+      }
+    }
+
+    if (evaluator2Id) {
+      const evaluator2Snap = await db
+        .ref(`evaluators/${evaluator2Id}`)
+        .once("value");
+      if (!evaluator2Snap.exists()) {
+        return NextResponse.json(
+          { error: "Evaluator 2 not found" },
+          { status: 404 }
+        );
+      }
+    }
+
     const updates: Partial<Assignment> = {};
 
     if (status) {
@@ -386,6 +411,14 @@ export async function PUT(request: Request) {
 
     if (notes !== undefined) {
       updates.notes = notes;
+    }
+
+    if (evaluator1Id !== undefined) {
+      updates.evaluator1Id = evaluator1Id;
+    }
+
+    if (evaluator2Id !== undefined) {
+      updates.evaluator2Id = evaluator2Id;
     }
 
     await db.ref(`assignments/${id}`).update(updates);
