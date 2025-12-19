@@ -45,6 +45,7 @@ interface EntityModalProps<T> {
   };
   fields: FieldConfig[];
   idField?: string; // Field name for the ID (e.g., 'id')
+  isLoading?: boolean;
 }
 
 function EntityModal<T extends Record<string, any>>({
@@ -56,6 +57,7 @@ function EntityModal<T extends Record<string, any>>({
   title,
   fields,
   idField = "id",
+  isLoading = false,
 }: EntityModalProps<T>) {
   const [formData, setFormData] = useState<Record<string, any>>({});
 
@@ -271,13 +273,17 @@ function EntityModal<T extends Record<string, any>>({
               <>
                 <button
                   type="submit"
-                  className="flex-1 bg-gradient-to-r from-[#FF6B00] to-[#FFA200] text-white py-2 px-4 rounded-md hover:shadow-lg transition font-medium"
+                  disabled={isLoading}
+                  className={`flex-1 bg-gradient-to-r from-[#FF6B00] to-[#FFA200] text-white py-2 px-4 rounded-md hover:shadow-lg transition font-medium ${
+                    isLoading ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 >
-                  Save
+                  {isLoading ? "Saving..." : "Save"}
                 </button>
                 <button
                   type="button"
                   onClick={onClose}
+                  disabled={isLoading}
                   className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition font-medium"
                 >
                   Cancel
@@ -306,6 +312,7 @@ interface ConfirmDeleteModalProps {
   onClose: () => void;
   entityName: string;
   onConfirm: () => void;
+  isLoading?: boolean;
 }
 
 function ConfirmDeleteModal({
@@ -313,9 +320,10 @@ function ConfirmDeleteModal({
   onClose,
   entityName,
   onConfirm,
+  isLoading = false,
 }: ConfirmDeleteModalProps) {
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
+    <Modal isOpen={isOpen} onClose={onClose} isDismissable={!isLoading}>
       <ModalContent>
         {(onClose) => (
           <>
@@ -330,11 +338,21 @@ function ConfirmDeleteModal({
               </p>
             </ModalBody>
             <ModalFooter>
-              <Button color="default" variant="light" onPress={onClose}>
+              <Button
+                color="default"
+                variant="light"
+                onPress={onClose}
+                isDisabled={isLoading}
+              >
                 Cancel
               </Button>
-              <Button color="danger" onPress={onConfirm}>
-                Delete
+              <Button
+                color="danger"
+                onPress={onConfirm}
+                isLoading={isLoading}
+                isDisabled={isLoading}
+              >
+                {isLoading ? "Deleting..." : "Delete"}
               </Button>
             </ModalFooter>
           </>
@@ -865,12 +883,14 @@ interface AdminModalProps {
   // Delete props
   entityName?: string;
   onConfirm?: () => void;
+  // Loading state
+  isLoading?: boolean;
   // Assignment props (passed through)
   [key: string]: any;
 }
 
 export default function AdminModal(props: AdminModalProps) {
-  const { type, subtype, ...rest } = props;
+  const { type, subtype, isLoading, ...rest } = props;
 
   if (type === "delete") {
     return (
@@ -879,6 +899,7 @@ export default function AdminModal(props: AdminModalProps) {
         onClose={props.onClose}
         entityName={props.entityName || ""}
         onConfirm={props.onConfirm || (() => {})}
+        isLoading={isLoading}
       />
     );
   }
@@ -897,6 +918,7 @@ export default function AdminModal(props: AdminModalProps) {
           edit: "ADD / EDIT EVALUATOR",
           view: "Detail Evaluator",
         }}
+        isLoading={isLoading}
       />
     );
   }
@@ -915,6 +937,7 @@ export default function AdminModal(props: AdminModalProps) {
           edit: "ADD / EDIT RESTAURANT",
           view: "Detail Restaurant",
         }}
+        isLoading={isLoading}
       />
     );
   }
