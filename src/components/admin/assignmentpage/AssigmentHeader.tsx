@@ -1,7 +1,9 @@
-import React from "react";
+import {
+  handleManualMatch,
+  handleMatchEvaluator,
+} from "@/lib/assignedPageUtils";
 import { Button } from "@nextui-org/react";
 import { MdLink, MdShuffle } from "react-icons/md";
-import { handleManualMatch, handleMatchEvaluator } from "@/lib/adminPageUtils";
 
 interface AssignmentHeaderProps {
   assignments: any[];

@@ -1,10 +1,10 @@
 "use client";
 
-import AssignmentHeader from "@/components/admin/AssigmentHeader";
-import AssignmentTableSection from "@/components/admin/AssignmentTableSection";
-import AssignmentFiltersSection from "@/components/admin/AssignmentViewControl";
-import EditAssignmentModal from "@/components/admin/EditAssignmentModal";
-import ManualMatchModal from "@/components/admin/ManualMatchModal";
+import AssignmentHeader from "@/components/admin/assignmentpage/AssigmentHeader";
+import AssignmentTableSection from "@/components/admin/assignmentpage/AssignmentTableSection";
+import AssignmentFiltersSection from "@/components/admin/assignmentpage/AssignmentViewControl";
+import EditAssignmentModal from "@/components/admin/assignmentpage/EditAssignmentModal";
+import ManualMatchModal from "@/components/admin/assignmentpage/ManualMatchModal";
 import { useAssignedContext } from "@/context/AssignedContext";
 import {
   getActiveFiltersCount,
@@ -17,7 +17,7 @@ import {
   handleSendNDAEmail,
   handleSendNDAReminder,
   handleViewDetails,
-} from "@/lib/adminPageUtils";
+} from "@/lib/assignedPageUtils";
 
 import { Pagination } from "@nextui-org/react";
 import { useState } from "react";
@@ -68,7 +68,7 @@ export default function AssignedPage() {
         fetchData={fetchData}
         setIsManualMatchOpen={setIsManualMatchOpen}
       />
-      
+
       {/* View Toggle & Search/Filter Section */}
       <AssignmentFiltersSection
         selectedView={selectedView}
