@@ -2,6 +2,7 @@
 
 import DrawerComponent from "@/components/drawer/DrawerComponent";
 import PushNotificationsProvider from "@/components/notifications/PushNotificationsProvider";
+import { AssignedProvider } from "@/context/AssignedContext";
 import { EvaluatorsProvider } from "@/context/EvaluatorContext";
 import { RestaurantsProvider } from "@/context/RestaurantContext";
 import { UserProvider } from "@/utils/useCurrentUser";
@@ -48,8 +49,9 @@ export default function AdminLayout({
 
             <main className={`flex-1 overflow-auto p-6 ${poppins.className}`}>
               <RestaurantsProvider>
-                {" "}
-                <EvaluatorsProvider> {children}</EvaluatorsProvider>
+                <EvaluatorsProvider>
+                  <AssignedProvider>{children}</AssignedProvider>
+                </EvaluatorsProvider>
               </RestaurantsProvider>
             </main>
           </div>
