@@ -1,3 +1,0 @@
-// Send NDA
-
-// Check NDA
