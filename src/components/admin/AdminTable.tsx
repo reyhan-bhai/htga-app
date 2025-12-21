@@ -334,7 +334,7 @@ export default function AdminTable({
                     setIsEditModalOpen!
                   )
                 }
-                onView={handleViewDetails}
+                // onView={handleViewDetails} There is no detail button in assignment so we comment this
                 renderCell={(item, columnKey) =>
                   renderRestaurantCell(item, columnKey)
                 }
