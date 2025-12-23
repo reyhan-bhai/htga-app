@@ -38,7 +38,6 @@ export async function GET(request: Request) {
     const id = searchParams.get("id");
     const establishmentId = searchParams.get("establishmentId");
     const evaluatorId = searchParams.get("evaluatorId");
-    const status = searchParams.get("status");
     const includeDetails = searchParams.get("includeDetails") === "true";
 
     if (id) {
@@ -88,10 +87,6 @@ export async function GET(request: Request) {
       assignments = assignments.filter(
         (a) => a.evaluator1Id === evaluatorId || a.evaluator2Id === evaluatorId
       );
-    }
-
-    if (status) {
-      assignments = assignments.filter((a) => a.status === status);
     }
 
     // Include details if requested
@@ -328,8 +323,9 @@ export async function POST(request: Request) {
     const newAssignment: Omit<Assignment, "id"> = {
       establishmentId,
       evaluator1Id: selectedEvaluator1Id,
+      evaluator1Status: "pending",
       evaluator2Id: selectedEvaluator2Id,
-      status: "pending",
+      evaluator2Status: "pending",
       assignedAt: new Date().toISOString(),
     };
 
@@ -357,7 +353,14 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    const { id, status, notes, evaluator1Id, evaluator2Id } = body;
+    const {
+      id,
+      evaluator1Status,
+      evaluator2Status,
+      notes,
+      evaluator1Id,
+      evaluator2Id,
+    } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -402,11 +405,23 @@ export async function PUT(request: Request) {
 
     const updates: Partial<Assignment> = {};
 
-    if (status) {
-      updates.status = status;
-      if (status === "completed") {
-        updates.completedAt = new Date().toISOString();
-      }
+    if (evaluator1Status) {
+      updates.evaluator1Status = evaluator1Status;
+    }
+
+    if (evaluator2Status) {
+      updates.evaluator2Status = evaluator2Status;
+    }
+
+    // Check if both completed to set completedAt
+    const currentAssignment = snapshot.val();
+    const newEval1Status =
+      evaluator1Status || currentAssignment.evaluator1Status;
+    const newEval2Status =
+      evaluator2Status || currentAssignment.evaluator2Status;
+
+    if (newEval1Status === "completed" && newEval2Status === "completed") {
+      updates.completedAt = new Date().toISOString();
     }
 
     if (notes !== undefined) {
