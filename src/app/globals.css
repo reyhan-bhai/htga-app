@@ -1,15 +1,31 @@
-/* Import HTGA Styles */
-@import "../htga-app/styles/htga.css";
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ========================================
+   HTGA Custom Colors & Variables
+   ======================================== */
 :root {
   --background: #262626;
   --foreground: #ededed;
+  
+  /* HTGA Theme Colors */
+  --htga-black: #1B1B1B;
+  --htga-grey: #939393;
+  --htga-white: #FFFDFA;
+  --htga-light-grey: #F4F4F4;
+  --htga-red: #D62C2C;
+  --htga-orange: #FFA200;
+  --htga-light-orange: #FFEDCC;
+  --htga-gradient-1-start: #FFA200;
+  --htga-gradient-1-end: #D7302B;
+  --htga-gradient-2-start: #FFA200;
+  --htga-gradient-2-end: #FF6B00;
 }
 
+/* ========================================
+   Base Styles
+   ======================================== */
 html {
   background-color: #262626;
   color: #ededed;
@@ -24,7 +40,98 @@ body {
     color 0.2s;
 }
 
-/* Dark Mode Styling for input fields and components */
+/* ========================================
+   HTGA Custom Gradients
+   ======================================== */
+.bg-gradient-1 {
+  background: linear-gradient(135deg, var(--htga-gradient-1-start) 0%, var(--htga-gradient-1-end) 100%);
+}
+
+.bg-gradient-2 {
+  background: linear-gradient(135deg, var(--htga-gradient-2-start) 0%, var(--htga-gradient-2-end) 100%);
+}
+
+/* Cream/Beige background */
+.bg-cream {
+  background-color: #FFF4E6;
+}
+
+/* ========================================
+   HTGA Button Styles
+   ======================================== */
+.htga-button {
+  transition: all 0.3s ease;
+}
+
+.htga-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 162, 0, 0.3);
+}
+
+.htga-button:active {
+  transform: translateY(0);
+}
+
+/* ========================================
+   HTGA Card Styles
+   ======================================== */
+.htga-card {
+  background: var(--htga-white);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ========================================
+   HTGA Input Styles
+   ======================================== */
+.htga-input {
+  background: var(--htga-white);
+  border: 1px solid #E5E5E5;
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.htga-input:focus {
+  outline: none;
+  border-color: var(--htga-orange);
+  box-shadow: 0 0 0 3px rgba(255, 162, 0, 0.1);
+}
+
+/* ========================================
+   HTGA Status Badges
+   ======================================== */
+.badge-complete {
+  background-color: #4CAF50;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-continue {
+  background-color: var(--htga-orange);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-start {
+  background-color: var(--htga-red);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ========================================
+   Dark Mode Input Styling
+   ======================================== */
 input,
 textarea,
 select {
@@ -38,29 +145,30 @@ textarea::placeholder {
   color: #808080;
 }
 
-/* Scrollbar styling */
+/* ========================================
+   Scrollbar Styling
+   ======================================== */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f0f0f0;
+  background: var(--htga-light-grey);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c6a87c;
-  border-radius: 5px;
+  background: var(--htga-grey);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a67c37;
+  background: var(--htga-orange);
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #505050;
-}
-
+/* ========================================
+   Cursor/Caret Control
+   ======================================== */
 /* Remove text cursor/caret outside input fields */
 * {
   caret-color: transparent;

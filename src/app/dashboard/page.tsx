@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect, useContext } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../htga-app/context/AuthContext";
-import { dummyEstablishments } from "../../htga-app/data/dummyData";
+import { useAuth } from "@/context/AuthContext";
+import { dummyEstablishments } from "@/data/dummyData";
 import { MobileLayoutWrapper } from "../layout-wrapper";
 import { PushNotificationsContext } from "@/components/notifications/PushNotificationsProvider";
 import {
@@ -54,6 +54,10 @@ export default function DashboardPage() {
   const handleProfile = () => {
     router.push("/profile");
   };
+
+  const handleNotifications = () => {
+    router.push("/notifications");
+  }
 
   const filteredEstablishments = dummyEstablishments.filter((est) => {
     if (selectedCategory === "All") return true;
@@ -125,7 +129,7 @@ export default function DashboardPage() {
               </h2>
             </div>
             <div className="flex items-center gap-3">
-              <button className="relative">
+              <button onClick={handleNotifications} className="relative">
                 <svg
                   className="w-6 h-6 text-[#1B1B1B]"
                   fill="currentColor"

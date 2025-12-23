@@ -1,10 +1,11 @@
-import { Establishment, User } from "../types";
+import { Establishment, User } from "@/types/htga";
 
 // Dummy User
 export const dummyUser: User = {
   id: "eval_001",
   name: "Evaluator Name",
   username: "evaluator",
+  email: "evaluator@htga.com",
   role: "evaluator",
   avatar: "/profile-avatar.jpg",
 };
