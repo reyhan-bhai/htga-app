@@ -63,7 +63,7 @@ export async function saveFCMTokenToServer(
       throw new Error("Failed to save token");
     }
 
-    const data = await response.json();
+    await response.json();
     console.log("✅ Token saved for user:", userId);
     return true;
   } catch (error) {
