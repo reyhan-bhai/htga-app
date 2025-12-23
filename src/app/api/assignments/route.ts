@@ -317,8 +317,20 @@ export async function POST(request: Request) {
     }
 
     // Create new assignment
-    const assignmentRef = db.ref("assignments").push();
-    const assignmentId = assignmentRef.key!;
+    // Generate sequential ID using transaction to handle concurrent requests
+    const counterRef = db.ref("counters/assignments");
+    const transactionResult = await counterRef.transaction((currentValue) => {
+      return (currentValue || 0) + 1;
+    });
+
+    if (!transactionResult.committed) {
+      throw new Error("Failed to generate assignment ID");
+    }
+
+    const count = transactionResult.snapshot.val();
+    const assignmentId = `ASSIGN${String(count).padStart(2, "0")}`;
+
+    const assignmentRef = db.ref(`assignments/${assignmentId}`);
 
     const newAssignment: Omit<Assignment, "id"> = {
       establishmentId,
