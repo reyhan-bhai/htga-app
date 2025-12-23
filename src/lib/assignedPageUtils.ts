@@ -407,14 +407,8 @@ export const handleSaveEdit = async (
       (a) => a.establishmentId === editingRestaurant.res_id
     );
 
-    if (!assignment) {
-      await Swal.fire({
-        icon: "error",
-        title: "No Assignment Found",
-        text: "This restaurant doesn't have an assignment to edit.",
-      });
-      return;
-    }
+    // If no assignment, we will create one. No need to return error.
+    // if (!assignment) { ... }
 
     // Validate specialty matches
     const restaurant = establishments.find(
@@ -451,35 +445,53 @@ export const handleSaveEdit = async (
       }
     }
 
-    // If both evaluators are removed, delete the assignment
+    // If both evaluators are removed, delete the assignment (only if assignment exists)
     if (!editEvaluator1 && !editEvaluator2) {
-      const response = await fetch(`/api/assignments?id=${assignment.id}`, {
-        method: "DELETE",
-      });
+      if (assignment) {
+        const response = await fetch(`/api/assignments?id=${assignment.id}`, {
+          method: "DELETE",
+        });
 
-      if (!response.ok) {
-        throw new Error("Failed to delete assignment");
+        if (!response.ok) {
+          throw new Error("Failed to delete assignment");
+        }
+
+        await Swal.fire({
+          icon: "success",
+          title: "Assignment Removed",
+          text: `Successfully removed all evaluators from ${editingRestaurant.name}.`,
+        });
+      } else {
+        // Nothing to delete
+        await Swal.fire({
+          icon: "info",
+          title: "No Changes",
+          text: "No assignment existed to remove.",
+        });
+      }
+    } else {
+      // Update or Create the assignment
+      const payload: any = {
+        evaluator1Id: editEvaluator1 || null,
+        evaluator2Id: editEvaluator2 || null,
+      };
+
+      if (assignment) {
+        payload.id = assignment.id;
+      } else {
+        // For creation, we need establishmentId
+        payload.establishmentId = editingRestaurant.res_id;
       }
 
-      await Swal.fire({
-        icon: "success",
-        title: "Assignment Removed",
-        text: `Successfully removed all evaluators from ${editingRestaurant.name}.`,
-      });
-    } else {
-      // Update the assignment
       const response = await fetch(`/api/assignments`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: assignment.id,
-          evaluator1Id: editEvaluator1 || null,
-          evaluator2Id: editEvaluator2 || null,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to update assignment");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update assignment");
       }
 
       await Swal.fire({

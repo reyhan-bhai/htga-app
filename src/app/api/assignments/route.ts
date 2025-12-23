@@ -183,10 +183,10 @@ export async function POST(request: Request) {
       evaluator.specialties.includes(establishment.category)
     );
 
-    if (matchingEvaluators.length < 2) {
+    if (matchingEvaluators.length < 1) {
       return NextResponse.json(
         {
-          error: `Not enough evaluators with specialty "${establishment.category}". Need at least 2, found ${matchingEvaluators.length}.`,
+          error: `Not enough evaluators with specialty "${establishment.category}". Need at least 1, found ${matchingEvaluators.length}.`,
         },
         { status: 400 }
       );
@@ -220,12 +220,20 @@ export async function POST(request: Request) {
     // If evaluators not provided, auto-assign both
     if (!evaluator1Id && !evaluator2Id) {
       selectedEvaluator1Id = sortedEvaluators[0].id;
-      selectedEvaluator2Id = sortedEvaluators[1].id;
+      selectedEvaluator2Id =
+        sortedEvaluators.length > 1 ? sortedEvaluators[1].id : "";
 
-      console.log("Auto-assigned both evaluators:", {
+      console.log("Auto-assigned evaluators:", {
         evaluator1: sortedEvaluators[0].name,
-        evaluator2: sortedEvaluators[1].name,
+        evaluator2:
+          sortedEvaluators.length > 1
+            ? sortedEvaluators[1].name
+            : "Not assigned",
         establishment: establishment.name,
+        note:
+          sortedEvaluators.length === 1
+            ? "Only 1 evaluator available - assigned to evaluator1 only"
+            : "2 evaluators assigned",
       });
     }
     // If only evaluator1 provided, auto-assign evaluator2
@@ -245,14 +253,13 @@ export async function POST(request: Request) {
       const availableEvaluators = sortedEvaluators.filter(
         (e) => e.id !== evaluator1Id
       );
-      if (availableEvaluators.length === 0) {
-        return NextResponse.json(
-          { error: "No other evaluators available with matching specialty" },
-          { status: 400 }
-        );
-      }
 
-      selectedEvaluator2Id = availableEvaluators[0].id;
+      if (availableEvaluators.length === 0) {
+        // If no other evaluator available, leave evaluator2 empty
+        selectedEvaluator2Id = "";
+      } else {
+        selectedEvaluator2Id = availableEvaluators[0].id;
+      }
 
       console.log("Auto-assigned evaluator2:", {
         evaluator1: evaluator1.name,
@@ -262,14 +269,6 @@ export async function POST(request: Request) {
     }
     // If both evaluators provided, validate them
     else {
-      // Validate manually provided evaluators
-      if (selectedEvaluator1Id === selectedEvaluator2Id) {
-        return NextResponse.json(
-          { error: "Cannot assign same evaluator twice" },
-          { status: 400 }
-        );
-      }
-
       // Check if evaluators exist and have matching specialty
       const [eval1Snap, eval2Snap] = await Promise.all([
         db.ref(`evaluators/${selectedEvaluator1Id}`).once("value"),
@@ -318,7 +317,7 @@ export async function POST(request: Request) {
 
     // Create new assignment
     // Generate sequential ID using transaction to handle concurrent requests
-    const counterRef = db.ref("counters/assignments");
+    const counterRef = db.ref("assignments/counters");
     const transactionResult = await counterRef.transaction((currentValue) => {
       return (currentValue || 0) + 1;
     });
@@ -332,14 +331,18 @@ export async function POST(request: Request) {
 
     const assignmentRef = db.ref(`assignments/${assignmentId}`);
 
-    const newAssignment: Omit<Assignment, "id"> = {
+    const newAssignment: any = {
       establishmentId,
       evaluator1Id: selectedEvaluator1Id,
       evaluator1Status: "pending",
-      evaluator2Id: selectedEvaluator2Id,
-      evaluator2Status: "pending",
       assignedAt: new Date().toISOString(),
     };
+
+    // Only add evaluator2 fields if evaluator2 is assigned
+    if (selectedEvaluator2Id) {
+      newAssignment.evaluator2Id = selectedEvaluator2Id;
+      newAssignment.evaluator2Status = "pending";
+    }
 
     await assignmentRef.set(newAssignment);
 
@@ -361,12 +364,13 @@ export async function POST(request: Request) {
   }
 }
 
-// PUT - Update assignment status and evaluators
+// PUT - Update assignment status and evaluators, or create if not exists
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
     const {
       id,
+      establishmentId, // Add establishmentId to body for creation
       evaluator1Status,
       evaluator2Status,
       notes,
@@ -374,96 +378,164 @@ export async function PUT(request: Request) {
       evaluator2Id,
     } = body;
 
-    if (!id) {
+    // If id is provided, try to update existing assignment
+    if (id) {
+      // Check if assignment exists
+      const snapshot = await db.ref(`assignments/${id}`).once("value");
+
+      if (snapshot.exists()) {
+        // ... existing update logic ...
+        // Validate evaluators if provided and not empty
+        if (evaluator1Id) {
+          const evaluator1Snap = await db
+            .ref(`evaluators/${evaluator1Id}`)
+            .once("value");
+          if (!evaluator1Snap.exists()) {
+            return NextResponse.json(
+              { error: "Evaluator 1 not found" },
+              { status: 404 }
+            );
+          }
+        }
+
+        if (evaluator2Id) {
+          const evaluator2Snap = await db
+            .ref(`evaluators/${evaluator2Id}`)
+            .once("value");
+          if (!evaluator2Snap.exists()) {
+            return NextResponse.json(
+              { error: "Evaluator 2 not found" },
+              { status: 404 }
+            );
+          }
+        }
+
+        const updates: Partial<Assignment> = {};
+
+        if (evaluator1Status) {
+          updates.evaluator1Status = evaluator1Status;
+        }
+
+        if (evaluator2Status) {
+          updates.evaluator2Status = evaluator2Status;
+        }
+
+        // Check if both completed to set completedAt
+        const currentAssignment = snapshot.val();
+        const newEval1Status =
+          evaluator1Status || currentAssignment.evaluator1Status;
+        const newEval2Status =
+          evaluator2Status || currentAssignment.evaluator2Status;
+
+        if (newEval1Status === "completed" && newEval2Status === "completed") {
+          updates.completedAt = new Date().toISOString();
+        }
+
+        if (notes !== undefined) {
+          updates.notes = notes;
+        }
+
+        if (evaluator1Id !== undefined) {
+          updates.evaluator1Id = evaluator1Id;
+        }
+
+        if (evaluator2Id !== undefined) {
+          updates.evaluator2Id = evaluator2Id;
+        }
+
+        await db.ref(`assignments/${id}`).update(updates);
+
+        const updatedSnapshot = await db.ref(`assignments/${id}`).once("value");
+        const updatedAssignment = { id, ...updatedSnapshot.val() };
+
+        const detailedAssignment = await getAssignmentWithDetails(
+          id,
+          updatedAssignment
+        );
+
+        return NextResponse.json({
+          message: "Assignment updated successfully",
+          assignment: detailedAssignment,
+        });
+      }
+    }
+
+    // If ID not provided or assignment not found, create new assignment
+    // We need establishmentId for creation
+    if (!establishmentId) {
+      // If we have an ID but it wasn't found, and no establishmentId provided, we can't create
+      if (id) {
+        return NextResponse.json(
+          {
+            error:
+              "Assignment not found and establishmentId not provided for creation",
+          },
+          { status: 404 }
+        );
+      }
       return NextResponse.json(
-        { error: "Assignment ID is required" },
+        { error: "Establishment ID is required for new assignment" },
         { status: 400 }
       );
     }
 
-    // Check if assignment exists
-    const snapshot = await db.ref(`assignments/${id}`).once("value");
-    if (!snapshot.exists()) {
+    // Check if establishment exists
+    const establishmentSnap = await db
+      .ref(`establishments/${establishmentId}`)
+      .once("value");
+    if (!establishmentSnap.exists()) {
       return NextResponse.json(
-        { error: "Assignment not found" },
+        { error: "Establishment not found" },
         { status: 404 }
       );
     }
 
-    // Validate evaluators if provided and not empty
-    if (evaluator1Id) {
-      const evaluator1Snap = await db
-        .ref(`evaluators/${evaluator1Id}`)
-        .once("value");
-      if (!evaluator1Snap.exists()) {
-        return NextResponse.json(
-          { error: "Evaluator 1 not found" },
-          { status: 404 }
-        );
-      }
+    // Generate sequential ID using transaction to handle concurrent requests
+    const counterRef = db.ref("assignments/counters");
+    const transactionResult = await counterRef.transaction((currentValue) => {
+      return (currentValue || 0) + 1;
+    });
+
+    if (!transactionResult.committed) {
+      throw new Error("Failed to generate assignment ID");
     }
+
+    const count = transactionResult.snapshot.val();
+    const assignmentId = `ASSIGN${String(count).padStart(2, "0")}`;
+    const assignmentRef = db.ref(`assignments/${assignmentId}`);
+
+    const newAssignment: any = {
+      establishmentId,
+      evaluator1Id: evaluator1Id || "",
+      evaluator1Status: "pending",
+      assignedAt: new Date().toISOString(),
+    };
 
     if (evaluator2Id) {
-      const evaluator2Snap = await db
-        .ref(`evaluators/${evaluator2Id}`)
-        .once("value");
-      if (!evaluator2Snap.exists()) {
-        return NextResponse.json(
-          { error: "Evaluator 2 not found" },
-          { status: 404 }
-        );
-      }
+      newAssignment.evaluator2Id = evaluator2Id;
+      newAssignment.evaluator2Status = "pending";
     }
 
-    const updates: Partial<Assignment> = {};
-
-    if (evaluator1Status) {
-      updates.evaluator1Status = evaluator1Status;
+    if (notes) {
+      newAssignment.notes = notes;
     }
 
-    if (evaluator2Status) {
-      updates.evaluator2Status = evaluator2Status;
-    }
+    await assignmentRef.set(newAssignment);
 
-    // Check if both completed to set completedAt
-    const currentAssignment = snapshot.val();
-    const newEval1Status =
-      evaluator1Status || currentAssignment.evaluator1Status;
-    const newEval2Status =
-      evaluator2Status || currentAssignment.evaluator2Status;
-
-    if (newEval1Status === "completed" && newEval2Status === "completed") {
-      updates.completedAt = new Date().toISOString();
-    }
-
-    if (notes !== undefined) {
-      updates.notes = notes;
-    }
-
-    if (evaluator1Id !== undefined) {
-      updates.evaluator1Id = evaluator1Id;
-    }
-
-    if (evaluator2Id !== undefined) {
-      updates.evaluator2Id = evaluator2Id;
-    }
-
-    await db.ref(`assignments/${id}`).update(updates);
-
-    const updatedSnapshot = await db.ref(`assignments/${id}`).once("value");
-    const updatedAssignment = { id, ...updatedSnapshot.val() };
-
-    const detailedAssignment = await getAssignmentWithDetails(
-      id,
-      updatedAssignment
-    );
-
-    return NextResponse.json({
-      message: "Assignment updated successfully",
-      assignment: detailedAssignment,
+    const detailedAssignment = await getAssignmentWithDetails(assignmentId, {
+      id: assignmentId,
+      ...newAssignment,
     });
+
+    return NextResponse.json(
+      {
+        message: "Assignment created successfully",
+        assignment: detailedAssignment,
+      },
+      { status: 201 }
+    );
   } catch (error: any) {
-    console.error("Error updating assignment:", error);
+    console.error("Error updating/creating assignment:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
