@@ -692,26 +692,25 @@ const renderRestaurantCell = (item: any, columnKey: React.Key) => {
       );
 
     case "category":
-      const getCategoryIcon = (category: string) => {
-        switch (category.toLowerCase()) {
-          case "local cuisine":
-            return "🍛";
-          case "fast food":
-            return "🍔";
-          case "bakery":
-            return "🥖";
-          case "italian":
-            return "🍝";
-          case "asian cuisine":
-            return "🍜";
-          default:
-            return "🍽️";
-        }
-      };
+      // const getCategoryIcon = (category: string) => {
+      //   switch (category.toLowerCase()) {
+      //     case "local cuisine":
+      //       return "🍛";
+      //     case "fast food":
+      //       return "🍔";
+      //     case "bakery":
+      //       return "🥖";
+      //     case "italian":
+      //       return "🍝";
+      //     case "asian cuisine":
+      //       return "🍜";
+      //     default:
+      //       return "🍽️";
+      //   }
+      // };
 
       return (
         <div className="flex items-center gap-2">
-          <span className="text-sm">{getCategoryIcon(value)}</span>
           <span className="text-xs text-gray-700">{value}</span>
         </div>
       );
