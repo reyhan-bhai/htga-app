@@ -4,12 +4,11 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import AdminModal from "@/components/admin/AdminModal";
 import AdminTable from "@/components/admin/AdminTable";
 import AdminViewControl from "@/components/admin/AdminViewControl";
-import { useState } from "react";
-import Swal from "sweetalert2";
-
+import { useAssignedContext } from "@/context/AssignedContext";
 import { useRestaurants } from "@/context/RestaurantContext";
 import { Pagination } from "@nextui-org/react";
-import React from "react";
+import React, { useState } from "react";
+import Swal from "sweetalert2";
 
 const columns = [
   // { name: "ID", uid: "id" },
@@ -26,6 +25,7 @@ const columns = [
 
 export default function RestaurantsPage() {
   const { restaurants, isLoading, refetchRestaurants } = useRestaurants();
+  const { fetchData: refetchAssignments } = useAssignedContext();
   const [page, setPage] = React.useState(1);
   const [selectedCities, setSelectedCities] = React.useState<string[]>([]);
   const [selectedStatus, setSelectedStatus] = React.useState<string[]>([]);
@@ -89,6 +89,7 @@ export default function RestaurantsPage() {
 
       setIsModalOpen(false);
       refetchRestaurants();
+      refetchAssignments();
     } catch (error) {
       await Swal.fire({
         icon: "error",
@@ -138,6 +139,7 @@ export default function RestaurantsPage() {
       setIsDeleteModalOpen(false);
       setRestaurantToDelete(null);
       refetchRestaurants();
+      refetchAssignments();
     } catch (error) {
       console.error("Error deleting restaurant:", error);
       await Swal.fire({

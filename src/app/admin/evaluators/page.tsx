@@ -4,6 +4,7 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import AdminModal from "@/components/admin/AdminModal";
 import AdminTable from "@/components/admin/AdminTable";
 import AdminViewControl from "@/components/admin/AdminViewControl";
+import { useAssignedContext } from "@/context/AssignedContext";
 import { useEvaluators } from "@/context/EvaluatorContext";
 import { Pagination } from "@nextui-org/react";
 import React, { useState } from "react";
@@ -14,6 +15,7 @@ import Swal from "sweetalert2";
 
 export default function EvaluatorsPage() {
   const { evaluators, isLoading, refetchEvaluators } = useEvaluators();
+  const { fetchData: refetchAssignments } = useAssignedContext();
 
   const [page, setPage] = React.useState(1);
   const [selectedCities, setSelectedCities] = React.useState<string[]>([]);
@@ -97,6 +99,7 @@ export default function EvaluatorsPage() {
       setIsModalOpen(false);
       // Refresh the evaluators list
       await refetchEvaluators();
+      await refetchAssignments();
     } catch (error) {
       console.error("Error saving evaluator:", error);
       await Swal.fire({
@@ -153,6 +156,7 @@ export default function EvaluatorsPage() {
       setEvaluatorToDelete(null);
       // Refresh the evaluators list
       await refetchEvaluators();
+      await refetchAssignments();
     } catch (error) {
       console.error("Error deleting evaluator:", error);
       await Swal.fire({
