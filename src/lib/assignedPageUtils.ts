@@ -82,9 +82,15 @@ export const getEvaluatorViewData = (evaluators: any[], assignments: any[]) => {
     );
 
     const totalRestaurants = evaluatorAssignments.length;
-    const completedRestaurants = evaluatorAssignments.filter(
-      (a) => a.status === "completed"
-    ).length;
+    const completedRestaurants = evaluatorAssignments.filter((a) => {
+      if (a.evaluator1Id === evaluator.id) {
+        return a.evaluator1Status === "completed";
+      }
+      if (a.evaluator2Id === evaluator.id) {
+        return a.evaluator2Status === "completed";
+      }
+      return false;
+    }).length;
 
     // Use ndaStatus from evaluator (now includes dummy data)
     const ndaStatus = evaluator.ndaStatus || "Not Sent";
@@ -151,8 +157,10 @@ export const getRestaurantViewData = (
       date_assigned: new Date(assignment.assignedAt).toLocaleDateString(),
       evaluator_1: evaluator1?.name || "-",
       evaluator_2: evaluator2?.name || "-",
-      completed_eva_1: assignment.status === "completed" ? "Yes" : "No",
-      completed_eva_2: assignment.status === "completed" ? "Yes" : "No",
+      completed_eva_1:
+        assignment.evaluator1Status === "completed" ? "Yes" : "No",
+      completed_eva_2:
+        assignment.evaluator2Status === "completed" ? "Yes" : "No",
     };
   });
 };
