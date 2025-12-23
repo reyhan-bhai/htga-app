@@ -15,8 +15,8 @@ interface Restaurant {
   category: string;
   address?: string;
   contactInfo?: string;
-  rating?: string;
-  budget?: string;
+  rating: string;
+  budget: string;
   halalStatus?: string;
   remarks?: string;
 }

@@ -4,7 +4,7 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import AdminModal from "@/components/admin/AdminModal";
 import AdminTable from "@/components/admin/AdminTable";
 import AdminViewControl from "@/components/admin/AdminViewControl";
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Swal from "sweetalert2";
 
 import { useRestaurants } from "@/context/RestaurantContext";
@@ -27,8 +27,11 @@ const columns = [
 export default function RestaurantsPage() {
   const { restaurants, isLoading, refetchRestaurants } = useRestaurants();
   const [page, setPage] = React.useState(1);
-  const [selectedCities, setSelectedCities] = React.useState<string[]>([]);
-  const [selectedStatus, setSelectedStatus] = React.useState<string[]>([]);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [ratingRange, setRatingRange] = useState({ min: 0, max: 5 });
+  const [budgetRange, setBudgetRange] = useState({ min: 0, max: 10000 });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRestaurant, setSelectedRestaurant] = useState<any>(null);
   const [modalMode, setModalMode] = useState<"add" | "edit" | "view">("add");
@@ -149,29 +152,98 @@ export default function RestaurantsPage() {
     }
   };
 
-  const cities = ["Johor", "Kuala Lumpur", "Penang", "Selangor"];
-  const statuses = ["Assigned", "Unassigned"];
-
-  const toggleCity = (city: string) => {
-    setSelectedCities((prev) =>
-      prev.includes(city) ? prev.filter((c) => c !== city) : [...prev, city]
-    );
-  };
-
-  const toggleStatus = (status: string) => {
-    setSelectedStatus((prev) =>
-      prev.includes(status)
-        ? prev.filter((s) => s !== status)
-        : [...prev, status]
-    );
-  };
-
   const clearFilters = () => {
-    setSelectedCities([]);
-    setSelectedStatus([]);
+    setSelectedCategories([]);
+    setSearchQuery("");
+    setRatingRange({ min: 0, max: 5 });
+    setBudgetRange({ min: 0, max: 10000 });
   };
 
-  const activeFiltersCount = selectedCities.length + selectedStatus.length;
+  const activeFiltersCount =
+    selectedCategories.length +
+    (searchQuery.trim().length > 0 ? 1 : 0) +
+    (ratingRange.min > 0 || ratingRange.max < 5 ? 1 : 0) +
+    (budgetRange.min > 0 || budgetRange.max < 10000 ? 1 : 0);
+
+  // Extract unique categories from restaurants data
+  const availableCategories = useMemo(() => {
+    const categories = new Set<string>();
+    restaurants.forEach((restaurant) => {
+      if (restaurant.category) {
+        categories.add(restaurant.category);
+      }
+    });
+    return Array.from(categories).sort();
+  }, [restaurants]);
+
+  // Create filtered restaurants based on all filters and search
+  const filteredRestaurants = useMemo(() => {
+    let results = restaurants;
+
+    // Filter by search query
+    if (searchQuery.trim().length > 0) {
+      const query = searchQuery.toLowerCase();
+      results = results.filter((restaurant) => {
+        const searchFields = [
+          restaurant.name || "",
+          restaurant.address || "",
+          restaurant.category || "",
+          restaurant.remarks || "",
+        ];
+        return searchFields.some((field) =>
+          field.toLowerCase().includes(query)
+        );
+      });
+    }
+
+    // Filter by categories
+    if (selectedCategories.length > 0) {
+      results = results.filter((restaurant) =>
+        selectedCategories.includes(restaurant.category)
+      );
+    }
+
+    // Filter by rating range
+    results = results.filter((restaurant) => {
+      const rating = parseFloat(restaurant.rating) || 0;
+      return rating >= ratingRange.min && rating <= ratingRange.max;
+    });
+
+    // Filter by budget range
+    results = results.filter((restaurant) => {
+      const budget = parseFloat(restaurant.budget) || 0;
+      return budget >= budgetRange.min && budget <= budgetRange.max;
+    });
+
+    return results;
+  }, [restaurants, searchQuery, selectedCategories, ratingRange, budgetRange]);
+
+  // Calculate total pages
+  const totalPages = Math.ceil(filteredRestaurants.length / rowsPerPage);
+
+  // Get paginated restaurants
+  const paginatedRestaurants = filteredRestaurants.slice(
+    (page - 1) * rowsPerPage,
+    page * rowsPerPage
+  );
+
+  // Reset page to 1 when filters or search change
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, selectedCategories, ratingRange, budgetRange]);
+
+  // Reset page to 1 when rows per page changes
+  useEffect(() => {
+    setPage(1);
+  }, [rowsPerPage]);
+
+  const toggleCategory = (category: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(category)
+        ? prev.filter((c) => c !== category)
+        : [...prev, category]
+    );
+  };
 
   return (
     <div className="text-black flex flex-col gap-6">
@@ -179,15 +251,19 @@ export default function RestaurantsPage() {
 
       <AdminViewControl
         type="restaurant"
-        selectedCities={selectedCities}
-        setSelectedCities={setSelectedCities}
-        selectedStatus={selectedStatus}
-        setSelectedStatus={setSelectedStatus}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        selectedCategories={selectedCategories}
+        setSelectedCategories={setSelectedCategories}
+        categories={availableCategories}
+        toggleCategory={toggleCategory}
+        ratingRange={ratingRange}
+        setRatingRange={setRatingRange}
+        budgetRange={budgetRange}
+        setBudgetRange={setBudgetRange}
         activeFiltersCount={activeFiltersCount}
-        cities={cities}
-        statuses={statuses}
-        toggleCity={toggleCity}
-        toggleStatus={toggleStatus}
+        rowsPerPage={rowsPerPage}
+        setRowsPerPage={setRowsPerPage}
         clearFilters={clearFilters}
         handleAddRestaurant={handleAddRestaurant}
       />
@@ -196,18 +272,17 @@ export default function RestaurantsPage() {
         type="restaurant"
         isLoading={isLoading}
         columns={columns}
-        data={restaurants}
+        data={paginatedRestaurants}
         handleEditItem={handleEditRestaurant}
         handleViewItem={handleViewRestaurant}
         handleDeleteItem={handleDeleteRestaurant}
       />
-
       <div className="flex justify-center items-center mt-4">
         <div className="block md:hidden">
           <Pagination
             isCompact
             showControls
-            total={10}
+            total={totalPages || 1}
             page={page}
             onChange={setPage}
             siblings={0}
@@ -219,7 +294,7 @@ export default function RestaurantsPage() {
         <div className="hidden md:block">
           <Pagination
             showControls
-            total={10}
+            total={totalPages || 1}
             page={page}
             onChange={setPage}
             classNames={{
@@ -247,5 +322,5 @@ export default function RestaurantsPage() {
         onConfirm={confirmDelete}
       />
     </div>
-  );
+  )
 }
