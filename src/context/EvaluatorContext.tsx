@@ -7,6 +7,10 @@ interface Evaluator {
   id: string;
   name: string;
   email: string;
+  specialties: string[];
+  phone: string;
+  position: string;
+  company: string;
   // Add other fields as needed
 }
 

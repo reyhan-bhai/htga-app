@@ -6,6 +6,8 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
+  Select,
+  SelectItem,
   Tab,
   Tabs,
 } from "@nextui-org/react";
@@ -45,11 +47,21 @@ interface AdminViewControlProps {
   toggleCity?: (city: string) => void;
   toggleStatus?: (status: string) => void;
 
-  // Evaluator
-  handleAddEvaluator?: () => void;
+  // Evaluator Only
+  selectedSpecialties?: string[];
+  setSelectedSpecialties?: (specialties: string[]) => void;
+  specialties?: string[];
+  toggleSpecialty?: (specialty: string) => void;
+  searchQuery?: string;
+  setSearchQuery?: (query: string) => void;
+  rowsPerPage?: number;
+  setRowsPerPage?: (rows: number) => void;
 
   // Restaurant
   handleAddRestaurant?: () => void;
+
+  // Evaluator
+  handleAddEvaluator?: () => void;
 }
 
 export default function AdminViewControl({
@@ -64,12 +76,13 @@ export default function AdminViewControl({
   setSelectedMatchStatus,
   evaluatorViewData = [],
   restaurantViewData = [],
-  selectedCities = [],
-  selectedStatus = [],
-  cities = [],
-  statuses = [],
-  toggleCity,
-  toggleStatus,
+  selectedSpecialties = [],
+  specialties = [],
+  toggleSpecialty,
+  searchQuery = "",
+  setSearchQuery,
+  rowsPerPage = 10,
+  setRowsPerPage,
   handleAddEvaluator,
   handleAddRestaurant,
 }: AdminViewControlProps) {
@@ -351,10 +364,12 @@ export default function AdminViewControl({
           <div className="flex flex-row gap-3 w-full md:w-auto items-center">
             {/* Search Input */}
             <Input
-              placeholder="Search by name, email, ID, city or status..."
+              placeholder="Search..."
               className="w-full md:w-[350px]"
               size="sm"
               variant="bordered"
+              value={searchQuery}
+              onValueChange={setSearchQuery}
               startContent={<MdSearch className="text-black" size={18} />}
               classNames={{
                 inputWrapper: "bg-white border-gray-300 rounded-md text-red",
@@ -396,50 +411,76 @@ export default function AdminViewControl({
 
                   <Divider className="bg-gray-200" />
 
-                  {/* City Filter */}
-                  <div className="flex flex-col gap-2">
-                    <span className="font-medium text-sm text-gray-700">
-                      City
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {cities.map((city) => (
-                        <Checkbox
-                          key={city}
-                          size="sm"
-                          isSelected={selectedCities.includes(city)}
-                          onValueChange={() => toggleCity?.(city)}
-                          classNames={{
-                            label: "text-black text-sm",
-                          }}
-                        >
-                          {city}
-                        </Checkbox>
-                      ))}
-                    </div>
-                  </div>
+                  <Divider className="bg-gray-200" />
+
+                  {specialties && specialties.length > 0 && (
+                    <>
+                      {/* Specialties Filter */}
+                      <div className="flex flex-col gap-2">
+                        <span className="font-medium text-sm text-gray-700">
+                          Specialties
+                        </span>
+                        <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
+                          {specialties.map((specialty) => (
+                            <Checkbox
+                              key={specialty}
+                              size="sm"
+                              isSelected={selectedSpecialties.includes(
+                                specialty
+                              )}
+                              onValueChange={() => toggleSpecialty?.(specialty)}
+                              classNames={{
+                                label: "text-black text-sm",
+                              }}
+                            >
+                              {specialty}
+                            </Checkbox>
+                          ))}
+                        </div>
+                      </div>
+
+                      <Divider className="bg-gray-200" />
+                    </>
+                  )}
 
                   <Divider className="bg-gray-200" />
 
-                  {/* Status Filter */}
+                  {/* Rows Per Page Selector */}
                   <div className="flex flex-col gap-2">
                     <span className="font-medium text-sm text-gray-700">
-                      Status
+                      Rows Per Page
                     </span>
-                    <div className="flex flex-wrap gap-2">
-                      {statuses.map((status) => (
-                        <Checkbox
-                          key={status}
-                          size="sm"
-                          isSelected={selectedStatus.includes(status)}
-                          onValueChange={() => toggleStatus?.(status)}
-                          classNames={{
-                            label: "text-black text-sm",
-                          }}
-                        >
-                          {status}
-                        </Checkbox>
-                      ))}
-                    </div>
+                    <Select
+                      selectedKeys={[rowsPerPage.toString()]}
+                      onSelectionChange={(keys) => {
+                        const value = Array.from(keys)[0];
+                        if (value && setRowsPerPage) {
+                          setRowsPerPage(parseInt(value as string));
+                        }
+                      }}
+                      size="sm"
+                      variant="bordered"
+                      classNames={{
+                        trigger:
+                          "bg-white border-gray-300 rounded-md h-9 text-black",
+                        value: "text-black text-sm",
+                        listboxWrapper: "text-gray-500",
+                        popoverContent: "text-gray-500",
+                      }}
+                    >
+                      <SelectItem key="10" value="10" className="text-gray-600">
+                        10
+                      </SelectItem>
+                      <SelectItem key="25" value="25" className="text-gray-600">
+                        25
+                      </SelectItem>
+                      <SelectItem key="50" value="50" className="text-gray-600">
+                        50
+                      </SelectItem>
+                      <SelectItem key="100" value="100" className="text-gray-600">
+                        100
+                      </SelectItem>
+                    </Select>
                   </div>
                 </div>
               </PopoverContent>
