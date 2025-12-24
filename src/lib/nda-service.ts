@@ -544,56 +544,88 @@ export async function checkNDAStatus(
  */
 export async function processWebhook(payload: any): Promise<WebhookResponse> {
   try {
-    console.log("📩 DocuSign Webhook received:", payload);
+    console.log("📩 ============================================");
+    console.log("📩 DocuSign Webhook received");
+    console.log("📩 Full Payload:", JSON.stringify(payload, null, 2));
+    console.log("📩 ============================================");
 
-    const { event, data } = payload;
+    // DocuSign sends different formats, handle all cases
+    let envelopeId: string | undefined;
+    let status: string | undefined;
 
-    if (!event || !data) {
-      return {
-        success: false,
-        error: "Invalid webhook payload",
-      };
+    // Format 1: Standard event/data format
+    if (payload.event && payload.data) {
+      envelopeId =
+        payload.data.envelopeSummary?.envelopeId || payload.data.envelopeId;
+      status = payload.data.envelopeSummary?.status || payload.data.status;
+
+      // Fallback: derive status from event name if not in data
+      if (!status && payload.event && typeof payload.event === "string") {
+        status = payload.event.replace("envelope-", "");
+        console.log(
+          `ℹ️ Derived status '${status}' from event '${payload.event}'`
+        );
+      }
+    }
+    // Format 2: Direct envelope data
+    else if (payload.envelopeId) {
+      envelopeId = payload.envelopeId;
+      status = payload.status;
+    }
+    // Format 3: DocuSign Connect XML-to-JSON format
+    else if (payload.EnvelopeStatus) {
+      envelopeId = payload.EnvelopeStatus.EnvelopeID;
+      status = payload.EnvelopeStatus.Status;
     }
 
-    const envelopeId = data.envelopeSummary?.envelopeId || data.envelopeId;
-    const status = data.envelopeSummary?.status || data.status;
+    console.log("📝 Extracted - Envelope ID:", envelopeId);
+    console.log("📝 Extracted - Status:", status);
 
-    if (!envelopeId) {
+    if (!envelopeId || !status) {
+      console.error("❌ Missing envelope ID or status in webhook");
       return {
         success: false,
-        error: "No envelope ID in payload",
+        error: "Missing envelope ID or status in webhook payload",
       };
     }
-
-    console.log(`📝 Envelope ${envelopeId} status: ${status}`);
 
     // Find evaluator with this envelopeId
+    console.log(`🔍 Finding evaluator for envelope: ${envelopeId}`);
     const result = await findEvaluatorByEnvelopeId(envelopeId);
 
     if (!result) {
       console.log(`⚠️ No evaluator found for envelope ${envelopeId}`);
       return {
         success: true,
-        message: "Envelope not associated with any evaluator",
+        message:
+          "Envelope not associated with any evaluator (might be test envelope)",
       };
     }
 
-    const { evaluatorId } = result;
+    const { evaluatorId, ndaData } = result;
+    console.log(`✅ Found evaluator: ${evaluatorId}`);
+    console.log(`📋 Current status in DB: ${ndaData.status}`);
 
     // Map DocuSign status to internal status
     const mappedStatus = mapDocuSignStatus(status);
+    console.log(`🔄 Status mapping: ${status} → ${mappedStatus}`);
 
     // Update NDA status in Firebase
+    console.log(`💾 Updating Firebase for evaluator ${evaluatorId}...`);
     await updateNDAStatus(evaluatorId, mappedStatus, status);
+
+    console.log("✅ Webhook processed successfully!");
+    console.log("📩 ============================================");
 
     return {
       success: true,
-      message: "Webhook processed successfully",
+      message: "Webhook processed and Firebase updated successfully",
       evaluatorId: evaluatorId,
       status: mappedStatus,
     };
   } catch (error: any) {
     console.error("❌ Webhook processing error:", error);
+    console.error("Stack:", error.stack);
     return {
       success: false,
       error: error.message || "Failed to process webhook",

@@ -1,0 +1,74 @@
+### 🔥 LATEST - Test Webhook for jeva15 (Putra Indika)
+POST http://localhost:3000/api/nda
+Content-Type: application/json
+
+{
+  "envelopeId": "90e61e76-3dc0-848d-8010-907dedc0174c",
+  "status": "completed"
+}
+
+### 🔥 LATEST - Test with ngrok URL
+POST https://unenfranchised-unsolvably-mayola.ngrok-free.dev/api/nda
+Content-Type: application/json
+
+{
+  "envelopeId": "90e61e76-3dc0-848d-8010-907dedc0174c",
+  "status": "completed"
+}
+
+### Check current status for jeva15
+GET http://localhost:3000/api/nda?evaluatorId=jeva15&sync=true
+
+###
+### OLD TESTS BELOW
+###
+
+### Test Webhook - Simulate DocuSign sending completed status
+POST http://localhost:3000/api/nda
+Content-Type: application/json
+
+{
+  "envelopeId": "a78c1212-ff8a-839a-8141-a65bdfc01f18",
+  "status": "completed"
+}
+
+### Test with ngrok URL
+POST https://unenfranchised-unsolvably-mayola.ngrok-free.dev/api/nda
+Content-Type: application/json
+
+{
+  "envelopeId": "a78c1212-ff8a-839a-8141-a65bdfc01f18",
+  "status": "completed"
+}
+
+### Alternative format 1
+POST http://localhost:3000/api/nda
+Content-Type: application/json
+
+{
+  "event": "envelope-completed",
+  "data": {
+    "envelopeId": "a78c1212-ff8a-839a-8141-a65bdfc01f18",
+    "status": "completed"
+  }
+}
+
+### Alternative format 2 (DocuSign Connect)
+POST http://localhost:3000/api/nda
+Content-Type: application/json
+
+{
+  "EnvelopeStatus": {
+    "EnvelopeID": "a78c1212-ff8a-839a-8141-a65bdfc01f18",
+    "Status": "Completed"
+  }
+}
+
+### Check current status (with live sync from DocuSign)
+GET http://localhost:3000/api/nda?evaluatorId=jeva15&sync=true
+
+### Check status (Firebase only, no sync)
+GET http://localhost:3000/api/nda?evaluatorId=jeva15
+
+### Health check
+PATCH http://localhost:3000/api/nda
