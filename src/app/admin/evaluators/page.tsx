@@ -7,19 +7,21 @@ import AdminViewControl from "@/components/admin/AdminViewControl";
 import { useAssignedContext } from "@/context/AssignedContext";
 import { useEvaluators } from "@/context/EvaluatorContext";
 import { Pagination } from "@nextui-org/react";
-import React, { useState } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Swal from "sweetalert2";
 
 // Dummy data removed - now using real data from Firebase
 // const users = [...];
+
 
 export default function EvaluatorsPage() {
   const { evaluators, isLoading, refetchEvaluators } = useEvaluators();
   const { fetchData: refetchAssignments } = useAssignedContext();
 
   const [page, setPage] = React.useState(1);
-  const [selectedCities, setSelectedCities] = React.useState<string[]>([]);
-  const [selectedStatus, setSelectedStatus] = React.useState<string[]>([]);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEvaluator, setSelectedEvaluator] = useState<any>(null);
   const [modalMode, setModalMode] = useState<"add" | "edit" | "view">("add");
@@ -169,29 +171,111 @@ export default function EvaluatorsPage() {
       setIsSaving(false);
     }
   };
-  const cities = ["Johor", "Kuala Lumpur", "Penang", "Selangor"];
-  const statuses = ["Assigned", "Unassigned"];
-
-  const toggleCity = (city: string) => {
-    setSelectedCities((prev) =>
-      prev.includes(city) ? prev.filter((c) => c !== city) : [...prev, city]
-    );
-  };
-
-  const toggleStatus = (status: string) => {
-    setSelectedStatus((prev) =>
-      prev.includes(status)
-        ? prev.filter((s) => s !== status)
-        : [...prev, status]
-    );
-  };
 
   const clearFilters = () => {
-    setSelectedCities([]);
-    setSelectedStatus([]);
+    setSelectedSpecialties([]);
+    setSearchQuery("");
   };
 
-  const activeFiltersCount = selectedCities.length + selectedStatus.length;
+  const activeFiltersCount =
+    selectedSpecialties.length;
+
+  // Extract unique specialties from evaluators data
+  const availableSpecialties = useMemo(() => {
+    const specialties = new Set<string>();
+    evaluators.forEach((evaluator) => {
+      if (evaluator.specialties) {
+        if (Array.isArray(evaluator.specialties)) {
+          evaluator.specialties.forEach((specialty: string) => {
+            specialties.add(specialty);
+          });
+        } else if (typeof evaluator.specialties === "string") {
+          specialties.add(evaluator.specialties);
+        }
+      }
+    });
+    return Array.from(specialties).sort();
+  }, [evaluators]);
+
+  // Create filtered evaluators based on selected specialties and search query
+  const filteredEvaluators = useMemo(() => {
+    let results = evaluators;
+
+    // Filter by specialties
+    if (selectedSpecialties.length > 0) {
+      results = results.filter((evaluator) => {
+        if (Array.isArray(evaluator.specialties)) {
+          return evaluator.specialties.some((specialty: string) =>
+            selectedSpecialties.includes(specialty)
+          );
+        } else if (typeof evaluator.specialties === "string") {
+          return selectedSpecialties.includes(evaluator.specialties);
+        }
+        return false;
+      });
+    }
+
+    // Filter by search query
+    if (searchQuery.trim().length > 0) {
+      const query = searchQuery.toLowerCase();
+      results = results.filter((evaluator) => {
+        const searchFields = [
+          evaluator.name || "",
+          evaluator.email || "",
+          evaluator.id || "",
+          evaluator.phone || "",
+          evaluator.position || "",
+          evaluator.company || "",
+        ];
+        
+        // Check if query matches any of the basic fields
+        const basicFieldMatch = searchFields.some((field) =>
+          field.toLowerCase().includes(query)
+        );
+        
+        // Check if query matches specialties
+        let specialtyMatch = false;
+        if (Array.isArray(evaluator.specialties)) {
+          specialtyMatch = evaluator.specialties.some((specialty: string) =>
+            specialty.toLowerCase().includes(query)
+          );
+        } else if (typeof evaluator.specialties === "string") {
+          specialtyMatch = (evaluator.specialties as string).toLowerCase().includes(query);
+        }
+        
+        return basicFieldMatch || specialtyMatch;
+      });
+    }
+
+    return results;
+  }, [evaluators, selectedSpecialties, searchQuery]);
+
+  // Calculate total pages
+  const totalPages = Math.ceil(filteredEvaluators.length / rowsPerPage);
+
+  // Get paginated evaluators
+  const paginatedEvaluators = filteredEvaluators.slice(
+    (page - 1) * rowsPerPage,
+    page * rowsPerPage
+  );
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [selectedSpecialties, searchQuery]);
+
+  // Reset page to 1 when rows per page changes
+  useEffect(() => {
+    setPage(1);
+  }, [rowsPerPage]);
+
+  const toggleSpecialty = (specialty: string) => {
+    setSelectedSpecialties((prev) =>
+      prev.includes(specialty)
+        ? prev.filter((s) => s !== specialty)
+        : [...prev, specialty]
+    );
+  };
 
   return (
     <div className="text-black flex flex-col gap-6">
@@ -199,22 +283,22 @@ export default function EvaluatorsPage() {
 
       <AdminViewControl
         type="evaluator"
-        selectedCities={selectedCities}
-        setSelectedCities={setSelectedCities}
-        selectedStatus={selectedStatus}
-        setSelectedStatus={setSelectedStatus}
+        selectedSpecialties={selectedSpecialties}
+        setSelectedSpecialties={setSelectedSpecialties}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
         activeFiltersCount={activeFiltersCount}
-        cities={cities}
-        statuses={statuses}
-        toggleCity={toggleCity}
-        toggleStatus={toggleStatus}
+        specialties={availableSpecialties}
+        toggleSpecialty={toggleSpecialty}
         clearFilters={clearFilters}
         handleAddEvaluator={handleAddEvaluator}
+        rowsPerPage={rowsPerPage}
+        setRowsPerPage={setRowsPerPage}
       />
       <AdminTable
         type="evaluator"
         isLoading={isLoading}
-        data={evaluators}
+        data={paginatedEvaluators}
         handleEditItem={handleEditEvaluator}
         handleViewItem={handleViewEvaluator}
         handleDeleteItem={handleDeleteEvaluator}
@@ -224,7 +308,7 @@ export default function EvaluatorsPage() {
           <Pagination
             isCompact
             showControls
-            total={10}
+            total={totalPages || 1}
             page={page}
             onChange={setPage}
             siblings={0}
@@ -236,7 +320,7 @@ export default function EvaluatorsPage() {
         <div className="hidden md:block">
           <Pagination
             showControls
-            total={10}
+            total={totalPages || 1}
             page={page}
             onChange={setPage}
             classNames={{

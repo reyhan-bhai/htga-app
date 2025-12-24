@@ -141,11 +141,21 @@ export const getRestaurantViewData = (
         evaluator_2: "-",
         completed_eva_1: "-",
         completed_eva_2: "-",
+        evaluator1_progress: "Not Started",
+        evaluator2_progress: "Not Started",
       };
     }
 
     const evaluator1 = evaluators.find((e) => e.id === assignment.evaluator1Id);
     const evaluator2 = evaluators.find((e) => e.id === assignment.evaluator2Id);
+
+    // Determine progress status based on assignment status
+    const getProgressStatus = (status: string | undefined) => {
+      if (!status) return "Not Started";
+      if (status === "in-progress") return "In Progress";
+      if (status === "completed") return "Completed";
+      return "Not Started";
+    };
 
     return {
       id: establishment.id, // Required by Table component
@@ -157,10 +167,11 @@ export const getRestaurantViewData = (
       date_assigned: new Date(assignment.assignedAt).toLocaleDateString(),
       evaluator_1: evaluator1?.name || "-",
       evaluator_2: evaluator2?.name || "-",
-      completed_eva_1:
-        assignment.evaluator1Status === "completed" ? "Yes" : "No",
-      completed_eva_2:
-        assignment.evaluator2Status === "completed" ? "Yes" : "No",
+
+      completed_eva_1: assignment.status === "completed" ? "Yes" : "No",
+      completed_eva_2: assignment.status === "completed" ? "Yes" : "No",
+      evaluator1_progress: getProgressStatus(assignment.status),
+      evaluator2_progress: getProgressStatus(assignment.status),
     };
   });
 };

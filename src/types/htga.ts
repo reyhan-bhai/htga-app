@@ -26,6 +26,7 @@ export interface Evaluator {
   status: EvaluationStatus;
   dateAssigned: string;
   reminderCount: number;
+  specialties: string[];
   lastUpdated: string;
 }
 
