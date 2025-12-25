@@ -1,7 +1,7 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { MobileLayoutWrapper } from "./layout-wrapper";
 
 export default function LoginPage() {
@@ -13,14 +13,13 @@ export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
     const result = await login(username, password);
     if (result.success) {
-      router.push("/nda");
+      router.push("/dashboard");
     } else {
       setError(result.error || "Invalid email or password");
     }

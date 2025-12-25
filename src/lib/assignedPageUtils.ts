@@ -405,7 +405,7 @@ export const handleSendNDAReminder = async (evaluator: any) => {
           token: evaluator.fcmTokens,
           title: "NDA Reminder",
           message: "Please sign your NDA. Check your email for the document.",
-          url: "/nda",
+          url: "/dashboard",
         }),
       });
 

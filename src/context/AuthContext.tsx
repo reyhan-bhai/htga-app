@@ -1,25 +1,25 @@
 "use client";
 
 import {
-  createContext,
-  useContext,
-  useState,
-  ReactNode,
-  useEffect,
-} from "react";
-import { User } from "@/types/htga";
+  getStoredFCMToken,
+  removeFCMToken,
+  removeFCMTokenFromServer,
+} from "@/lib/fcmTokenHelper";
 import { auth } from "@/lib/firebase";
+import { User } from "@/types/htga";
 import {
+  User as FirebaseUser,
+  onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged,
-  User as FirebaseUser,
 } from "firebase/auth";
 import {
-  getStoredFCMToken,
-  removeFCMTokenFromServer,
-  removeFCMToken,
-} from "@/lib/fcmTokenHelper";
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 
 interface AuthContextType {
   user: User | null;
@@ -74,6 +74,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 email: firebaseUser.email || "",
                 role: "evaluator",
               });
+
+              // Check NDA status from backend
+              // It could be stored in 'nda' object (from nda-service) or 'ndaSigned' (legacy/direct)
+              const isSigned =
+                evaluatorData.nda?.status === "signed" ||
+                evaluatorData.ndaSigned === true ||
+                evaluatorData.ndaSigned === "true";
+
+              if (isSigned) {
+                setNdaSigned(true);
+                localStorage.setItem("htga_nda", "true");
+              } else {
+                setNdaSigned(false);
+                localStorage.removeItem("htga_nda");
+              }
             } else {
               // Fallback if API fails
               setUser({
@@ -133,6 +148,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email: userCredential.user.email || "",
             role: "evaluator",
           });
+
+          // Check NDA status from backend
+          if (evaluatorData.ndaSigned) {
+            setNdaSigned(true);
+            localStorage.setItem("htga_nda", "true");
+          }
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
