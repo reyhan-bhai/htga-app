@@ -27,6 +27,12 @@ messaging.onBackgroundMessage(messaging, async (payload) => {
     body: notification?.body,
     icon: notification?.icon || "/logo.svg", // Default icon
     data: { url: data?.url || "/" }, // Store URL in notification data
+    actions: [
+      {
+        action: 'open_url',
+        title: 'Open App'
+      }
+    ]
   };
 
   await self.registration.showNotification(

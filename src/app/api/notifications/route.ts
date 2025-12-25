@@ -77,6 +77,19 @@ export async function POST(request: Request) {
       tokens: tokens,
       notification: payload.notification,
       data: payload.data,
+      webpush: {
+        notification: {
+          actions: [
+            {
+              action: "open_url",
+              title: "Open App",
+            },
+          ],
+        },
+        fcmOptions: {
+          link: body.url || "/",
+        },
+      },
     });
 
     console.log(`✅ Successfully sent: ${results.successCount}`);
