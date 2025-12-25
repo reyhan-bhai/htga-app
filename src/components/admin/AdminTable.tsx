@@ -437,71 +437,27 @@ const renderEvaluatorCell = (
         </div>
       );
 
-    case "nda_sent":
-      const isNotSent = item.nda_status === "Not Sent";
-
-      if (!isNotSent) {
-        return (
-          <div className="flex items-center justify-center">
-            <div className="px-2 sm:px-3 py-1 sm:py-2 bg-gray-100 text-gray-500 rounded-lg border border-gray-200 text-xs font-medium">
-              <span className="hidden sm:inline">✓ Sent</span>
-              <span className="sm:hidden">✓</span>
-            </div>
-          </div>
-        );
-      }
-
-      return (
-        <div className="flex items-center justify-center">
-          <button
-            onClick={() => handlers.onSendNDAEmail(item)}
-            className="px-2 sm:px-3 py-1 sm:py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-xs font-medium shadow-sm flex items-center gap-1"
-            title="Send NDA Email"
-          >
-            <span className="hidden sm:inline">📧 Send NDA</span>
-            <span className="sm:hidden">📧</span>
-          </button>
-        </div>
-      );
-
-    case "nda_reminder":
+    case "nda_reminder": {
       const isSigned = item.nda_status === "Signed";
-      const isPending = item.nda_status === "Pending";
-
-      if (isSigned) {
-        return (
-          <div className="flex items-center justify-center">
-            <div className="px-2 sm:px-3 py-1 sm:py-2 bg-green-50 text-green-700 rounded-lg border border-green-200 text-xs font-medium">
-              <span className="hidden sm:inline">✅ Signed</span>
-              <span className="sm:hidden">✅</span>
-            </div>
-          </div>
-        );
-      }
-
-      if (!isPending) {
-        return (
-          <div className="flex items-center justify-center">
-            <div className="px-2 sm:px-3 py-1 sm:py-2 bg-gray-100 text-gray-400 rounded-lg border border-gray-200 text-xs font-medium">
-              <span className="hidden sm:inline">—</span>
-              <span className="sm:hidden">—</span>
-            </div>
-          </div>
-        );
-      }
 
       return (
         <div className="flex items-center justify-center">
           <button
-            onClick={() => handlers.onSendNDAReminder(item)}
-            className="px-2 sm:px-3 py-1 sm:py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors text-xs font-medium shadow-sm flex items-center gap-1"
-            title="Send NDA Reminder"
+            onClick={() => !isSigned && handlers.onSendNDAReminder(item)}
+            disabled={isSigned}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 flex items-center gap-1.5 ${
+              isSigned
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
+                : "bg-white text-amber-600 border border-amber-200 hover:bg-amber-50 hover:border-amber-300 shadow-sm"
+            }`}
+            title={isSigned ? "NDA already signed" : "Send NDA Reminder"}
           >
-            <span className="hidden sm:inline"> Send Reminder</span>
-            <span className="sm:hidden"></span>
+            <span>🔔</span>
+            <span className="hidden sm:inline">Remind</span>
           </button>
         </div>
       );
+    }
 
     case "restaurant_completed":
       const total = item.total_restaurant;
@@ -576,6 +532,22 @@ const renderEvaluatorCell = (
               🔔
             </button>
           )}
+        </div>
+      );
+
+    case "total_reminder_sent":
+      const reminderCount = item.total_reminder_sent || 0;
+      return (
+        <div className="flex items-center justify-center">
+          <div
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${
+              reminderCount > 0
+                ? "bg-blue-50 border-blue-200 text-blue-700"
+                : "bg-gray-50 border-gray-200 text-gray-400"
+            }`}
+          >
+            <span className="font-semibold text-sm">{reminderCount}</span>
+          </div>
         </div>
       );
 

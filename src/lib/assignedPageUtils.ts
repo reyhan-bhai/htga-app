@@ -92,8 +92,20 @@ export const getEvaluatorViewData = (evaluators: any[], assignments: any[]) => {
       return false;
     }).length;
 
-    // Use ndaStatus from evaluator (now includes dummy data)
-    const ndaStatus = evaluator.ndaStatus || "Not Sent";
+    // Determine NDA status from nested object or flat property
+    let ndaStatus = "Not Sent";
+
+    if (evaluator.nda && evaluator.nda.status) {
+      const status = evaluator.nda.status.toLowerCase();
+      if (status === "signed" || status === "completed") {
+        ndaStatus = "Signed";
+      } else if (["sent", "delivered", "pending"].includes(status)) {
+        ndaStatus = "Pending";
+      }
+    } else if (evaluator.ndaStatus) {
+      // Fallback for flat property (dummy data)
+      ndaStatus = evaluator.ndaStatus;
+    }
 
     // Handle specialties - could be array or string
     const specialtyDisplay = Array.isArray(evaluator.specialties)
@@ -111,6 +123,7 @@ export const getEvaluatorViewData = (evaluators: any[], assignments: any[]) => {
       nda_status: ndaStatus,
       total_restaurant: totalRestaurants,
       restaurant_completed: completedRestaurants,
+      total_reminder_sent: evaluator.totalReminderSent || 0,
     });
   });
 

@@ -6,11 +6,10 @@ export const evaluatorColumns = [
   { name: "Phone", uid: "phone" },
   { name: "Specialty", uid: "specialty" },
   { name: "NDA Status", uid: "nda_status" },
-  { name: "Send NDA", uid: "nda_sent" },
   { name: "Send Reminder", uid: "nda_reminder" },
   // { name: "Rest. 1", uid: "restaurant_1" },
   // { name: "Rest. 2", uid: "restaurant_2" },
-  { name: "Total", uid: "total_restaurant" },
+  { name: "Reminder Sent", uid: "total_reminder_sent" },
   { name: "Completed", uid: "restaurant_completed" },
 ];
 
