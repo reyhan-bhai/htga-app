@@ -1,6 +1,5 @@
 // Helper functions untuk FCM Token Management
-import { getToken } from "firebase/messaging";
-import { Messaging } from "firebase/messaging";
+import { getToken, Messaging } from "firebase/messaging";
 
 /**
  * Request notification permission and get FCM token
@@ -27,6 +26,18 @@ export async function getFCMToken(
       return null;
     }
 
+    // Register Service Worker explicitly
+    let registration = await navigator.serviceWorker.getRegistration();
+    if (!registration) {
+      console.log("Registering Service Worker...");
+      registration = await navigator.serviceWorker.register(
+        "/firebase-messaging-sw.js"
+      );
+    }
+
+    // Wait for service worker to be ready
+    await navigator.serviceWorker.ready;
+
     // Get FCM token
     const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
     if (!vapidKey) {
@@ -34,7 +45,10 @@ export async function getFCMToken(
       return null;
     }
 
-    const token = await getToken(messaging, { vapidKey });
+    const token = await getToken(messaging, {
+      vapidKey,
+      serviceWorkerRegistration: registration,
+    });
     console.log("✅ FCM Token obtained:", token);
     return token;
   } catch (error) {
