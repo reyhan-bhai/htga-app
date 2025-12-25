@@ -30,7 +30,6 @@ export default function LoginPage() {
     <MobileLayoutWrapper>
       <div className="min-h-screen bg-gradient-1 flex flex-col">
         {/* Status Bar */}
-        
         {/* Main Content */}
         <div className="flex-1 flex flex-col items-center justify-start px-6 pt-12">
           {/* Logo/Title */}

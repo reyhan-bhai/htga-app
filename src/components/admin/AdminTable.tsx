@@ -9,7 +9,12 @@ import {
   Tooltip,
 } from "@nextui-org/react";
 import React from "react";
-import { MdDelete, MdEdit, MdInfoOutline } from "react-icons/md";
+import {
+  MdDelete,
+  MdEdit,
+  MdInfoOutline,
+  MdNotificationsActive,
+} from "react-icons/md";
 
 interface AdminTableProps {
   type: "assignment" | "evaluator" | "restaurant";
@@ -452,7 +457,9 @@ const renderEvaluatorCell = (
             }`}
             title={isSigned ? "NDA already signed" : "Send NDA Reminder"}
           >
-            <span>🔔</span>
+            <span className="text-lg">
+              <MdNotificationsActive />
+            </span>
             <span className="hidden sm:inline">Remind</span>
           </button>
         </div>
@@ -529,7 +536,7 @@ const renderEvaluatorCell = (
               className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors flex items-center justify-center text-xs"
               title="Send Completion Reminder"
             >
-              🔔
+              <MdNotificationsActive />
             </button>
           )}
         </div>

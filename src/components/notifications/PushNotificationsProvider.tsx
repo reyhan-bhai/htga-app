@@ -1,12 +1,12 @@
 "use client";
+import { app } from "@/lib/firebase";
+import { getMessaging, Messaging, onMessage } from "firebase/messaging";
 import React, {
   createContext,
   PropsWithChildren,
   useEffect,
   useState,
 } from "react";
-import { getMessaging, Messaging, onMessage } from "firebase/messaging";
-import { app } from "@/lib/firebase";
 
 export const PushNotificationsContext = createContext<Messaging | undefined>(
   undefined
@@ -42,7 +42,13 @@ const PushNotificationsProvider: React.FC<PropsWithChildren> = ({
                 body: payload.notification?.body,
                 icon: "/logo.svg",
                 data: { url },
-              }
+                actions: [
+                  {
+                    action: "open_url",
+                    title: "Open App",
+                  },
+                ],
+              } as any
             );
           }
         });

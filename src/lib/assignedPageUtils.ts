@@ -124,6 +124,7 @@ export const getEvaluatorViewData = (evaluators: any[], assignments: any[]) => {
       total_restaurant: totalRestaurants,
       restaurant_completed: completedRestaurants,
       total_reminder_sent: evaluator.totalReminderSent || 0,
+      fcmTokens: evaluator.fcmTokens,
     });
   });
 
@@ -369,16 +370,120 @@ export const handleSendNDAEmail = (evaluator: any) => {
   // Call API: await sendNDAEmail(evaluator.eva_id);
 };
 
-export const handleSendNDAReminder = (evaluator: any) => {
-  // TODO: Implement NDA reminder
-  console.log("Sending NDA reminder to:", evaluator.name);
-  // Call API: await sendNdaReminder(evaluator.eva_id);
+export const handleSendNDAReminder = async (evaluator: any) => {
+  if (!evaluator.fcmTokens) {
+    await Swal.fire({
+      icon: "warning",
+      title: "No Token Found",
+      text: "This evaluator does not have a registered device for notifications.",
+      confirmButtonColor: "#A67C37",
+    });
+    return;
+  }
+
+  const result = await Swal.fire({
+    title: "Send NDA Reminder?",
+    text: `Send notification to ${evaluator.name}?`,
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonColor: "#A67C37",
+    cancelButtonColor: "#d33",
+    confirmButtonText: "Yes, send it!",
+  });
+
+  if (result.isConfirmed) {
+    try {
+      const response = await fetch("/api/notifications/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          token: evaluator.fcmTokens,
+          title: "NDA Reminder",
+          message: "Please sign your NDA. Check your email for the document.",
+          url: "/nda",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send notification");
+      }
+
+      await Swal.fire({
+        icon: "success",
+        title: "Sent!",
+        text: "NDA reminder has been sent.",
+        confirmButtonColor: "#A67C37",
+      });
+    } catch (error) {
+      console.error("Error sending reminder:", error);
+      await Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to send reminder.",
+        confirmButtonColor: "#A67C37",
+      });
+    }
+  }
 };
 
-export const handleSendCompletionReminder = (evaluator: any) => {
-  // TODO: Implement completion reminder
-  console.log("Sending completion reminder to:", evaluator.name);
-  // Call API: await sendCompletionReminder({ evaluatorId: evaluator.eva_id });
+export const handleSendCompletionReminder = async (evaluator: any) => {
+  if (!evaluator.fcmTokens) {
+    await Swal.fire({
+      icon: "warning",
+      title: "No Token Found",
+      text: "This evaluator does not have a registered device for notifications.",
+      confirmButtonColor: "#A67C37",
+    });
+    return;
+  }
+
+  const result = await Swal.fire({
+    title: "Send Completion Reminder?",
+    text: `Send notification to ${evaluator.name}?`,
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonColor: "#A67C37",
+    cancelButtonColor: "#d33",
+    confirmButtonText: "Yes, send it!",
+  });
+
+  if (result.isConfirmed) {
+    try {
+      const response = await fetch("/api/notifications/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          token: evaluator.fcmTokens,
+          title: "Complete your Evaluation!",
+          message: `You have completed ${evaluator.restaurant_completed}/${evaluator.total_restaurant} assignments. Please complete the remaining evaluations.`,
+          url: "/dashboard",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send notification");
+      }
+
+      await Swal.fire({
+        icon: "success",
+        title: "Sent!",
+        text: "Completion reminder has been sent.",
+        confirmButtonColor: "#A67C37",
+      });
+    } catch (error) {
+      console.error("Error sending reminder:", error);
+      await Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to send reminder.",
+        confirmButtonColor: "#A67C37",
+      });
+    }
+  }
 };
 
 export const handleViewDetails = (item: any) => {
