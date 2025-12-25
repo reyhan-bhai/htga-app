@@ -60,6 +60,18 @@ export default function DashboardPage() {
       const granted = isNotificationPermissionGranted();
       setNotificationEnabled(granted);
 
+      // If granted, ensure token is synced to server
+      if (granted && messaging) {
+        try {
+          const token = await getFCMToken(messaging);
+          if (token) {
+            await saveFCMTokenToServer(token, user.id);
+          }
+        } catch (error) {
+          console.error("Error syncing FCM token:", error);
+        }
+      }
+
       // If not granted, prompt user (as requested to keep the flow)
       if (!granted && messaging) {
         // Add a small delay to ensure UI is ready
@@ -117,29 +129,52 @@ export default function DashboardPage() {
         }
       }
     } else {
-      // Subscribe
+      // Subscribe - Show progress
+      Swal.fire({
+        title: "Setting up notifications...",
+        html: '<div class="swal2-progress-steps"><div class="swal2-progress-step">Requesting permission</div></div>',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
       try {
         const token = await getFCMToken(messaging);
+
         if (token) {
+          // Update progress
+          Swal.update({
+            html: '<div class="swal2-progress-steps"><div class="swal2-progress-step">Saving token to server...</div></div>',
+          });
+
           await saveFCMTokenToServer(token, user.id);
           setNotificationEnabled(true);
-          if (!forceEnable) {
-            Swal.fire(
-              "Enabled!",
-              "You will now receive notifications.",
-              "success"
-            );
-          }
+
+          Swal.fire({
+            icon: "success",
+            title: "Notifications Enabled!",
+            text: "You will now receive notifications for your assignments.",
+            confirmButtonColor: "#FFA200",
+          });
         } else {
-          Swal.fire(
-            "Error",
-            "Could not get notification token. Please check browser settings.",
-            "error"
-          );
+          Swal.fire({
+            icon: "error",
+            title: "Permission Denied",
+            text: "Could not get notification token. Please allow notifications in your browser settings.",
+            confirmButtonColor: "#FFA200",
+          });
         }
       } catch (error) {
         console.error("Error enabling notifications:", error);
-        Swal.fire("Error", "Failed to enable notifications.", "error");
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Failed to enable notifications. Please try again.",
+          confirmButtonColor: "#FFA200",
+        });
       }
     }
   };

@@ -65,6 +65,11 @@ export async function saveFCMTokenToServer(
   userId: string
 ): Promise<boolean> {
   try {
+    console.log("📤 Saving FCM token to server:", {
+      token: token.substring(0, 20) + "...",
+      userId,
+    });
+
     const response = await fetch("/api/tokens", {
       method: "POST",
       headers: {
@@ -74,11 +79,17 @@ export async function saveFCMTokenToServer(
     });
 
     if (!response.ok) {
+      const errorData = await response.json();
+      console.error("❌ Failed to save token:", errorData);
       throw new Error("Failed to save token");
     }
 
-    await response.json();
-    console.log("✅ Token saved for user:", userId);
+    const result = await response.json();
+    console.log("✅ Token saved successfully:", result);
+
+    // Store token in localStorage for reference
+    storeFCMToken(token);
+
     return true;
   } catch (error) {
     console.error("Error saving token:", error);
