@@ -166,7 +166,8 @@ export const getRestaurantViewData = (
     // Determine progress status based on assignment status
     const getProgressStatus = (status: string | undefined) => {
       if (!status) return "Not Started";
-      if (status === "in-progress") return "In Progress";
+      if (status === "in-progress" || status === "pending")
+        return "In Progress";
       if (status === "completed") return "Completed";
       return "Not Started";
     };
@@ -182,10 +183,12 @@ export const getRestaurantViewData = (
       evaluator_1: evaluator1?.name || "-",
       evaluator_2: evaluator2?.name || "-",
 
-      completed_eva_1: assignment.status === "completed" ? "Yes" : "No",
-      completed_eva_2: assignment.status === "completed" ? "Yes" : "No",
-      evaluator1_progress: getProgressStatus(assignment.status),
-      evaluator2_progress: getProgressStatus(assignment.status),
+      completed_eva_1:
+        assignment.evaluator1Status === "completed" ? "Yes" : "No",
+      completed_eva_2:
+        assignment.evaluator2Status === "completed" ? "Yes" : "No",
+      evaluator1_progress: getProgressStatus(assignment.evaluator1Status),
+      evaluator2_progress: getProgressStatus(assignment.evaluator2Status),
     };
   });
 };
