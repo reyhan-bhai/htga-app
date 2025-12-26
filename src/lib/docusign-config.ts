@@ -1,4 +1,14 @@
 import jwt from "jsonwebtoken";
+import dns from "node:dns";
+
+// Force IPv4 for DNS resolution to avoid timeouts on some networks
+try {
+  if (dns.setDefaultResultOrder) {
+    dns.setDefaultResultOrder("ipv4first");
+  }
+} catch {
+  // Ignore if not supported
+}
 
 interface DocuSignTokenResponse {
   access_token: string;
@@ -10,7 +20,7 @@ export const getDocuSignAccessToken = async (): Promise<string> => {
   const integrationKey = process.env.DOCUSIGN_INTEGRATION_KEY!;
   const userId = process.env.DOCUSIGN_USER_ID!;
   const privateKey = process.env.DOCUSIGN_PRIVATE_KEY!.replace(/\\n/g, "\n");
-  const basePath = process.env.DOCUSIGN_BASE_PATH!;
+  // const basePath = process.env.DOCUSIGN_BASE_PATH!;
 
   // Create JWT assertion
   const now = Math.floor(Date.now() / 1000);
@@ -49,6 +59,9 @@ export const getDocuSignAccessToken = async (): Promise<string> => {
     return data.access_token;
   } catch (error: any) {
     console.error("DocuSign JWT Auth Error:", error.message);
+    if (error.cause) {
+      console.error("Caused by:", error.cause);
+    }
     throw new Error(
       "Failed to authenticate with DocuSign. Please check your credentials and ensure JWT consent is granted."
     );

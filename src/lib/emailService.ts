@@ -13,7 +13,6 @@ const createTransporter = (): Transporter => {
   }
 
   return nodemailer.createTransport({
-    service: "gmail",
     host: "smtp.gmail.com",
     port: 587,
     secure: false, // true for 465, false for other ports
@@ -21,7 +20,9 @@ const createTransporter = (): Transporter => {
       user: gmailFrom,
       pass: gmailPassword,
     },
-  });
+    // Force IPv4 to avoid ETIMEOUT on some networks
+    family: 4,
+  } as nodemailer.TransportOptions);
 };
 
 let transporter: Transporter | null = null;
@@ -211,6 +212,47 @@ export async function sendTestEmail(to: string): Promise<EmailResult> {
     return {
       success: false,
       error: error.message,
+    };
+  }
+}
+
+/**
+ * Send a generic notification email
+ */
+export async function sendNotificationEmail(
+  to: string,
+  subject: string,
+  text: string,
+  html?: string
+): Promise<EmailResult> {
+  try {
+    const t = getTransporter();
+    const gmailFrom = process.env.GMAIL_FROM?.trim();
+
+    const mailOptions = {
+      from: {
+        name: "HTGA Notification",
+        address: gmailFrom!,
+      },
+      to,
+      subject,
+      text,
+      html: html || text,
+    };
+
+    console.log(`📧 Sending notification email to: ${to}`);
+    const info = await t.sendMail(mailOptions);
+    console.log(`✅ Email sent successfully. Message ID: ${info.messageId}`);
+
+    return {
+      success: true,
+      messageId: info.messageId,
+    };
+  } catch (error: any) {
+    console.error("❌ Error sending notification email:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to send notification email",
     };
   }
 }
