@@ -5,7 +5,7 @@ import {
   removeFCMToken,
   removeFCMTokenFromServer,
 } from "@/lib/fcmTokenHelper";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { User } from "@/types/htga";
 import {
   User as FirebaseUser,
@@ -13,6 +13,14 @@ import {
   signInWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
+import {
+  equalTo,
+  get,
+  onValue,
+  orderByChild,
+  query,
+  ref,
+} from "firebase/database";
 import {
   createContext,
   ReactNode,
@@ -54,68 +62,171 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // Listen to Firebase auth state changes
+    let dataUnsubscribe: (() => void) | null = null;
+
     const unsubscribe = onAuthStateChanged(
       auth,
       async (firebaseUser: FirebaseUser | null) => {
+        // Cleanup previous data listener
+        if (dataUnsubscribe) {
+          dataUnsubscribe();
+          dataUnsubscribe = null;
+        }
+
         if (firebaseUser) {
-          // Fetch user data from Realtime Database
+          console.log("AuthContext: User logged in", firebaseUser.uid);
+
+          const evaluatorsRef = ref(db, "evaluators");
+          let targetRef: ReturnType<typeof ref> | null = null;
+          let resolvedKey: string | null = null;
+
           try {
-            const response = await fetch(
-              `/api/evaluators?id=${firebaseUser.uid}`
-            );
-            if (response.ok) {
-              const data = await response.json();
-              const evaluatorData = data.evaluator;
+            // 1. Try direct lookup - but only if it has proper evaluator data (name field)
+            const directRef = ref(db, `evaluators/${firebaseUser.uid}`);
+            const directSnapshot = await get(directRef);
 
-              setUser({
-                id: evaluatorData.id || firebaseUser.uid,
-                name:
-                  evaluatorData.name || firebaseUser.displayName || "Evaluator",
-                email: firebaseUser.email || "",
-                role: "evaluator",
-              });
-
-              // Check NDA status from backend
-              // It could be stored in 'nda' object (from nda-service) or 'ndaSigned' (legacy/direct)
-              const isSigned =
-                evaluatorData.nda?.status === "signed" ||
-                evaluatorData.ndaSigned === true ||
-                evaluatorData.ndaSigned === "true";
-
-              if (isSigned) {
-                setNdaSigned(true);
-                localStorage.setItem("htga_nda", "true");
-              } else {
-                setNdaSigned(false);
-                localStorage.removeItem("htga_nda");
-              }
+            if (directSnapshot.exists() && directSnapshot.val().name) {
+              // This is a proper evaluator profile keyed by UID
+              console.log(
+                "AuthContext: Found user by direct UID with valid profile"
+              );
+              targetRef = directRef;
+              resolvedKey = firebaseUser.uid;
             } else {
-              // Fallback if API fails
+              // 2. Try lookup by firebaseUid (the standard way)
+              console.log("AuthContext: Trying firebaseUid lookup...");
+              let userQuery = query(
+                evaluatorsRef,
+                orderByChild("firebaseUid"),
+                equalTo(firebaseUser.uid)
+              );
+              let querySnapshot = await get(userQuery);
+
+              if (querySnapshot.exists()) {
+                const val = querySnapshot.val();
+                const key = Object.keys(val)[0];
+                console.log(
+                  "AuthContext: Found user by firebaseUid, key:",
+                  key
+                );
+                targetRef = ref(db, `evaluators/${key}`);
+                resolvedKey = key;
+              } else if (firebaseUser.email) {
+                // 3. Try lookup by email
+                console.log(
+                  "AuthContext: firebaseUid lookup failed, trying email..."
+                );
+                userQuery = query(
+                  evaluatorsRef,
+                  orderByChild("email"),
+                  equalTo(firebaseUser.email)
+                );
+                querySnapshot = await get(userQuery);
+
+                if (querySnapshot.exists()) {
+                  const val = querySnapshot.val();
+                  const key = Object.keys(val)[0];
+                  console.log("AuthContext: Found user by email, key:", key);
+                  targetRef = ref(db, `evaluators/${key}`);
+                  resolvedKey = key;
+                } else {
+                  console.warn("AuthContext: User profile not found in DB");
+                }
+              }
+            }
+
+            if (!targetRef || !resolvedKey) {
+              // No profile found, use basic auth info
+              console.log(
+                "AuthContext: No valid profile found, using basic auth info"
+              );
               setUser({
                 id: firebaseUser.uid,
                 name: firebaseUser.displayName || "Evaluator",
                 email: firebaseUser.email || "",
                 role: "evaluator",
               });
+              setLoading(false);
+              return;
             }
+
+            // 4. Subscribe to the resolved node
+            const finalKey = resolvedKey; // Capture for closure
+            dataUnsubscribe = onValue(targetRef, (snapshot) => {
+              if (snapshot.exists()) {
+                const evaluatorData = snapshot.val();
+
+                // Use the resolved key (JEVA01, etc.) as the user ID
+                const userId = finalKey;
+                console.log("AuthContext: Setting user with ID:", userId);
+
+                setUser({
+                  id: userId,
+                  name:
+                    evaluatorData.name ||
+                    firebaseUser.displayName ||
+                    "Evaluator",
+                  email: firebaseUser.email || "",
+                  role: "evaluator",
+                });
+
+                // Check NDA status from backend
+                const isSigned =
+                  evaluatorData.nda?.status === "signed" ||
+                  evaluatorData.ndaSigned === true ||
+                  evaluatorData.ndaSigned === "true";
+
+                console.log("AuthContext: NDA status check:", {
+                  ndaStatus: evaluatorData.nda?.status,
+                  ndaSigned: evaluatorData.ndaSigned,
+                  isSigned,
+                });
+
+                if (isSigned) {
+                  setNdaSigned(true);
+                  localStorage.setItem("htga_nda", "true");
+                } else {
+                  setNdaSigned(false);
+                  localStorage.removeItem("htga_nda");
+                }
+              } else {
+                // Fallback if data doesn't exist yet
+                console.log(
+                  "AuthContext: No data at target ref, using basic auth info"
+                );
+                setUser({
+                  id: firebaseUser.uid,
+                  name: firebaseUser.displayName || "Evaluator",
+                  email: firebaseUser.email || "",
+                  role: "evaluator",
+                });
+              }
+              setLoading(false);
+            });
           } catch (error) {
-            console.error("Error fetching user data:", error);
-            // Fallback
+            console.error("AuthContext: Error resolving user profile", error);
+            // Fallback on error
             setUser({
               id: firebaseUser.uid,
               name: firebaseUser.displayName || "Evaluator",
               email: firebaseUser.email || "",
               role: "evaluator",
             });
+            setLoading(false);
           }
         } else {
           setUser(null);
+          setNdaSigned(false);
+          localStorage.removeItem("htga_nda");
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      if (dataUnsubscribe) dataUnsubscribe();
+      unsubscribe();
+    };
   }, []);
 
   const login = async (

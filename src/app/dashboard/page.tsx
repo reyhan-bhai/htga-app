@@ -3,7 +3,7 @@ import { PushNotificationsContext } from "@/components/notifications/PushNotific
 import { useAuth } from "@/context/AuthContext";
 import {
   EvaluatorAssignment,
-  getEvaluatorAssignments,
+  subscribeToEvaluatorAssignments,
 } from "@/lib/assignmentService";
 import {
   getFCMToken,
@@ -29,26 +29,25 @@ export default function DashboardPage() {
   const { user, ndaSigned, loading: authLoading } = useAuth();
   const messaging = useContext(PushNotificationsContext);
 
-  // Fetch Assignments
+  // Fetch Assignments (Real-time)
   useEffect(() => {
-    async function fetchData() {
-      if (authLoading) return;
+    if (authLoading) return;
 
-      if (user?.id) {
-        try {
-          const data = await getEvaluatorAssignments(user.id);
-          setAssignments(data);
-        } catch (error) {
-          console.error("Failed to fetch assignments", error);
-        } finally {
-          setLoading(false);
-        }
-      } else {
+    if (user?.id) {
+      // Subscribe to real-time updates
+      const unsubscribe = subscribeToEvaluatorAssignments(user.id, (data) => {
+        setAssignments(data);
         setLoading(false);
-        router.push("/");
-      }
+      });
+
+      // Cleanup subscription on unmount
+      return () => {
+        if (unsubscribe) unsubscribe();
+      };
+    } else {
+      setLoading(false);
+      router.push("/");
     }
-    fetchData();
   }, [user?.id, authLoading, router]);
 
   // Check Notification Status & Prompt on Load
@@ -129,13 +128,13 @@ export default function DashboardPage() {
         }
       }
     } else {
-      // Subscribe - Show progress
+      // Subscribe - Step 1: Request Permission
       Swal.fire({
-        title: "Setting up notifications...",
-        html: '<div class="swal2-progress-steps"><div class="swal2-progress-step">Requesting permission</div></div>',
+        title: "Requesting Permission",
+        text: "Please allow notifications...",
         allowOutsideClick: false,
-        allowEscapeKey: false,
         showConfirmButton: false,
+        width: "80%",
         didOpen: () => {
           Swal.showLoading();
         },
@@ -145,26 +144,37 @@ export default function DashboardPage() {
         const token = await getFCMToken(messaging);
 
         if (token) {
-          // Update progress
-          Swal.update({
-            html: '<div class="swal2-progress-steps"><div class="swal2-progress-step">Saving token to server...</div></div>',
+          // Step 2: Saving with Progress Bar (2s delay)
+          await Swal.fire({
+            title: "Saving Settings",
+            text: "Syncing with server...",
+            timer: 2000,
+            timerProgressBar: true,
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            width: "80%",
           });
 
           await saveFCMTokenToServer(token, user.id);
           setNotificationEnabled(true);
 
+          // Step 3: Success
           Swal.fire({
             icon: "success",
-            title: "Notifications Enabled!",
-            text: "You will now receive notifications for your assignments.",
+            title: "All Set!",
+            text: "Notifications enabled!",
             confirmButtonColor: "#FFA200",
+            timer: 2000,
+            timerProgressBar: true,
+            width: "80%",
           });
         } else {
           Swal.fire({
             icon: "error",
             title: "Permission Denied",
-            text: "Could not get notification token. Please allow notifications in your browser settings.",
+            text: "Please allow notifications in your browser settings.",
             confirmButtonColor: "#FFA200",
+            width: "80%",
           });
         }
       } catch (error) {
@@ -172,8 +182,9 @@ export default function DashboardPage() {
         Swal.fire({
           icon: "error",
           title: "Error",
-          text: "Failed to enable notifications. Please try again.",
+          text: "Failed to enable notifications.",
           confirmButtonColor: "#FFA200",
+          width: "80%",
         });
       }
     }
