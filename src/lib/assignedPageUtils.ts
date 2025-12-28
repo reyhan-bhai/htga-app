@@ -403,6 +403,7 @@ export const handleSendNDAReminder = async (evaluator: any) => {
         },
         body: JSON.stringify({
           token: evaluator.fcmTokens,
+          userId: evaluator.id,
           title: "NDA Reminder",
           message: "Please sign your NDA. Check your email for the document.",
           url: "/dashboard",
@@ -461,6 +462,7 @@ export const handleSendCompletionReminder = async (evaluator: any) => {
         },
         body: JSON.stringify({
           token: evaluator.fcmTokens,
+          userId: evaluator.id,
           title: "Complete your Evaluation!",
           message: `You have completed ${evaluator.restaurant_completed}/${evaluator.total_restaurant} assignments. Please complete the remaining evaluations.`,
           url: "/dashboard",

@@ -1,10 +1,10 @@
-require('dotenv').config();
-const fs = require('fs');
+require("dotenv").config();
+const fs = require("fs");
 
 fs.writeFileSync(
-  './public/sw-process-env.js',
+  "./public/sw-process-env.js",
   `
-const process = {
+self.process = {
   env: {
     NEXT_PUBLIC_FIREBASE_API_KEY: '${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}',
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: '${process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}',
@@ -16,5 +16,5 @@ const process = {
     NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: '${process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID}',
   }
 }
-`,
+`
 );

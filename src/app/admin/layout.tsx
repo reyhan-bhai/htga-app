@@ -6,13 +6,34 @@ import { AssignedProvider } from "@/context/AssignedContext";
 import { EvaluatorsProvider } from "@/context/EvaluatorContext";
 import { RestaurantsProvider } from "@/context/RestaurantContext";
 import { UserProvider } from "@/utils/useCurrentUser";
-import { Poppins } from "next/font/google";
+import localFont from "next/font/local";
 import React, { useState } from "react";
 import { MdMenu } from "react-icons/md";
 
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+const poppins = localFont({
+  src: [
+    {
+      path: "../../../public/fonts/Poppins-Regular.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../../public/fonts/Poppins-Medium.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../../../public/fonts/Poppins-SemiBold.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "../../../public/fonts/Poppins-Bold.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-poppins",
 });
 
 export default function AdminLayout({
