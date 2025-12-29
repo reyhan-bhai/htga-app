@@ -2,6 +2,49 @@
 import { getToken, Messaging } from "firebase/messaging";
 
 /**
+ * Check if the device is iOS
+ */
+export function isIOS(): boolean {
+  if (typeof window === "undefined" || typeof navigator === "undefined")
+    return false;
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
+/**
+ * Check if app is running as installed PWA (standalone mode)
+ */
+export function isRunningAsPWA(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as any).standalone === true
+  );
+}
+
+/**
+ * Check if push notifications are supported on this device/browser
+ * iOS Safari only supports push notifications when running as a PWA (iOS 16.4+)
+ */
+export function isPushNotificationSupported(): boolean {
+  if (typeof window === "undefined") return false;
+
+  // Check basic requirements
+  if (!("serviceWorker" in navigator)) return false;
+  if (!("Notification" in window)) return false;
+  if (!("PushManager" in window)) return false;
+
+  // iOS specific: Push only works in standalone PWA mode
+  if (isIOS() && !isRunningAsPWA()) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
  * Request notification permission and get FCM token
  */
 export async function getFCMToken(
@@ -13,9 +56,9 @@ export async function getFCMToken(
   }
 
   try {
-    // Check if service worker is supported
-    if (!("serviceWorker" in navigator)) {
-      console.log("Service Worker not supported");
+    // Check if push notifications are supported
+    if (!isPushNotificationSupported()) {
+      console.log("Push notifications not supported on this device/browser");
       return null;
     }
 
@@ -30,9 +73,11 @@ export async function getFCMToken(
     let registration = await navigator.serviceWorker.getRegistration();
     if (!registration) {
       console.log("Registering Service Worker...");
-      registration = await navigator.serviceWorker.register(
-        "/firebase-messaging-sw.js"
-      );
+      const swUrl =
+        process.env.NODE_ENV === "production"
+          ? "/sw.js"
+          : "/firebase-messaging-sw.js";
+      registration = await navigator.serviceWorker.register(swUrl);
     }
 
     // Wait for service worker to be ready
@@ -130,6 +175,11 @@ export async function removeFCMTokenFromServer(
  */
 export function isNotificationPermissionGranted(): boolean {
   if (typeof window === "undefined") return false;
+  if (!("Notification" in window)) return false;
+
+  // On iOS non-PWA, always return false as notifications won't work
+  if (isIOS() && !isRunningAsPWA()) return false;
+
   return Notification.permission === "granted";
 }
 

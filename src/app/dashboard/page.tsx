@@ -8,6 +8,7 @@ import {
 import {
   getFCMToken,
   isNotificationPermissionGranted,
+  isPushNotificationSupported,
   removeFCMTokenFromServer,
   saveFCMTokenToServer,
 } from "@/lib/fcmTokenHelper";
@@ -27,7 +28,11 @@ export default function DashboardPage() {
 
   const router = useRouter();
   const { user, ndaSigned, loading: authLoading } = useAuth();
-  const messaging = useContext(PushNotificationsContext);
+  const {
+    messaging,
+    isSupported: isPushSupported,
+    needsPWAInstall,
+  } = useContext(PushNotificationsContext);
 
   // Fetch Assignments (Real-time)
   useEffect(() => {
@@ -55,6 +60,34 @@ export default function DashboardPage() {
     const checkAndPromptNotifications = async () => {
       // Wait for user to be loaded
       if (!user?.id) return;
+
+      // Check if push notifications are supported
+      if (!isPushNotificationSupported()) {
+        // Show iOS-specific message if needed
+        if (needsPWAInstall) {
+          // Add a small delay to ensure UI is ready
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+
+          await Swal.fire({
+            title: "📱 Install App for Notifications",
+            html: `
+              <div style="text-align: left; font-size: 14px;">
+                <p>To receive push notifications on iOS:</p>
+                <ol style="margin-top: 8px; padding-left: 20px;">
+                  <li>Tap the <strong>Share</strong> button (⬆️) at the bottom of Safari</li>
+                  <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+                  <li>Tap <strong>"Add"</strong> in the top right</li>
+                  <li>Open the app from your Home Screen</li>
+                </ol>
+              </div>
+            `,
+            icon: "info",
+            confirmButtonColor: "#FFA200",
+            confirmButtonText: "Got it!",
+          });
+        }
+        return;
+      }
 
       const granted = isNotificationPermissionGranted();
       setNotificationEnabled(granted);
@@ -94,9 +127,38 @@ export default function DashboardPage() {
 
     checkAndPromptNotifications();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, messaging]);
+  }, [user?.id, messaging, needsPWAInstall]);
 
   const handleToggleNotification = async (forceEnable = false) => {
+    // Check if push is supported
+    if (!isPushSupported) {
+      if (needsPWAInstall) {
+        await Swal.fire({
+          title: "📱 Install App First",
+          html: `
+            <div style="text-align: left; font-size: 14px;">
+              <p>Push notifications require the app to be installed:</p>
+              <ol style="margin-top: 8px; padding-left: 20px;">
+                <li>Tap the <strong>Share</strong> button (⬆️)</li>
+                <li>Tap <strong>"Add to Home Screen"</strong></li>
+                <li>Open from Home Screen</li>
+              </ol>
+            </div>
+          `,
+          icon: "info",
+          confirmButtonColor: "#FFA200",
+        });
+      } else {
+        await Swal.fire({
+          title: "Not Supported",
+          text: "Push notifications are not supported on this browser.",
+          icon: "warning",
+          confirmButtonColor: "#FFA200",
+        });
+      }
+      return;
+    }
+
     if (!messaging || !user?.id) return;
 
     if (notificationEnabled && !forceEnable) {

@@ -1,4 +1,9 @@
 "use client";
+import {
+  isIOS,
+  isPushNotificationSupported,
+  isRunningAsPWA,
+} from "@/lib/fcmTokenHelper";
 import { app } from "@/lib/firebase";
 import { getMessaging, Messaging, onMessage } from "firebase/messaging";
 import React, {
@@ -8,27 +13,43 @@ import React, {
   useState,
 } from "react";
 
-export const PushNotificationsContext = createContext<Messaging | undefined>(
-  undefined
-);
+interface PushNotificationContextType {
+  messaging: Messaging | undefined;
+  isSupported: boolean;
+  isIOSDevice: boolean;
+  isStandalone: boolean;
+  needsPWAInstall: boolean;
+}
+
+export const PushNotificationsContext =
+  createContext<PushNotificationContextType>({
+    messaging: undefined,
+    isSupported: false,
+    isIOSDevice: false,
+    isStandalone: false,
+    needsPWAInstall: false,
+  });
 
 const PushNotificationsProvider: React.FC<PropsWithChildren> = ({
   children,
 }) => {
   const [isClient, setIsClient] = useState(false);
   const [messaging, setMessaging] = useState<Messaging | undefined>(undefined);
+  const [isSupported, setIsSupported] = useState(false);
+  const [isIOSDevice, setIsIOSDevice] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
+    setIsIOSDevice(isIOS());
+    setIsStandalone(isRunningAsPWA());
+    setIsSupported(isPushNotificationSupported());
   }, []);
 
   useEffect(() => {
     try {
-      if (
-        isClient &&
-        "serviceWorker" in navigator &&
-        "Notification" in window
-      ) {
+      // Only initialize Firebase Messaging if push is supported
+      if (isClient && isPushNotificationSupported()) {
         const messagingInstance = getMessaging(app);
         setMessaging(messagingInstance);
 
@@ -54,21 +75,28 @@ const PushNotificationsProvider: React.FC<PropsWithChildren> = ({
         });
 
         return () => unsubscribe();
-      } else {
-        console.log("Not supported");
+      } else if (isClient) {
+        console.log("Push notifications not supported - iOS requires PWA mode");
       }
     } catch (error) {
-      alert(`Error initializing Firebase: ${error}`);
       console.log("Error initializing Firebase:", error);
     }
   }, [isClient]);
+
+  const contextValue: PushNotificationContextType = {
+    messaging,
+    isSupported,
+    isIOSDevice,
+    isStandalone,
+    needsPWAInstall: isIOSDevice && !isStandalone,
+  };
 
   if (!isClient) {
     return <>{children}</>;
   }
 
   return (
-    <PushNotificationsContext.Provider value={messaging}>
+    <PushNotificationsContext.Provider value={contextValue}>
       {children}
     </PushNotificationsContext.Provider>
   );

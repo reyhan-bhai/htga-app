@@ -1,4 +1,18 @@
+import withPWAInit from "@ducanh2912/next-pwa";
 import type { NextConfig } from "next";
+
+const withPWA = withPWAInit({
+  dest: "public",
+  cacheOnFrontEndNav: true,
+  aggressiveFrontEndNavCaching: true,
+  reloadOnOnline: true,
+  swcMinify: true,
+  disable: process.env.NODE_ENV === "development",
+  workboxOptions: {
+    disableDevLogs: true,
+    importScripts: ["/firebase-messaging-sw.js"],
+  },
+});
 
 const nextConfig: NextConfig = {
   output: "standalone",
@@ -12,4 +26,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withPWA(nextConfig);

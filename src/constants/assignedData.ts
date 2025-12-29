@@ -20,9 +20,9 @@ export const restaurantColumns = [
   { name: "Matched", uid: "matched" },
   { name: "Date Assigned", uid: "date_assigned" },
   { name: "Evaluator 1", uid: "evaluator_1" },
-  { name: "Eva 1 Done", uid: "completed_eva_1" },
+  { name: "Eva 1 Progress", uid: "completed_eva_1" },
   { name: "Evaluator 2", uid: "evaluator_2" },
-  { name: "Eva 2 Done", uid: "completed_eva_2" },
+  { name: "Eva 2 Progress", uid: "completed_eva_2" },
   { name: "Actions", uid: "actions" },
 ];
 

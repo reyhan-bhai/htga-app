@@ -1,4 +1,6 @@
 "use client";
+import { PushNotificationsContext } from "@/components/notifications/PushNotificationsProvider";
+import { useCurrentUser } from "@/utils/useCurrentUser";
 import {
   Alert,
   Box,
@@ -8,14 +10,11 @@ import {
   Snackbar,
   Typography,
 } from "@mui/material";
-import { getToken } from "firebase/messaging";
-import { useContext, useState } from "react";
-import { PushNotificationsContext } from "@/components/notifications/PushNotificationsProvider";
-import { useCurrentUser } from "@/utils/useCurrentUser";
-import { DeviceTypes, isPWA, useDevice } from "@/utils/useDevice";
 import CircularProgress, {
   CircularProgressProps,
 } from "@mui/material/CircularProgress";
+import { getToken } from "firebase/messaging";
+import { useContext, useState } from "react";
 
 function CircularProgressWithLabel(
   props: CircularProgressProps & { value: number }
@@ -46,21 +45,14 @@ function CircularProgressWithLabel(
 }
 
 export const SubscribeButton: React.FC = () => {
-  const messaging = useContext(PushNotificationsContext);
+  const { messaging, isSupported, needsPWAInstall } = useContext(
+    PushNotificationsContext
+  );
   const { user } = useCurrentUser();
   const [open, setOpen] = useState(false);
   const [alertType, setAlertType] = useState<"success" | "error">("success");
-  const device = useDevice();
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-
-  // Detect if running as PWA
-  const isPWA = () => {
-    return (
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as any).standalone === true
-    );
-  };
 
   const handleClose = () => {
     setOpen(false);
@@ -70,7 +62,7 @@ export const SubscribeButton: React.FC = () => {
   const handleTokenSubmit = async () => {
     try {
       // Check iOS and PWA mode
-      if (device === DeviceTypes.IOS && !isPWA()) {
+      if (needsPWAInstall) {
         alert(
           "⚠️ iOS Requirement:\n\n" +
             "1. Tap Share button  at bottom\n" +
@@ -81,9 +73,19 @@ export const SubscribeButton: React.FC = () => {
         throw new Error("Please install app first on iOS");
       }
 
+      // Check if push notifications are supported
+      if (!isSupported) {
+        alert("Push notifications are not supported on this browser.");
+        throw new Error("Push notifications not supported");
+      }
+
       if (messaging) {
         setIsLoading(true);
-        if (Notification.permission !== "granted") {
+        if (
+          typeof window !== "undefined" &&
+          "Notification" in window &&
+          Notification.permission !== "granted"
+        ) {
           setProgress(10);
           const result = await Notification.requestPermission();
           setProgress(20);
@@ -98,12 +100,13 @@ export const SubscribeButton: React.FC = () => {
         let registration = await navigator.serviceWorker.getRegistration("/");
         setProgress(40);
         if (!registration) {
-          registration = await navigator.serviceWorker.register(
-            "/firebase-messaging-sw.js",
-            {
-              scope: "/",
-            }
-          );
+          const swUrl =
+            process.env.NODE_ENV === "production"
+              ? "/sw.js"
+              : "/firebase-messaging-sw.js";
+          registration = await navigator.serviceWorker.register(swUrl, {
+            scope: "/",
+          });
         }
         setProgress(60);
 

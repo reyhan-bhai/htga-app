@@ -1,16 +1,17 @@
 "use client";
-import { useState, useRef, useEffect, useContext } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
 import { PushNotificationsContext } from "@/components/notifications/PushNotificationsProvider";
-import { MobileLayoutWrapper } from "../layout-wrapper";
+import { useAuth } from "@/context/AuthContext";
 import {
   getFCMToken,
+  isNotificationPermissionGranted,
+  isPushNotificationSupported,
   saveFCMTokenToServer,
   storeFCMToken,
-  isNotificationPermissionGranted,
 } from "@/lib/fcmTokenHelper";
+import { useRouter } from "next/navigation";
+import { useContext, useEffect, useRef, useState } from "react";
 import Swal from "sweetalert2";
+import { MobileLayoutWrapper } from "../layout-wrapper";
 
 export default function NDAPage() {
   const [agreed, setAgreed] = useState(false);
@@ -58,13 +59,39 @@ export default function NDAPage() {
   const [notificationRequested, setNotificationRequested] = useState(false);
   const router = useRouter();
   const { user, signNDA } = useAuth();
-  const messaging = useContext(PushNotificationsContext);
+  const { messaging, needsPWAInstall } = useContext(PushNotificationsContext);
 
   // Request notification permission on mount
   useEffect(() => {
     const requestNotificationPermission = async () => {
       // Check if already requested in this session
       if (notificationRequested) return;
+
+      // Check if push notifications are supported
+      if (!isPushNotificationSupported()) {
+        // Show iOS-specific message if needed
+        if (needsPWAInstall) {
+          setNotificationRequested(true);
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+          await Swal.fire({
+            title: "📱 Install App for Notifications",
+            html: `
+              <div style="text-align: left; font-size: 14px;">
+                <p>To receive push notifications on iOS:</p>
+                <ol style="margin-top: 8px; padding-left: 20px;">
+                  <li>Tap the <strong>Share</strong> button (⬆️) at the bottom</li>
+                  <li>Tap <strong>"Add to Home Screen"</strong></li>
+                  <li>Open the app from your Home Screen</li>
+                </ol>
+              </div>
+            `,
+            icon: "info",
+            confirmButtonColor: "#FFA200",
+            confirmButtonText: "Got it!",
+          });
+        }
+        return;
+      }
 
       // Check if permission is already granted (auto-collect token without asking)
       if (isNotificationPermissionGranted()) {
@@ -195,10 +222,10 @@ export default function NDAPage() {
       // If user clicks "No, Thanks", just close the dialog without showing another alert
     };
 
-    if (user && messaging) {
+    if (user) {
       requestNotificationPermission();
     }
-  }, [user, messaging, notificationRequested]);
+  }, [user, messaging, notificationRequested, needsPWAInstall]);
 
   const handleSignatureNow = () => {
     if (!agreed) {

@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
-import { GeistSans } from "geist/font/sans";
-import { GeistMono } from "geist/font/mono";
-import "./globals.css";
-import { AuthProvider } from "@/context/AuthContext";
+import InstallPrompt from "@/components/InstallPrompt";
 import PushNotificationsProvider from "@/components/notifications/PushNotificationsProvider";
+import { AuthProvider } from "@/context/AuthContext";
+import { GeistMono } from "geist/font/mono";
+import { GeistSans } from "geist/font/sans";
+import type { Metadata, Viewport } from "next";
+import "./globals.css";
 
 // const geistSans = Geist({
 //   variable: "--font-geist-sans",
@@ -18,12 +19,19 @@ import PushNotificationsProvider from "@/components/notifications/PushNotificati
 export const metadata: Metadata = {
   title: "HTGA - HalalTrip Gastronomy Award",
   description: "Evaluator App for HalalTrip Gastronomy Award",
-  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "HTGA",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#000000",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -36,29 +44,21 @@ export default function RootLayout({
       <head>
         {/* ... other meta tags ... */}
 
-        {/* iOS specific meta tags */}
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta
-          name="apple-mobile-web-app-status-bar-style"
-          content="black-translucent"
-        />
-        <meta name="apple-mobile-web-app-title" content="PND" />
-
         {/* Add iOS icon links */}
-        <link rel="apple-touch-icon" href="/ios-icon-180.png" />
-        <link rel="apple-touch-icon" sizes="152x152" href="/ios-icon-152.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/ios-icon-180.png" />
-        <link rel="apple-touch-icon" sizes="167x167" href="/ios-icon-167.png" />
-
-        {/* Add iOS splash screen images */}
-        <link rel="apple-touch-startup-image" href="/splash.png" />
+        <link rel="apple-touch-icon" href="/icon-192x192.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/icon-192x192.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/icon-192x192.png" />
+        <link rel="apple-touch-icon" sizes="167x167" href="/icon-192x192.png" />
       </head>
       <body
         className={`${GeistSans.variable} ${GeistMono.variable} antialiased`}
         suppressHydrationWarning
       >
         <PushNotificationsProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            {children}
+            <InstallPrompt />
+          </AuthProvider>
         </PushNotificationsProvider>
       </body>
     </html>

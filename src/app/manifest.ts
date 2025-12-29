@@ -2,28 +2,39 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Push Notifications Demo App",
-    short_name: "PND",
-    description: "Demo of Push Notifications",
+    name: "HTGA - HalalTrip Gastronomy Award",
+    short_name: "HTGA",
+    description: "Evaluator App for HalalTrip Gastronomy Award",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
-    theme_color: "#000000",
+    theme_color: "#FFA200",
+    orientation: "portrait",
+    scope: "/",
     icons: [
       {
         src: "/icon-144x144.png",
         sizes: "144x144",
         type: "image/png",
+        purpose: "any",
       },
       {
         src: "/icon-192x192.png",
         sizes: "192x192",
         type: "image/png",
+        purpose: "any",
       },
       {
         src: "/icon-512x512.png",
         sizes: "512x512",
         type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: "/icon-512x512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "maskable",
       },
     ],
   };
