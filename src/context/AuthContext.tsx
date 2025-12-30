@@ -34,7 +34,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (
     email: string,
-    password: string
+    password: string,
+    rememberMe?: boolean
   ) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   ndaSigned: boolean;
@@ -231,7 +232,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (
     email: string,
-    password: string
+    password: string,
+    rememberMe: boolean = true
   ): Promise<{ success: boolean; error?: string }> => {
     try {
       setLoading(true);
@@ -268,6 +270,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
+      }
+
+      // Set isLogged flag for keep login feature
+      if (typeof window !== "undefined") {
+        localStorage.setItem("htga_isLogged", "true");
+        localStorage.setItem("htga_rememberMe", rememberMe.toString());
       }
 
       setLoading(false);
@@ -311,6 +319,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setNdaSigned(false);
       if (typeof window !== "undefined") {
         localStorage.removeItem("htga_nda");
+        localStorage.removeItem("htga_isLogged");
+        localStorage.removeItem("htga_rememberMe");
       }
     } catch (error) {
       console.error("Logout error:", error);

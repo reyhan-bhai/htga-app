@@ -1,29 +1,44 @@
 "use client";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MobileLayoutWrapper } from "./layout-wrapper";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, isAuthenticated, loading } = useAuth();
+
+  // Redirect to dashboard if already logged in
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      router.push("/dashboard");
+    }
+  }, [isAuthenticated, loading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    const result = await login(username, password);
+    const result = await login(username, password, true);
     if (result.success) {
       router.push("/dashboard");
     } else {
       setError(result.error || "Invalid email or password");
     }
   };
+
+  // Show loading spinner while checking auth or if already authenticated
+  if (loading || isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-1 flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <MobileLayoutWrapper>
@@ -129,25 +144,6 @@ export default function LoginPage() {
                   {error}
                 </div>
               )}
-
-              {/* Remember Me & Forgot Password */}
-              <div className="flex justify-between items-center mb-6">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 accent-[#FFA200]"
-                  />
-                  <span className="text-sm text-gray-700">Remember me</span>
-                </label>
-                <button
-                  type="button"
-                  className="text-sm text-blue-600 hover:underline"
-                >
-                  Forgot Password
-                </button>
-              </div>
 
               {/* Login Button */}
               <button
