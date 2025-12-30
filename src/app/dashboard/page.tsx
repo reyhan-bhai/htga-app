@@ -1,4 +1,5 @@
 "use client";
+import DebugLogger from "@/components/DebugLogger";
 import { PushNotificationsContext } from "@/components/notifications/PushNotificationsProvider";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -302,6 +303,7 @@ export default function DashboardPage() {
 
   return (
     <MobileLayoutWrapper>
+      <DebugLogger />
       <div className="min-h-screen bg-gray-50 pb-24 font-sans">
         {/* Header Section */}
         <div className="bg-white shadow-sm pt-12 pb-6 px-6 rounded-b-3xl">
