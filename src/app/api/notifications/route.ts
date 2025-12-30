@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import admin, { db } from "@/lib/firebase-admin";
+import { NextResponse } from "next/server";
 
 // Get all tokens from Firebase Realtime Database
 async function getAllTokens(): Promise<{ token: string; userId: string }[]> {
@@ -34,10 +34,7 @@ async function getAllTokens(): Promise<{ token: string; userId: string }[]> {
 }
 
 // Remove invalid token from database
-async function removeInvalidToken(
-  userId: string,
-  token: string
-): Promise<void> {
+async function removeInvalidToken(userId: string): Promise<void> {
   try {
     await db.ref(`evaluators/${userId}/fcmTokens`).remove();
     console.log(`🗑️ Removed invalid token for user ${userId}`);
@@ -100,10 +97,7 @@ export async function POST(request: Request) {
       const removePromises = results.responses
         .map((response, index) => {
           if (!response.success) {
-            return removeInvalidToken(
-              tokenData[index].userId,
-              tokenData[index].token
-            );
+            return removeInvalidToken(tokenData[index].userId);
           }
           return null;
         })

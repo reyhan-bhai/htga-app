@@ -1,6 +1,6 @@
 "use client";
-import User from "./localstorage";
 import { createContext, useContext, useEffect, useState } from "react";
+import User from "./localstorage";
 
 interface UserContextType {
   token: string | undefined;
@@ -17,7 +17,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     setToken(user.data.firebaseToken);
-  }, []);
+  }, [user.data.firebaseToken]);
 
   return (
     <UserContext.Provider value={{ token, user }}>

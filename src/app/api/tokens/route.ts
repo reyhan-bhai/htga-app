@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase-admin";
+import { NextResponse } from "next/server";
 
 // GET - Ambil semua tokens atau tokens per user
 export async function GET(request: Request) {
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
 // DELETE - Hapus token
 export async function DELETE(request: Request) {
   try {
-    const { token, userId } = await request.json();
+    const { userId } = await request.json();
 
     if (!userId) throw new Error("UserId is required");
 

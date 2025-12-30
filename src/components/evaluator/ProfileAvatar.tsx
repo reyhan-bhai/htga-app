@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 interface User {
   avatar?: string;
   name?: string;
@@ -11,12 +13,14 @@ export const ProfileAvatar: React.FC<ProfileAvatarProps> = ({ user }) => {
   return (
     <div className="flex flex-col items-center">
       <div className="relative mb-8">
-        <div className="w-40 h-40 rounded-full bg-gradient-2 flex items-center justify-center overflow-hidden border-4 border-white shadow-lg">
+        <div className="relative w-40 h-40 rounded-full bg-gradient-2 flex items-center justify-center overflow-hidden border-4 border-white shadow-lg">
           {user?.avatar ? (
-            <img
+            <Image
               src={user.avatar}
               alt="Profile Avatar"
-              className="w-full h-full object-cover"
+              className="object-cover"
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
           ) : (
             <div className="w-full h-full bg-gradient-2 flex items-center justify-center">
