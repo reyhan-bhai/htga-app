@@ -41,9 +41,22 @@ const PushNotificationsProvider: React.FC<PropsWithChildren> = ({
 
   useEffect(() => {
     setIsClient(true);
-    setIsIOSDevice(isIOS());
-    setIsStandalone(isRunningAsPWA());
-    setIsSupported(isPushNotificationSupported());
+    const iosDevice = isIOS();
+    const standalone = isRunningAsPWA();
+    const supported = isPushNotificationSupported();
+
+    console.log("🔔 Push Notifications Check:", {
+      isIOS: iosDevice,
+      isStandalone: standalone,
+      isSupported: supported,
+      hasServiceWorker: "serviceWorker" in navigator,
+      hasNotification: "Notification" in window,
+      hasPushManager: "PushManager" in window,
+    });
+
+    setIsIOSDevice(iosDevice);
+    setIsStandalone(standalone);
+    setIsSupported(supported);
   }, []);
 
   useEffect(() => {

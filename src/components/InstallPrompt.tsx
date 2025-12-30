@@ -1,6 +1,8 @@
 "use client";
 
-import { isIOS, isRunningAsPWA } from "@/lib/fcmTokenHelper";
+import { isRunningAsPWA } from "@/lib/fcmTokenHelper";
+import { DeviceTypes, useDevice } from "@/utils/useDevice";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -9,38 +11,39 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export default function InstallPrompt() {
-  const [showIOSPrompt, setShowIOSPrompt] = useState(false);
-  const [showAndroidPrompt, setShowAndroidPrompt] = useState(false);
+  const pathname = usePathname();
+  const device = useDevice();
+  const [showPrompt, setShowPrompt] = useState(false);
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
+    // 1. Check if Admin Page -> Don't show
+    if (pathname?.startsWith("/admin")) {
+      setShowPrompt(false);
+      return;
+    }
 
+    // 2. Check if Login Page -> Only show on login screen
+    if (pathname !== "/") {
+      setShowPrompt(false);
+      return;
+    }
+
+    // 3. Check if PWA -> Don't show if already installed
     if (isRunningAsPWA()) {
+      setShowPrompt(false);
       return;
     }
 
-    // Check if already dismissed
-    const dismissed = localStorage.getItem("pwa-install-dismissed");
-    if (dismissed) {
-      const dismissedTime = parseInt(dismissed, 10);
-      // Show again after 7 days
-      if (Date.now() - dismissedTime < 7 * 24 * 60 * 60 * 1000) {
-        return;
-      }
-    }
-
-    // iOS detection
-    if (isIOS()) {
-      setShowIOSPrompt(true);
-      return;
-    }
+    // 4. Show for all users on Login Page who haven't installed the app
+    // This ensures it works on Desktop (for testing) and Mobile
+    setShowPrompt(true);
 
     // Android/Desktop - listen for beforeinstallprompt
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setShowAndroidPrompt(true);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -51,7 +54,7 @@ export default function InstallPrompt() {
         handleBeforeInstallPrompt
       );
     };
-  }, []);
+  }, [pathname]);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
@@ -60,90 +63,94 @@ export default function InstallPrompt() {
     const { outcome } = await deferredPrompt.userChoice;
 
     if (outcome === "accepted") {
-      setShowAndroidPrompt(false);
+      setShowPrompt(false);
     }
     setDeferredPrompt(null);
   };
 
-  const handleDismiss = () => {
-    setShowIOSPrompt(false);
-    setShowAndroidPrompt(false);
-    localStorage.setItem("pwa-install-dismissed", Date.now().toString());
-  };
+  if (!showPrompt) return null;
 
-  if (showIOSPrompt) {
-    return (
-      <div className="fixed bottom-0 left-0 right-0 bg-white shadow-lg border-t border-gray-200 p-4 z-50">
-        <div className="max-w-md mx-auto">
-          <div className="flex justify-between items-start mb-2">
-            <h3 className="font-semibold text-gray-800">📱 Install HTGA App</h3>
-            <button
-              onClick={handleDismiss}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              ✕
-            </button>
-          </div>
-          <p className="text-sm text-gray-600 mb-3">
-            Install this app for the best experience and push notifications:
-          </p>
-          <ol className="text-sm text-gray-700 space-y-1 mb-3">
-            <li>
-              1. Tap the <strong>Share</strong> button{" "}
-              <span className="text-blue-500">⬆️</span> below
-            </li>
-            <li>
-              2. Scroll and tap <strong>&quot;Add to Home Screen&quot;</strong>
-            </li>
-            <li>
-              3. Tap <strong>&quot;Add&quot;</strong>
-            </li>
-          </ol>
-          <button
-            onClick={handleDismiss}
-            className="w-full py-2 text-sm text-gray-500 hover:text-gray-700"
-          >
-            Maybe later
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const isIOSDevice = device === DeviceTypes.IOS;
 
-  if (showAndroidPrompt) {
-    return (
-      <div className="fixed bottom-0 left-0 right-0 bg-white shadow-lg border-t border-gray-200 p-4 z-50">
-        <div className="max-w-md mx-auto">
-          <div className="flex justify-between items-start mb-2">
-            <h3 className="font-semibold text-gray-800">📱 Install HTGA App</h3>
-            <button
-              onClick={handleDismiss}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              ✕
-            </button>
-          </div>
-          <p className="text-sm text-gray-600 mb-3">
-            Install this app for quick access and push notifications.
-          </p>
-          <div className="flex gap-2">
-            <button
-              onClick={handleInstallClick}
-              className="flex-1 bg-[#FFA200] hover:bg-[#FF9500] text-white font-semibold py-2 px-4 rounded-full"
-            >
-              Install App
-            </button>
-            <button
-              onClick={handleDismiss}
-              className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700"
-            >
-              Not now
-            </button>
+  return (
+    <div className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center p-4 backdrop-blur-md">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 text-center animate-in fade-in zoom-in duration-300 border border-gray-100">
+        <div className="mb-6 flex justify-center">
+          <div className="w-20 h-20 bg-orange-50 rounded-3xl flex items-center justify-center text-4xl shadow-sm">
+            📱
           </div>
         </div>
-      </div>
-    );
-  }
 
-  return null;
+        <h3 className="text-2xl font-bold text-gray-900 mb-3">
+          Install App Required
+        </h3>
+
+        <p className="text-gray-600 mb-8 text-base leading-relaxed">
+          You must install the <strong>HTGA App</strong> to access the system.
+          This ensures the best experience and security.
+        </p>
+
+        {isIOSDevice ? (
+          <div className="bg-gray-50 rounded-2xl p-5 text-left border border-gray-100">
+            <ol className="text-sm text-gray-700 space-y-4">
+              <li className="flex items-start gap-3">
+                <span className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
+                  1
+                </span>
+                <span>
+                  Tap the <strong>Share</strong> button{" "}
+                  <span className="text-blue-500 text-lg leading-none inline-block align-middle">
+                    ⎋
+                  </span>{" "}
+                  below
+                </span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
+                  2
+                </span>
+                <span>
+                  Scroll down and tap{" "}
+                  <strong>&quot;Add to Home Screen&quot;</strong>{" "}
+                  <span className="text-gray-400 text-lg leading-none inline-block align-middle">
+                    ⊞
+                  </span>
+                </span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
+                  3
+                </span>
+                <span>
+                  Tap <strong>&quot;Add&quot;</strong> in the top right corner
+                </span>
+              </li>
+            </ol>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {deferredPrompt ? (
+              <button
+                onClick={handleInstallClick}
+                className="w-full bg-[#FFA200] hover:bg-[#FF9500] text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-orange-200 transition-all active:scale-95 text-lg"
+              >
+                Install App Now
+              </button>
+            ) : (
+              <div className="bg-gray-50 rounded-2xl p-5 text-sm text-gray-600 border border-gray-100">
+                <p className="mb-3 font-semibold text-gray-900 text-base">
+                  To install:
+                </p>
+                <p className="leading-relaxed">
+                  Tap/Click the browser menu (⋮) and select{" "}
+                  <strong>&quot;Install App&quot;</strong> or{" "}
+                  <strong>&quot;Add to Home Screen&quot;</strong>
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

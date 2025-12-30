@@ -18,9 +18,23 @@ export function isIOS(): boolean {
  */
 export function isRunningAsPWA(): boolean {
   if (typeof window === "undefined") return false;
+
+  // Check for iOS standalone mode
+  const isIOSStandalone = (window.navigator as any).standalone === true;
+
+  // Check for display-mode standalone (works on Android and some iOS)
+  const isDisplayModeStandalone = window.matchMedia(
+    "(display-mode: standalone)"
+  ).matches;
+
+  // Also check fullscreen mode which some PWAs use
+  const isFullscreen = window.matchMedia("(display-mode: fullscreen)").matches;
+
+  // Check if running in WKWebView (iOS PWA uses this)
+  const isWKWebView = !!(window as any).webkit?.messageHandlers;
+
   return (
-    window.matchMedia("(display-mode: standalone)").matches ||
-    (window.navigator as any).standalone === true
+    isIOSStandalone || isDisplayModeStandalone || isFullscreen || isWKWebView
   );
 }
 
