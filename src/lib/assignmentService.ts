@@ -6,11 +6,9 @@ export interface EvaluatorAssignment {
   id: string;
   establishmentId: string;
   status: "pending" | "completed";
+  uniqueId?: string;
   assignedAt: string;
   establishment: Establishment;
-  uniqueId?: string;
-  evaluatorId?: string;
-  slot?: "JEVA_FIRST" | "JEVA_SECOND"; // Track which slot this evaluator is in
 }
 
 export function subscribeToEvaluatorAssignments(
@@ -30,70 +28,71 @@ export function subscribeToEvaluatorAssignments(
     const allAssignments = snapshot.val();
     const evaluatorAssignments: EvaluatorAssignment[] = [];
 
-    // Process assignments - FIXED SLOT STRUCTURE
+    // Process assignments
     const promises = Object.entries(allAssignments).map(
       async ([key, value]: [string, any]) => {
-        // Check JEVA_FIRST and JEVA_SECOND slots for this evaluator
-        if (value.evaluators) {
-          const jevaFirst = value.evaluators.JEVA_FIRST;
-          const jevaSecond = value.evaluators.JEVA_SECOND;
+        const isEvaluator1 = value.evaluator1Id === evaluatorId;
+        const isEvaluator2 = value.evaluator2Id === evaluatorId;
 
-          let evalData: any = null;
-          let slot: "JEVA_FIRST" | "JEVA_SECOND" | null = null;
-
-          if (jevaFirst && jevaFirst.evaluatorId === evaluatorId) {
-            evalData = jevaFirst;
-            slot = "JEVA_FIRST";
-          } else if (jevaSecond && jevaSecond.evaluatorId === evaluatorId) {
-            evalData = jevaSecond;
-            slot = "JEVA_SECOND";
-          }
-
-          if (evalData && slot) {
-            // Fetch establishment details using establishmentId from evaluator entry
-            const establishmentRef = ref(
-              db,
-              `establishments/${evalData.establishmentId}`
-            );
-            const establishmentSnap = await get(establishmentRef);
-
-            if (establishmentSnap.exists()) {
-              const establishmentData = establishmentSnap.val();
-
-              evaluatorAssignments.push({
-                id: key,
-                establishmentId: evalData.establishmentId,
-                status:
-                  evalData.status || evalData.evaluatorStatus || "pending",
-                uniqueId: evalData.uniqueId,
-                evaluatorId: evalData.evaluatorId || evaluatorId,
-                assignedAt: evalData.assignedAt,
-                slot,
-                establishment: {
-                  id: evalData.establishmentId,
-                  ...establishmentData,
-                },
-              });
-            } else {
-              evaluatorAssignments.push({
-                id: key,
-                establishmentId: evalData.establishmentId,
-                status:
-                  evalData.status || evalData.evaluatorStatus || "pending",
-                uniqueId: evalData.uniqueId,
-                evaluatorId: evalData.evaluatorId || evaluatorId,
-                assignedAt: evalData.assignedAt,
-                slot,
-                establishment: {
-                  id: evalData.establishmentId,
-                  name: "Unknown Establishment",
-                  category: "Unknown",
-                  address: "Unknown Address",
-                  createdAt: "",
-                  updatedAt: "",
-                },
-              });
+        if (isEvaluator1 || isEvaluator2) {
+          console.log(
+            `[AssignmentService] Processing ${key} for ${evaluatorId}`,
+            {
+              isEvaluator1,
+              isEvaluator2,
+              e1Unique: value.evaluator1UniqueID,
+              e2Unique: value.evaluator2UniqueID,
+              val: value,
             }
+          );
+
+          // Fetch establishment details (one-time fetch is usually okay for static data,
+          // but for truly live updates we might need to subscribe to establishments too.
+          // For now, let's fetch fresh data on every assignment update)
+          const establishmentRef = ref(
+            db,
+            `establishments/${value.establishmentId}`
+          );
+          const establishmentSnap = await get(establishmentRef);
+
+          if (establishmentSnap.exists()) {
+            const establishmentData = establishmentSnap.val();
+
+            evaluatorAssignments.push({
+              id: key,
+              establishmentId: value.establishmentId,
+              status: isEvaluator1
+                ? value.evaluator1Status
+                : value.evaluator2Status,
+              uniqueId: isEvaluator1
+                ? value.evaluator1UniqueID || value.evaluator1UniqueId
+                : value.evaluator2UniqueID || value.evaluator2UniqueId,
+              assignedAt: value.assignedAt,
+              establishment: {
+                id: value.establishmentId,
+                ...establishmentData,
+              },
+            });
+          } else {
+            evaluatorAssignments.push({
+              id: key,
+              establishmentId: value.establishmentId,
+              status: isEvaluator1
+                ? value.evaluator1Status
+                : value.evaluator2Status,
+              uniqueId: isEvaluator1
+                ? value.evaluator1UniqueID || value.evaluator1UniqueId
+                : value.evaluator2UniqueID || value.evaluator2UniqueId,
+              assignedAt: value.assignedAt,
+              establishment: {
+                id: value.establishmentId,
+                name: "Unknown Establishment",
+                category: "Unknown",
+                address: "Unknown Address",
+                createdAt: "",
+                updatedAt: "",
+              },
+            });
           }
         }
       }
@@ -139,73 +138,56 @@ export async function getEvaluatorAssignments(
 
     const evaluatorAssignments: EvaluatorAssignment[] = [];
 
-    // 2. Filter assignments for this evaluator - FIXED SLOT STRUCTURE
+    // 2. Filter assignments for this evaluator and fetch establishment details
     const promises = Object.entries(allAssignments).map(
       async ([key, value]: [string, any]) => {
-        // Check JEVA_FIRST and JEVA_SECOND slots
-        if (value.evaluators) {
-          const jevaFirst = value.evaluators.JEVA_FIRST;
-          const jevaSecond = value.evaluators.JEVA_SECOND;
+        // Check if this assignment belongs to the evaluator (either as evaluator1 or evaluator2)
+        const isEvaluator1 = value.evaluator1Id === evaluatorId;
+        const isEvaluator2 = value.evaluator2Id === evaluatorId;
 
-          let evalData: any = null;
-          let slot: "JEVA_FIRST" | "JEVA_SECOND" | null = null;
+        if (isEvaluator1 || isEvaluator2) {
+          const establishmentRef = ref(
+            db,
+            `establishments/${value.establishmentId}`
+          );
+          const establishmentSnap = await get(establishmentRef);
 
-          if (jevaFirst && jevaFirst.evaluatorId === evaluatorId) {
-            evalData = jevaFirst;
-            slot = "JEVA_FIRST";
-          } else if (jevaSecond && jevaSecond.evaluatorId === evaluatorId) {
-            evalData = jevaSecond;
-            slot = "JEVA_SECOND";
-          }
+          if (establishmentSnap.exists()) {
+            const establishmentData = establishmentSnap.val();
 
-          if (evalData && slot) {
-            const establishmentRef = ref(
-              db,
-              `establishments/${evalData.establishmentId}`
+            evaluatorAssignments.push({
+              id: key,
+              establishmentId: value.establishmentId,
+              status: isEvaluator1
+                ? value.evaluator1Status
+                : value.evaluator2Status,
+              assignedAt: value.assignedAt,
+              establishment: {
+                id: value.establishmentId,
+                ...establishmentData,
+              },
+            });
+          } else {
+            // Handle case where establishment data is missing but assignment exists
+            console.warn(
+              `Establishment data missing for ID: ${value.establishmentId}`
             );
-            const establishmentSnap = await get(establishmentRef);
-
-            if (establishmentSnap.exists()) {
-              const establishmentData = establishmentSnap.val();
-
-              evaluatorAssignments.push({
-                id: key,
-                establishmentId: evalData.establishmentId,
-                status:
-                  evalData.status || evalData.evaluatorStatus || "pending",
-                uniqueId: evalData.uniqueId,
-                evaluatorId: evalData.evaluatorId || evaluatorId,
-                assignedAt: evalData.assignedAt,
-                slot,
-                establishment: {
-                  id: evalData.establishmentId,
-                  ...establishmentData,
-                },
-              });
-            } else {
-              // Handle case where establishment data is missing
-              console.warn(
-                `Establishment data missing for ID: ${evalData.establishmentId}`
-              );
-              evaluatorAssignments.push({
-                id: key,
-                establishmentId: evalData.establishmentId,
-                status:
-                  evalData.status || evalData.evaluatorStatus || "pending",
-                uniqueId: evalData.uniqueId,
-                evaluatorId: evalData.evaluatorId || evaluatorId,
-                assignedAt: evalData.assignedAt,
-                slot,
-                establishment: {
-                  id: evalData.establishmentId,
-                  name: "Unknown Establishment",
-                  category: "Unknown",
-                  address: "Unknown Address",
-                  createdAt: "",
-                  updatedAt: "",
-                },
-              });
-            }
+            evaluatorAssignments.push({
+              id: key,
+              establishmentId: value.establishmentId,
+              status: isEvaluator1
+                ? value.evaluator1Status
+                : value.evaluator2Status,
+              assignedAt: value.assignedAt,
+              establishment: {
+                id: value.establishmentId,
+                name: "Unknown Establishment",
+                category: "Unknown",
+                address: "Unknown Address",
+                createdAt: "",
+                updatedAt: "",
+              },
+            });
           }
         }
       }

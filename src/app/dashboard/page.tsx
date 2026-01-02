@@ -256,19 +256,20 @@ export default function DashboardPage() {
   const handleStartEvaluation = (assignment: EvaluatorAssignment) => {
     if (!user) return;
 
+    console.log("[Dashboard] handleStartEvaluation assignment:", assignment);
+    console.log("[Dashboard] uniqueId value:", assignment.uniqueId);
+
     const baseUrl =
       "https://forms.zohopublic.com/proyekkonsultasi733gm1/form/RestaurantEvaluationForm/formperma/iB4YV9jabNPVAx_y8WCcrLouSJhkgK-0h-lve1jLGWk";
     const params = new URLSearchParams({
+      unique_id: assignment.uniqueId || "",
       assignment_id: assignment.id,
       eva_email: user.email || "",
       eva_id: user.id,
       restaurant_name: assignment.establishment.name,
     });
 
-    if (assignment.uniqueId) {
-      params.append("unique_id", assignment.uniqueId);
-    }
-
+    console.log("[Dashboard] Final URL:", `${baseUrl}?${params.toString()}`);
     window.open(`${baseUrl}?${params.toString()}`, "_blank");
   };
 

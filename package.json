@@ -3,7 +3,7 @@
   "version": "0.1.1",
   "private": true,
   "scripts": {
-    "dev": "npm run prebuild && next dev --port 3000 --turbopack ",
+    "dev": "npm run prebuild && next dev --port 3000 --turbopack",
     "prebuild": "node sw-env-vars.js",
     "build": "next build",
     "start": "NODE_OPTIONS=\"--max-old-space-size=512\" next start -p 8080",
