@@ -6,7 +6,7 @@ import AdminTable from "@/components/admin/AdminTable";
 import AdminViewControl from "@/components/admin/AdminViewControl";
 
 import { useAssignedContext } from "@/context/AssignedContext";
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
 
 import { useRestaurants } from "@/context/RestaurantContext";
@@ -39,6 +39,7 @@ export default function RestaurantsPage() {
   const [modalMode, setModalMode] = useState<"add" | "edit" | "view">("add");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [restaurantToDelete, setRestaurantToDelete] = useState<any>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleAddRestaurant = () => {
     setSelectedRestaurant(null);
@@ -53,6 +54,7 @@ export default function RestaurantsPage() {
   };
 
   const handleSaveRestaurant = async (restaurant: any) => {
+    setIsSaving(true);
     try {
       if (modalMode === "add") {
         const response = await fetch("/api/establishments", {
@@ -102,6 +104,8 @@ export default function RestaurantsPage() {
         text: error instanceof Error ? error.message : "Unknown error",
         confirmButtonColor: "#A67C37",
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -315,6 +319,7 @@ export default function RestaurantsPage() {
         onSave={handleSaveRestaurant}
         entity={selectedRestaurant}
         mode={modalMode}
+        isLoading={isSaving}
       />
 
       {/* Delete Confirmation Modal */}
@@ -326,5 +331,5 @@ export default function RestaurantsPage() {
         onConfirm={confirmDelete}
       />
     </div>
-  )
+  );
 }

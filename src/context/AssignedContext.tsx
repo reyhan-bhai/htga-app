@@ -56,70 +56,40 @@ export const AssignedProvider: React.FC<{ children: React.ReactNode }> = ({
       // Handle evaluators
       let evaluator1Details: any = null;
       let evaluator2Details: any = null;
-      let establishment: any = null;
 
-      // FIXED SLOT STRUCTURE: Use JEVA_FIRST and JEVA_SECOND
-      if (assignment.evaluators) {
-        const jevaFirst = assignment.evaluators.JEVA_FIRST;
-        const jevaSecond = assignment.evaluators.JEVA_SECOND;
+      // Find establishment
+      const establishment = establishments.find(
+        (e) => e.id === assignment.establishmentId
+      ) || { id: assignment.establishmentId, name: "Unknown Establishment" };
 
-        // Process JEVA_FIRST (Evaluator 1)
-        if (jevaFirst) {
-          const evaluator = evaluators.find(
-            (e) => e.id === jevaFirst.evaluatorId
-          );
+      // Process Evaluator 1
+      if (assignment.evaluator1Id) {
+        const evaluator = evaluators.find(
+          (e) => e.id === assignment.evaluator1Id
+        );
 
-          // Get establishment from JEVA_FIRST's establishmentId
-          if (!establishment && jevaFirst.establishmentId) {
-            establishment = establishments.find(
-              (e) => e.id === jevaFirst.establishmentId
-            );
-          }
+        evaluator1Details = {
+          ...(evaluator || { name: "Unknown Evaluator" }),
+          id: assignment.evaluator1Id,
+          status: assignment.evaluator1Status,
+          uniqueId: assignment.evaluator1UniqueID,
+          slot: "Evaluator 1",
+        };
+      }
 
-          if (evaluator) {
-            evaluator1Details = {
-              ...evaluator,
-              ...jevaFirst,
-              slot: "JEVA_FIRST",
-            };
-          } else {
-            evaluator1Details = {
-              id: jevaFirst.evaluatorId,
-              name: "Unknown Evaluator",
-              ...jevaFirst,
-              slot: "JEVA_FIRST",
-            };
-          }
-        }
+      // Process Evaluator 2
+      if (assignment.evaluator2Id) {
+        const evaluator = evaluators.find(
+          (e) => e.id === assignment.evaluator2Id
+        );
 
-        // Process JEVA_SECOND (Evaluator 2)
-        if (jevaSecond) {
-          const evaluator = evaluators.find(
-            (e) => e.id === jevaSecond.evaluatorId
-          );
-
-          // Get establishment from JEVA_SECOND if not already found
-          if (!establishment && jevaSecond.establishmentId) {
-            establishment = establishments.find(
-              (e) => e.id === jevaSecond.establishmentId
-            );
-          }
-
-          if (evaluator) {
-            evaluator2Details = {
-              ...evaluator,
-              ...jevaSecond,
-              slot: "JEVA_SECOND",
-            };
-          } else {
-            evaluator2Details = {
-              id: jevaSecond.evaluatorId,
-              name: "Unknown Evaluator",
-              ...jevaSecond,
-              slot: "JEVA_SECOND",
-            };
-          }
-        }
+        evaluator2Details = {
+          ...(evaluator || { name: "Unknown Evaluator" }),
+          id: assignment.evaluator2Id,
+          status: assignment.evaluator2Status,
+          uniqueId: assignment.evaluator2UniqueID,
+          slot: "Evaluator 2",
+        };
       }
 
       // Build evaluatorsDetails array for compatibility
@@ -129,19 +99,13 @@ export const AssignedProvider: React.FC<{ children: React.ReactNode }> = ({
 
       return {
         ...assignment,
-        establishment: establishment || { id: "unknown", name: "Unknown" },
+        establishment,
         evaluator1: evaluator1Details,
         evaluator2: evaluator2Details,
         evaluatorsDetails,
         // For backward compatibility in tables
-        establishmentId:
-          evaluator1Details?.establishmentId ||
-          evaluator2Details?.establishmentId ||
-          assignment.establishmentId,
-        assignedAt:
-          evaluator1Details?.assignedAt ||
-          evaluator2Details?.assignedAt ||
-          assignment.assignedAt,
+        establishmentId: assignment.establishmentId,
+        assignedAt: assignment.assignedAt,
       };
     });
 
