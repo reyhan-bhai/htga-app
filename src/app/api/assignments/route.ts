@@ -5,6 +5,7 @@ import {
   Establishment,
   Evaluator,
 } from "@/types/restaurant";
+import crypto from "crypto";
 import { NextResponse } from "next/server";
 
 // Helper function to get assignment with details
@@ -335,6 +336,7 @@ export async function POST(request: Request) {
       establishmentId,
       evaluator1Id: selectedEvaluator1Id,
       evaluator1Status: "pending",
+      evaluator1UniqueID: crypto.randomUUID(),
       assignedAt: new Date().toISOString(),
     };
 
@@ -342,6 +344,7 @@ export async function POST(request: Request) {
     if (selectedEvaluator2Id) {
       newAssignment.evaluator2Id = selectedEvaluator2Id;
       newAssignment.evaluator2Status = "pending";
+      newAssignment.evaluator2UniqueID = crypto.randomUUID();
     }
 
     await assignmentRef.set(newAssignment);
@@ -508,12 +511,14 @@ export async function PUT(request: Request) {
       establishmentId,
       evaluator1Id: evaluator1Id || "",
       evaluator1Status: "pending",
+      evaluator1UniqueID: crypto.randomUUID(),
       assignedAt: new Date().toISOString(),
     };
 
     if (evaluator2Id) {
       newAssignment.evaluator2Id = evaluator2Id;
       newAssignment.evaluator2Status = "pending";
+      newAssignment.evaluator2UniqueID = crypto.randomUUID();
     }
 
     if (notes) {

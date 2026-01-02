@@ -6,6 +6,7 @@ export interface EvaluatorAssignment {
   id: string;
   establishmentId: string;
   status: "pending" | "completed";
+  uniqueId?: string;
   assignedAt: string;
   establishment: Establishment;
 }
@@ -34,6 +35,17 @@ export function subscribeToEvaluatorAssignments(
         const isEvaluator2 = value.evaluator2Id === evaluatorId;
 
         if (isEvaluator1 || isEvaluator2) {
+          console.log(
+            `[AssignmentService] Processing ${key} for ${evaluatorId}`,
+            {
+              isEvaluator1,
+              isEvaluator2,
+              e1Unique: value.evaluator1UniqueID,
+              e2Unique: value.evaluator2UniqueID,
+              val: value,
+            }
+          );
+
           // Fetch establishment details (one-time fetch is usually okay for static data,
           // but for truly live updates we might need to subscribe to establishments too.
           // For now, let's fetch fresh data on every assignment update)
@@ -52,6 +64,9 @@ export function subscribeToEvaluatorAssignments(
               status: isEvaluator1
                 ? value.evaluator1Status
                 : value.evaluator2Status,
+              uniqueId: isEvaluator1
+                ? value.evaluator1UniqueID || value.evaluator1UniqueId
+                : value.evaluator2UniqueID || value.evaluator2UniqueId,
               assignedAt: value.assignedAt,
               establishment: {
                 id: value.establishmentId,
@@ -65,6 +80,9 @@ export function subscribeToEvaluatorAssignments(
               status: isEvaluator1
                 ? value.evaluator1Status
                 : value.evaluator2Status,
+              uniqueId: isEvaluator1
+                ? value.evaluator1UniqueID || value.evaluator1UniqueId
+                : value.evaluator2UniqueID || value.evaluator2UniqueId,
               assignedAt: value.assignedAt,
               establishment: {
                 id: value.establishmentId,
