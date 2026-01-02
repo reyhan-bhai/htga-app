@@ -77,12 +77,43 @@ export const getEvaluatorViewData = (evaluators: any[], assignments: any[]) => {
   const evaluatorMap = new Map();
 
   allEvaluators.forEach((evaluator) => {
-    const evaluatorAssignments = assignments.filter(
-      (a) => a.evaluator1Id === evaluator.id || a.evaluator2Id === evaluator.id
-    );
+    // FIXED SLOT STRUCTURE: Filter assignments where evaluator exists in JEVA_FIRST or JEVA_SECOND
+    const evaluatorAssignments = assignments.filter((a) => {
+      // Check fixed slot structure
+      if (a.evaluators) {
+        const jevaFirst = a.evaluators.JEVA_FIRST;
+        const jevaSecond = a.evaluators.JEVA_SECOND;
+        return (
+          (jevaFirst && jevaFirst.evaluatorId === evaluator.id) ||
+          (jevaSecond && jevaSecond.evaluatorId === evaluator.id)
+        );
+      }
+      // Legacy structure
+      return a.evaluator1Id === evaluator.id || a.evaluator2Id === evaluator.id;
+    });
 
     const totalRestaurants = evaluatorAssignments.length;
     const completedRestaurants = evaluatorAssignments.filter((a) => {
+      // Check fixed slot structure
+      if (a.evaluators) {
+        const jevaFirst = a.evaluators.JEVA_FIRST;
+        const jevaSecond = a.evaluators.JEVA_SECOND;
+
+        if (jevaFirst && jevaFirst.evaluatorId === evaluator.id) {
+          return (
+            jevaFirst.status === "completed" ||
+            jevaFirst.evaluatorStatus === "completed"
+          );
+        }
+        if (jevaSecond && jevaSecond.evaluatorId === evaluator.id) {
+          return (
+            jevaSecond.status === "completed" ||
+            jevaSecond.evaluatorStatus === "completed"
+          );
+        }
+        return false;
+      }
+      // Legacy structure
       if (a.evaluator1Id === evaluator.id) {
         return a.evaluator1Status === "completed";
       }
@@ -138,9 +169,20 @@ export const getRestaurantViewData = (
   if (!establishments || establishments.length === 0) return [];
 
   return establishments.map((establishment) => {
-    const assignment = assignments.find(
-      (a) => a.establishmentId === establishment.id
-    );
+    // FIXED SLOT STRUCTURE: Find assignment where JEVA_FIRST or JEVA_SECOND has this establishmentId
+    const assignment = assignments.find((a) => {
+      // Check fixed slot structure
+      if (a.evaluators) {
+        const jevaFirst = a.evaluators.JEVA_FIRST;
+        const jevaSecond = a.evaluators.JEVA_SECOND;
+        return (
+          (jevaFirst && jevaFirst.establishmentId === establishment.id) ||
+          (jevaSecond && jevaSecond.establishmentId === establishment.id)
+        );
+      }
+      // Legacy structure
+      return a.establishmentId === establishment.id;
+    });
 
     if (!assignment) {
       return {
@@ -160,8 +202,37 @@ export const getRestaurantViewData = (
       };
     }
 
-    const evaluator1 = evaluators.find((e) => e.id === assignment.evaluator1Id);
-    const evaluator2 = evaluators.find((e) => e.id === assignment.evaluator2Id);
+    // FIXED SLOT STRUCTURE: Extract evaluators from JEVA_FIRST and JEVA_SECOND
+    let evaluator1Data: any = null;
+    let evaluator2Data: any = null;
+    let evaluator1: any = null;
+    let evaluator2: any = null;
+    let dateAssigned = "-";
+
+    if (assignment.evaluators) {
+      // Use fixed slot keys
+      const jevaFirst = assignment.evaluators.JEVA_FIRST;
+      const jevaSecond = assignment.evaluators.JEVA_SECOND;
+
+      if (jevaFirst) {
+        evaluator1Data = jevaFirst;
+        evaluator1 = evaluators.find((e) => e.id === jevaFirst.evaluatorId);
+        dateAssigned = jevaFirst.assignedAt
+          ? new Date(jevaFirst.assignedAt).toLocaleDateString()
+          : "-";
+      }
+      if (jevaSecond) {
+        evaluator2Data = jevaSecond;
+        evaluator2 = evaluators.find((e) => e.id === jevaSecond.evaluatorId);
+      }
+    } else {
+      // Legacy structure fallback
+      evaluator1 = evaluators.find((e) => e.id === assignment.evaluator1Id);
+      evaluator2 = evaluators.find((e) => e.id === assignment.evaluator2Id);
+      dateAssigned = assignment.assignedAt
+        ? new Date(assignment.assignedAt).toLocaleDateString()
+        : "-";
+    }
 
     // Determine progress status based on assignment status
     const getProgressStatus = (status: string | undefined) => {
@@ -172,6 +243,16 @@ export const getRestaurantViewData = (
       return "Not Started";
     };
 
+    // Get status from new structure or legacy
+    const eval1Status =
+      evaluator1Data?.status ||
+      evaluator1Data?.evaluatorStatus ||
+      assignment.evaluator1Status;
+    const eval2Status =
+      evaluator2Data?.status ||
+      evaluator2Data?.evaluatorStatus ||
+      assignment.evaluator2Status;
+
     return {
       id: establishment.id, // Required by Table component
       key: establishment.id, // Add key for table
@@ -179,16 +260,14 @@ export const getRestaurantViewData = (
       name: establishment.name,
       category: establishment.category,
       matched: "Yes",
-      date_assigned: new Date(assignment.assignedAt).toLocaleDateString(),
+      date_assigned: dateAssigned,
       evaluator_1: evaluator1?.name || "-",
       evaluator_2: evaluator2?.name || "-",
 
-      completed_eva_1:
-        assignment.evaluator1Status === "completed" ? "Yes" : "No",
-      completed_eva_2:
-        assignment.evaluator2Status === "completed" ? "Yes" : "No",
-      evaluator1_progress: getProgressStatus(assignment.evaluator1Status),
-      evaluator2_progress: getProgressStatus(assignment.evaluator2Status),
+      completed_eva_1: eval1Status === "completed" ? "Yes" : "No",
+      completed_eva_2: eval2Status === "completed" ? "Yes" : "No",
+      evaluator1_progress: getProgressStatus(eval1Status),
+      evaluator2_progress: getProgressStatus(eval2Status),
     };
   });
 };
@@ -505,14 +584,34 @@ export const handleEdit = (
   setIsEditModalOpen: (open: boolean) => void
 ) => {
   if (selectedView === "restaurant") {
-    // Find the assignment for this restaurant
-    const assignment = assignments.find(
-      (a) => a.establishmentId === item.res_id
-    );
+    // FIXED SLOT STRUCTURE: Find the assignment for this restaurant
+    const assignment = assignments.find((a) => {
+      if (a.evaluators) {
+        const jevaFirst = a.evaluators.JEVA_FIRST;
+        const jevaSecond = a.evaluators.JEVA_SECOND;
+        return (
+          (jevaFirst && jevaFirst.establishmentId === item.res_id) ||
+          (jevaSecond && jevaSecond.establishmentId === item.res_id)
+        );
+      }
+      // Legacy structure
+      return a.establishmentId === item.res_id;
+    });
 
     setEditingRestaurant(item);
-    setEditEvaluator1(assignment?.evaluator1Id || "");
-    setEditEvaluator2(assignment?.evaluator2Id || "");
+
+    // FIXED SLOT STRUCTURE: Extract evaluator IDs from JEVA_FIRST and JEVA_SECOND
+    if (assignment?.evaluators) {
+      const jevaFirst = assignment.evaluators.JEVA_FIRST;
+      const jevaSecond = assignment.evaluators.JEVA_SECOND;
+      setEditEvaluator1(jevaFirst?.evaluatorId || "");
+      setEditEvaluator2(jevaSecond?.evaluatorId || "");
+    } else {
+      // Legacy structure fallback
+      setEditEvaluator1(assignment?.evaluator1Id || "");
+      setEditEvaluator2(assignment?.evaluator2Id || "");
+    }
+
     setIsEditModalOpen(true);
   }
 };
@@ -536,10 +635,21 @@ export const handleSaveEdit = async (
   try {
     setIsLoading(true);
 
-    // Find the existing assignment
-    const assignment = assignments.find(
-      (a) => a.establishmentId === editingRestaurant.res_id
-    );
+    // FIXED SLOT STRUCTURE: Find assignment where JEVA_FIRST or JEVA_SECOND has this establishmentId
+    const assignment = assignments.find((a) => {
+      if (a.evaluators) {
+        const jevaFirst = a.evaluators.JEVA_FIRST;
+        const jevaSecond = a.evaluators.JEVA_SECOND;
+        return (
+          (jevaFirst &&
+            jevaFirst.establishmentId === editingRestaurant.res_id) ||
+          (jevaSecond &&
+            jevaSecond.establishmentId === editingRestaurant.res_id)
+        );
+      }
+      // Fallback for legacy structure
+      return a.establishmentId === editingRestaurant.res_id;
+    });
 
     // If no assignment, we will create one. No need to return error.
     // if (!assignment) { ... }
@@ -608,13 +718,12 @@ export const handleSaveEdit = async (
       const payload: any = {
         evaluator1Id: editEvaluator1 || null,
         evaluator2Id: editEvaluator2 || null,
+        // ALWAYS include establishmentId - needed for both create and update
+        establishmentId: editingRestaurant.res_id,
       };
 
       if (assignment) {
         payload.id = assignment.id;
-      } else {
-        // For creation, we need establishmentId
-        payload.establishmentId = editingRestaurant.res_id;
       }
 
       const response = await fetch(`/api/assignments`, {

@@ -1,5 +1,7 @@
 "use client";
 
+import { db } from "@/lib/firebase";
+import { onValue, ref } from "firebase/database";
 import React, {
   createContext,
   ReactNode,
@@ -7,7 +9,6 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import Swal from "sweetalert2";
 
 interface Restaurant {
   id: string;
@@ -49,34 +50,27 @@ export const RestaurantsProvider: React.FC<RestaurantsProviderProps> = ({
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchRestaurants = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch("/api/establishments");
-      if (!response.ok) {
-        throw new Error("Failed to fetch restaurants");
-      }
-      const data = await response.json();
-      setRestaurants(data.establishments || []);
-    } catch (error) {
-      console.error("Error fetching restaurants:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Failed to load restaurants",
-        confirmButtonColor: "#A67C37",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchRestaurants(); // Fetch once on mount (when admin logs in)
+    setIsLoading(true);
+    const establishmentsRef = ref(db, "establishments");
+    const unsubscribe = onValue(establishmentsRef, (snapshot) => {
+      const data = snapshot.val();
+      setRestaurants(
+        data
+          ? Object.entries(data).map(([id, val]: [string, any]) => ({
+              id,
+              ...val,
+            }))
+          : []
+      );
+      setIsLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
   const refetchRestaurants = () => {
-    fetchRestaurants(); // Manual refetch if needed
+    // No-op with listeners
+    console.log("refetchRestaurants called, but using listeners now.");
   };
 
   return (

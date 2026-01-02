@@ -1,34 +1,62 @@
 import { db } from "@/lib/firebase-admin";
 import {
   Assignment,
+  AssignmentEvaluatorData,
   AssignmentWithDetails,
   Establishment,
   Evaluator,
 } from "@/types/restaurant";
+import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 
-// Helper function to get assignment with details
+// Helper function to get assignment with details (FIXED SLOT STRUCTURE)
 async function getAssignmentWithDetails(
   assignmentId: string,
   assignment: Assignment
 ): Promise<AssignmentWithDetails> {
-  const [establishmentSnap, evaluator1Snap, evaluator2Snap] = await Promise.all(
-    [
-      db.ref(`establishments/${assignment.establishmentId}`).once("value"),
-      db.ref(`evaluators/${assignment.evaluator1Id}`).once("value"),
-      db.ref(`evaluators/${assignment.evaluator2Id}`).once("value"),
-    ]
-  );
+  const evaluatorsDetails: (Evaluator &
+    AssignmentEvaluatorData & { slot: string })[] = [];
+  let establishment: Establishment | undefined;
+
+  // Handle fixed slot structure: JEVA_FIRST and JEVA_SECOND
+  if (assignment.evaluators) {
+    const slots = ["JEVA_FIRST", "JEVA_SECOND"] as const;
+
+    for (const slot of slots) {
+      const evalData = assignment.evaluators[slot];
+      if (!evalData) continue;
+
+      // Fetch evaluator info using evaluatorId from the slot data
+      const evaluatorSnap = await db
+        .ref(`evaluators/${evalData.evaluatorId}`)
+        .once("value");
+
+      // Fetch establishment info (use establishmentId from within evaluator data)
+      if (!establishment && evalData.establishmentId) {
+        const estSnap = await db
+          .ref(`establishments/${evalData.establishmentId}`)
+          .once("value");
+        if (estSnap.exists()) {
+          establishment = { id: evalData.establishmentId, ...estSnap.val() };
+        }
+      }
+
+      if (evaluatorSnap.exists()) {
+        evaluatorsDetails.push({
+          id: evalData.evaluatorId,
+          slot, // Include slot info for ordering
+          ...evaluatorSnap.val(),
+          ...evalData,
+        });
+      }
+    }
+  }
 
   return {
     ...assignment,
-    establishment: {
-      id: assignment.establishmentId,
-      ...establishmentSnap.val(),
-    },
-    evaluator1: { id: assignment.evaluator1Id, ...evaluator1Snap.val() },
-    evaluator2: { id: assignment.evaluator2Id, ...evaluator2Snap.val() },
-  };
+    establishment,
+    evaluatorsDetails,
+  } as AssignmentWithDetails;
 }
 
 // GET - Get all assignments or specific assignment by ID
@@ -76,17 +104,37 @@ export async function GET(request: Request) {
         }))
       : [];
 
-    // Apply filters
+    // Apply filters - FIXED SLOT STRUCTURE: establishmentId is inside JEVA_FIRST/JEVA_SECOND
     if (establishmentId) {
-      assignments = assignments.filter(
-        (a) => a.establishmentId === establishmentId
-      );
+      assignments = assignments.filter((a) => {
+        // Fixed slot structure: check JEVA_FIRST and JEVA_SECOND
+        if (a.evaluators) {
+          const jevaFirst = a.evaluators.JEVA_FIRST;
+          const jevaSecond = a.evaluators.JEVA_SECOND;
+          return (
+            (jevaFirst && jevaFirst.establishmentId === establishmentId) ||
+            (jevaSecond && jevaSecond.establishmentId === establishmentId)
+          );
+        }
+        // Legacy structure
+        return a.establishmentId === establishmentId;
+      });
     }
 
     if (evaluatorId) {
-      assignments = assignments.filter(
-        (a) => a.evaluator1Id === evaluatorId || a.evaluator2Id === evaluatorId
-      );
+      assignments = assignments.filter((a) => {
+        // Check fixed slot structure
+        if (a.evaluators) {
+          const jevaFirst = a.evaluators.JEVA_FIRST;
+          const jevaSecond = a.evaluators.JEVA_SECOND;
+          return (
+            (jevaFirst && jevaFirst.evaluatorId === evaluatorId) ||
+            (jevaSecond && jevaSecond.evaluatorId === evaluatorId)
+          );
+        }
+        // Check legacy structure
+        return a.evaluator1Id === evaluatorId || a.evaluator2Id === evaluatorId;
+      });
     }
 
     // Include details if requested
@@ -199,14 +247,39 @@ export async function POST(request: Request) {
     const evaluatorAssignmentCounts = new Map<string, number>();
     if (assignmentsData) {
       Object.values(assignmentsData).forEach((assignment: any) => {
-        evaluatorAssignmentCounts.set(
-          assignment.evaluator1Id,
-          (evaluatorAssignmentCounts.get(assignment.evaluator1Id) || 0) + 1
-        );
-        evaluatorAssignmentCounts.set(
-          assignment.evaluator2Id,
-          (evaluatorAssignmentCounts.get(assignment.evaluator2Id) || 0) + 1
-        );
+        // Count from fixed slot structure
+        if (assignment.evaluators) {
+          const jevaFirst = assignment.evaluators.JEVA_FIRST;
+          const jevaSecond = assignment.evaluators.JEVA_SECOND;
+
+          if (jevaFirst && jevaFirst.evaluatorId) {
+            evaluatorAssignmentCounts.set(
+              jevaFirst.evaluatorId,
+              (evaluatorAssignmentCounts.get(jevaFirst.evaluatorId) || 0) + 1
+            );
+          }
+          if (jevaSecond && jevaSecond.evaluatorId) {
+            evaluatorAssignmentCounts.set(
+              jevaSecond.evaluatorId,
+              (evaluatorAssignmentCounts.get(jevaSecond.evaluatorId) || 0) + 1
+            );
+          }
+        }
+        // Count from legacy structure
+        else {
+          if (assignment.evaluator1Id) {
+            evaluatorAssignmentCounts.set(
+              assignment.evaluator1Id,
+              (evaluatorAssignmentCounts.get(assignment.evaluator1Id) || 0) + 1
+            );
+          }
+          if (assignment.evaluator2Id) {
+            evaluatorAssignmentCounts.set(
+              assignment.evaluator2Id,
+              (evaluatorAssignmentCounts.get(assignment.evaluator2Id) || 0) + 1
+            );
+          }
+        }
       });
     }
 
@@ -331,17 +404,34 @@ export async function POST(request: Request) {
 
     const assignmentRef = db.ref(`assignments/${assignmentId}`);
 
+    const assignedAt = new Date().toISOString();
+
+    // FIXED SLOT STRUCTURE: Use JEVA_FIRST and JEVA_SECOND as fixed keys
     const newAssignment: any = {
-      establishmentId,
-      evaluator1Id: selectedEvaluator1Id,
-      evaluator1Status: "pending",
-      assignedAt: new Date().toISOString(),
+      evaluators: {},
     };
 
-    // Only add evaluator2 fields if evaluator2 is assigned
+    if (selectedEvaluator1Id) {
+      newAssignment.evaluators.JEVA_FIRST = {
+        uniqueId: randomUUID(),
+        establishmentId,
+        assignedAt,
+        evaluatorId: selectedEvaluator1Id,
+        evaluatorStatus: "pending",
+        status: "pending",
+      };
+    }
+
+    // Only add evaluator2 if assigned
     if (selectedEvaluator2Id) {
-      newAssignment.evaluator2Id = selectedEvaluator2Id;
-      newAssignment.evaluator2Status = "pending";
+      newAssignment.evaluators.JEVA_SECOND = {
+        uniqueId: randomUUID(),
+        establishmentId,
+        assignedAt,
+        evaluatorId: selectedEvaluator2Id,
+        evaluatorStatus: "pending",
+        status: "pending",
+      };
     }
 
     await assignmentRef.set(newAssignment);
@@ -384,7 +474,9 @@ export async function PUT(request: Request) {
       const snapshot = await db.ref(`assignments/${id}`).once("value");
 
       if (snapshot.exists()) {
-        // ... existing update logic ...
+        const currentAssignment = snapshot.val();
+        const updates: any = {};
+
         // Validate evaluators if provided and not empty
         if (evaluator1Id) {
           const evaluator1Snap = await db
@@ -410,37 +502,84 @@ export async function PUT(request: Request) {
           }
         }
 
-        const updates: Partial<Assignment> = {};
-
+        // FIXED SLOT STRUCTURE: Update status inside JEVA_FIRST/JEVA_SECOND
         if (evaluator1Status) {
-          updates.evaluator1Status = evaluator1Status;
+          updates[`evaluators/JEVA_FIRST/status`] = evaluator1Status;
+          updates[`evaluators/JEVA_FIRST/evaluatorStatus`] = evaluator1Status;
+          if (evaluator1Status === "completed") {
+            updates[`evaluators/JEVA_FIRST/completedAt`] =
+              new Date().toISOString();
+          }
         }
 
         if (evaluator2Status) {
-          updates.evaluator2Status = evaluator2Status;
-        }
-
-        // Check if both completed to set completedAt
-        const currentAssignment = snapshot.val();
-        const newEval1Status =
-          evaluator1Status || currentAssignment.evaluator1Status;
-        const newEval2Status =
-          evaluator2Status || currentAssignment.evaluator2Status;
-
-        if (newEval1Status === "completed" && newEval2Status === "completed") {
-          updates.completedAt = new Date().toISOString();
+          updates[`evaluators/JEVA_SECOND/status`] = evaluator2Status;
+          updates[`evaluators/JEVA_SECOND/evaluatorStatus`] = evaluator2Status;
+          if (evaluator2Status === "completed") {
+            updates[`evaluators/JEVA_SECOND/completedAt`] =
+              new Date().toISOString();
+          }
         }
 
         if (notes !== undefined) {
           updates.notes = notes;
         }
 
-        if (evaluator1Id !== undefined) {
-          updates.evaluator1Id = evaluator1Id;
-        }
+        // FIXED SLOT STRUCTURE: Handle evaluator changes using JEVA_FIRST/JEVA_SECOND
+        const hasEvaluatorChanges =
+          evaluator1Id !== undefined || evaluator2Id !== undefined;
 
-        if (evaluator2Id !== undefined) {
-          updates.evaluator2Id = evaluator2Id;
+        if (hasEvaluatorChanges && establishmentId) {
+          const assignedAt = new Date().toISOString();
+          const currentEvaluators = currentAssignment.evaluators || {};
+
+          // Handle Evaluator 1 (JEVA_FIRST slot)
+          if (evaluator1Id !== undefined) {
+            if (evaluator1Id === null || evaluator1Id === "") {
+              // Remove evaluator 1
+              updates[`evaluators/JEVA_FIRST`] = null;
+            } else {
+              // Check if same evaluator - preserve data
+              const currentEval1 = currentEvaluators.JEVA_FIRST;
+              if (currentEval1 && currentEval1.evaluatorId === evaluator1Id) {
+                // Same evaluator, preserve existing data (no update needed for this slot)
+              } else {
+                // New evaluator for slot 1
+                updates[`evaluators/JEVA_FIRST`] = {
+                  uniqueId: randomUUID(),
+                  establishmentId,
+                  assignedAt,
+                  evaluatorId: evaluator1Id,
+                  evaluatorStatus: evaluator1Status || "pending",
+                  status: evaluator1Status || "pending",
+                };
+              }
+            }
+          }
+
+          // Handle Evaluator 2 (JEVA_SECOND slot)
+          if (evaluator2Id !== undefined) {
+            if (evaluator2Id === null || evaluator2Id === "") {
+              // Remove evaluator 2
+              updates[`evaluators/JEVA_SECOND`] = null;
+            } else {
+              // Check if same evaluator - preserve data
+              const currentEval2 = currentEvaluators.JEVA_SECOND;
+              if (currentEval2 && currentEval2.evaluatorId === evaluator2Id) {
+                // Same evaluator, preserve existing data (no update needed for this slot)
+              } else {
+                // New evaluator for slot 2
+                updates[`evaluators/JEVA_SECOND`] = {
+                  uniqueId: randomUUID(),
+                  establishmentId,
+                  assignedAt,
+                  evaluatorId: evaluator2Id,
+                  evaluatorStatus: evaluator2Status || "pending",
+                  status: evaluator2Status || "pending",
+                };
+              }
+            }
+          }
         }
 
         await db.ref(`assignments/${id}`).update(updates);
@@ -504,16 +643,33 @@ export async function PUT(request: Request) {
     const assignmentId = `ASSIGN${String(count).padStart(2, "0")}`;
     const assignmentRef = db.ref(`assignments/${assignmentId}`);
 
+    const assignedAt = new Date().toISOString();
+
+    // NEW STRUCTURE: Each evaluator has its own metadata
     const newAssignment: any = {
-      establishmentId,
-      evaluator1Id: evaluator1Id || "",
-      evaluator1Status: "pending",
-      assignedAt: new Date().toISOString(),
+      evaluators: {},
     };
 
+    if (evaluator1Id) {
+      newAssignment.evaluators[evaluator1Id] = {
+        uniqueId: randomUUID(),
+        establishmentId,
+        assignedAt,
+        evaluatorId: evaluator1Id,
+        evaluatorStatus: "pending",
+        status: "pending",
+      };
+    }
+
     if (evaluator2Id) {
-      newAssignment.evaluator2Id = evaluator2Id;
-      newAssignment.evaluator2Status = "pending";
+      newAssignment.evaluators[evaluator2Id] = {
+        uniqueId: randomUUID(),
+        establishmentId,
+        assignedAt,
+        evaluatorId: evaluator2Id,
+        evaluatorStatus: "pending",
+        status: "pending",
+      };
     }
 
     if (notes) {

@@ -265,6 +265,10 @@ export default function DashboardPage() {
       restaurant_name: assignment.establishment.name,
     });
 
+    if (assignment.uniqueId) {
+      params.append("unique_id", assignment.uniqueId);
+    }
+
     window.open(`${baseUrl}?${params.toString()}`, "_blank");
   };
 

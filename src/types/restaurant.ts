@@ -26,22 +26,42 @@ export interface Establishment {
   updatedAt: string;
 }
 
+export interface AssignmentEvaluatorData {
+  uniqueId: string;
+  establishmentId: string;
+  assignedAt: string;
+  evaluatorId: string;
+  evaluatorStatus: "pending" | "completed";
+  status: "pending" | "completed";
+  completedAt?: string;
+}
+
+// Fixed slot keys for evaluator positions
+export type EvaluatorSlot = "JEVA_FIRST" | "JEVA_SECOND";
+
+// Evaluators map with fixed slot keys
+export type EvaluatorsMap = {
+  JEVA_FIRST?: AssignmentEvaluatorData;
+  JEVA_SECOND?: AssignmentEvaluatorData;
+};
+
 export interface Assignment {
   id: string;
-  establishmentId: string;
-  evaluator1Id: string;
-  evaluator1Status: "pending" | "completed";
-  evaluator2Id: string;
-  evaluator2Status: "pending" | "completed";
-  assignedAt: string;
+  evaluators?: EvaluatorsMap;
   completedAt?: string;
   notes?: string;
+  // Legacy fields for backward compatibility during migration (optional)
+  establishmentId?: string;
+  assignedAt?: string;
+  evaluator1Id?: string;
+  evaluator1Status?: "pending" | "completed";
+  evaluator2Id?: string;
+  evaluator2Status?: "pending" | "completed";
 }
 
 export interface AssignmentWithDetails extends Assignment {
-  establishment: Establishment;
-  evaluator1: Evaluator;
-  evaluator2: Evaluator;
+  establishment?: Establishment;
+  evaluatorsDetails: (Evaluator & AssignmentEvaluatorData)[];
 }
 
 export interface AssignmentRequest {
