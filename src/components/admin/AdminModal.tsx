@@ -10,9 +10,12 @@ import {
   Select,
   SelectItem,
 } from "@nextui-org/react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { MdClose } from "react-icons/md";
 import AdminSearchableSelect from "./AdminSearchableSelect";
+
+import { db } from "@/lib/firebase";
+import { onValue, push, ref, set } from "firebase/database";
 
 // --- EntityModal Implementation ---
 
@@ -791,7 +794,7 @@ const evaluatorFields: FieldConfig[] = [
 ];
 
 // Restaurant field configuration
-const restaurantFields: FieldConfig[] = [
+const baseRestaurantFields: FieldConfig[] = [
   {
     name: "name",
     label: "Restaurant Name",
@@ -836,7 +839,6 @@ const restaurantFields: FieldConfig[] = [
     label: "Halal Status",
     type: "select",
     placeholder: "Select Halal Status",
-    options: ["Muslim-Owned", "Muslim-friendly", "Halal Certified by JAKIM"],
   },
   {
     name: "remarks",
@@ -867,6 +869,108 @@ interface AdminModalProps {
 
 export default function AdminModal(props: AdminModalProps) {
   const { type, subtype, isLoading, ...rest } = props;
+
+  // States for dynamic dropdowns
+  const [categories, setCategories] = useState<string[]>([]);
+  const [halalStatuses, setHalalStatuses] = useState<string[]>([]);
+
+  // Default values for fail-safe
+  const defaultCategories = ["Bakery", "FastFood", "Italian"];
+  const defaultHalalStatuses = [
+    "Muslim-Owned",
+    "Muslim-friendly",
+    "Halal Certified by JAKIM",
+  ];
+
+  // Fetch dropdown data for restaurants
+  useEffect(() => {
+    if (type !== "restaurant") return;
+
+    // Fetch Categories
+    const categoryRef = ref(db, "establishments/dropdown/category");
+    const unsubscribeCategory = onValue(categoryRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const val = snapshot.val();
+        const list = Object.values(val) as string[];
+        // Filter unique and sort
+        setCategories(Array.from(new Set([...list])).sort());
+      } else {
+        setCategories(defaultCategories);
+      }
+    });
+
+    // Fetch Halal Statuses
+    const halalRef = ref(db, "establishments/dropdown/halalstatus");
+    const unsubscribeHalal = onValue(halalRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const val = snapshot.val();
+        const list = Object.values(val) as string[];
+        setHalalStatuses(Array.from(new Set([...list])).sort());
+      } else {
+        setHalalStatuses(defaultHalalStatuses);
+      }
+    });
+
+    return () => {
+      unsubscribeCategory();
+      unsubscribeHalal();
+    };
+  }, [type]);
+
+  // Construct restaurant fields with dynamic options
+  const restaurantFields = useMemo(() => {
+    return baseRestaurantFields.map((field) => {
+      if (field.name === "category") {
+        return {
+          ...field,
+          options: categories.length > 0 ? categories : defaultCategories,
+        };
+      }
+      if (field.name === "halalStatus") {
+        return {
+          ...field,
+          options:
+            halalStatuses.length > 0 ? halalStatuses : defaultHalalStatuses,
+        };
+      }
+      return field;
+    });
+  }, [categories, halalStatuses]);
+
+  // Handle save logic for restaurant to persist new dropdown items
+  const handleRestaurantSave = async (data: any) => {
+    const { category, halalStatus } = data;
+
+    // Save new Category if not exists in DB list
+    // Note: We check against state 'categories' which reflects DB (or defaults if DB empty)
+    // If DB is empty, user selects default "Bakery", we should save it to DB to start populating it?
+    // User requested: "Adding new data menu".
+    // If it's a new custom value typed by user, logic below handles it.
+    // If it's a default value but not in DB yet, logic below ALSO handles it (good for seeding).
+
+    if (category && !categories.includes(category)) {
+      try {
+        const categoryRef = ref(db, "establishments/dropdown/category");
+        await set(push(categoryRef), category);
+      } catch (error) {
+        console.error("Error saving new category:", error);
+      }
+    }
+
+    if (halalStatus && !halalStatuses.includes(halalStatus)) {
+      try {
+        const halalRef = ref(db, "establishments/dropdown/halalstatus");
+        await set(push(halalRef), halalStatus);
+      } catch (error) {
+        console.error("Error saving new halal status:", error);
+      }
+    }
+
+    // Call original onSave
+    if (props.onSave) {
+      props.onSave(data);
+    }
+  };
 
   if (type === "delete") {
     return (
@@ -904,7 +1008,7 @@ export default function AdminModal(props: AdminModalProps) {
       <EntityModal
         isOpen={props.isOpen}
         onClose={props.onClose}
-        onSave={props.onSave!}
+        onSave={handleRestaurantSave}
         entity={props.entity}
         mode={props.mode!}
         fields={restaurantFields}

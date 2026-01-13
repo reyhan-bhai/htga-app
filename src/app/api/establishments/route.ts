@@ -30,10 +30,14 @@ export async function GET(request: Request) {
     const establishmentsData = snapshot.val();
 
     let establishments: Establishment[] = establishmentsData
-      ? Object.entries(establishmentsData).map(([id, data]: [string, any]) => ({
-          id,
-          ...data,
-        }))
+      ? Object.entries(establishmentsData)
+          .filter(
+            ([id, data]: [string, any]) => id !== "dropdown" && data?.name
+          )
+          .map(([id, data]: [string, any]) => ({
+            id,
+            ...data,
+          }))
       : [];
 
     // Filter by category if provided

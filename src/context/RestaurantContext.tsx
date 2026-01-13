@@ -55,14 +55,38 @@ export const RestaurantsProvider: React.FC<RestaurantsProviderProps> = ({
     const establishmentsRef = ref(db, "establishments");
     const unsubscribe = onValue(establishmentsRef, (snapshot) => {
       const data = snapshot.val();
-      setRestaurants(
-        data
-          ? Object.entries(data).map(([id, val]: [string, any]) => ({
+
+      if (data && typeof data === "object") {
+        const restaurantsList = Object.entries(data)
+          .filter(([id, val]) => {
+            // Filter out dropdown node and ensure valid restaurant data
+            return (
+              id !== "dropdown" &&
+              val &&
+              typeof val === "object" &&
+              (val as any).name
+            );
+          })
+          .map(([id, val]) => {
+            // Ensure val is an object and extract its properties
+            const restaurantData = val as any;
+            return {
               id,
-              ...val,
-            }))
-          : []
-      );
+              name: restaurantData.name || "",
+              category: restaurantData.category || "",
+              address: restaurantData.address,
+              contactInfo: restaurantData.contactInfo,
+              rating: restaurantData.rating || "0",
+              budget: restaurantData.budget || "0",
+              halalStatus: restaurantData.halalStatus,
+              remarks: restaurantData.remarks,
+            };
+          });
+        setRestaurants(restaurantsList);
+      } else {
+        setRestaurants([]);
+      }
+
       setIsLoading(false);
     });
     return () => unsubscribe();
