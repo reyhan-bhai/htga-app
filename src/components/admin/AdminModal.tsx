@@ -826,7 +826,7 @@ const restaurantFields: FieldConfig[] = [
   {
     name: "category",
     label: "Category",
-    type: "text",
+    type: "select",
     placeholder: "e.g., Bakery, FastFood, Italian",
     required: true,
   },
