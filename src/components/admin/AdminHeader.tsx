@@ -6,7 +6,9 @@ import { Button } from "@nextui-org/react";
 import { MdLink, MdShuffle } from "react-icons/md";
 
 interface AdminHeaderProps {
-  type: "assignment" | "evaluator" | "restaurant";
+  type: "assignment" | "evaluator" | "restaurant" | "budget";
+  title?: string;
+  subtitle?: string;
   // Assignment specific props
   assignments?: any[];
   establishments?: any[];
@@ -17,6 +19,8 @@ interface AdminHeaderProps {
 
 export default function AdminHeader({
   type,
+  title,
+  subtitle,
   assignments,
   establishments,
   setIsLoading,
@@ -24,6 +28,20 @@ export default function AdminHeader({
   setIsManualMatchOpen,
 }: AdminHeaderProps) {
   switch (type) {
+    case "budget":
+      return (
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold uppercase">
+              {title || "Budget Management"}
+            </h2>
+            {subtitle && (
+              <p className="text-gray-600 text-sm mt-1">{subtitle}</p>
+            )}
+          </div>
+        </div>
+      );
+
     case "assignment":
       return (
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">

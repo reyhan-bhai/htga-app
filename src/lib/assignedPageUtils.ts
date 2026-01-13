@@ -138,19 +138,48 @@ export const getEvaluatorViewData = (evaluators: any[], assignments: any[]) => {
       ndaStatus = evaluator.ndaStatus;
     }
 
-    // Handle specialties - could be array or string
-    const specialtyDisplay = Array.isArray(evaluator.specialties)
-      ? evaluator.specialties.join(", ")
-      : evaluator.specialties || "";
+    // Handle specialties - could be array, string, or object
+    let specialtyDisplay = "";
+    if (Array.isArray(evaluator.specialties)) {
+      specialtyDisplay = evaluator.specialties.join(", ");
+    } else if (typeof evaluator.specialties === "string") {
+      specialtyDisplay = evaluator.specialties;
+    } else if (
+      typeof evaluator.specialties === "object" &&
+      evaluator.specialties !== null
+    ) {
+      // If it's an object (Firebase structure), try to get values
+      const specialtyValues = Object.values(evaluator.specialties);
+      specialtyDisplay =
+        specialtyValues.length > 0 ? specialtyValues.join(", ") : "";
+    } else {
+      specialtyDisplay = evaluator.specialties || "";
+    }
+
+    // Helper function to safely convert values to strings
+    const safeStringValue = (value: any, fallback: string = "") => {
+      if (value === null || value === undefined) return fallback;
+      if (typeof value === "object") return fallback;
+      return String(value);
+    };
 
     evaluatorMap.set(evaluator.id, {
       id: evaluator.id, // Required by Table component
       key: evaluator.id, // Add key for table
       eva_id: evaluator.id,
-      name: evaluator.name,
-      email: evaluator.email || "",
-      phone: evaluator.phone || "",
+      evaluator_name: safeStringValue(evaluator.name, "Unknown"),
+      name: safeStringValue(evaluator.name, "Unknown"),
+      email: safeStringValue(evaluator.email, ""),
+      phone: safeStringValue(evaluator.phone, ""),
       specialty: specialtyDisplay,
+      specialties: Array.isArray(evaluator.specialties)
+        ? evaluator.specialties
+        : typeof evaluator.specialties === "object" &&
+            evaluator.specialties !== null
+          ? Object.values(evaluator.specialties)
+          : typeof evaluator.specialties === "string"
+            ? [evaluator.specialties]
+            : [],
       nda_status: ndaStatus,
       total_restaurant: totalRestaurants,
       restaurant_completed: completedRestaurants,
@@ -185,20 +214,31 @@ export const getRestaurantViewData = (
     });
 
     if (!assignment) {
+      // Helper function to safely convert values to strings
+      const safeStringValue = (value: any, fallback: string = "-") => {
+        if (value === null || value === undefined) return fallback;
+        if (typeof value === "object") return fallback;
+        return String(value);
+      };
+
       return {
         id: establishment.id, // Required by Table component
         key: establishment.id, // Add key for table
         res_id: establishment.id,
-        name: establishment.name,
-        category: establishment.category,
+        name: safeStringValue(establishment.name, "Unknown"),
+        category: safeStringValue(establishment.category, "Unknown"),
         matched: "No",
         date_assigned: "-",
         evaluator_1: "-",
+        evaluator1_assigned_date: "-",
         evaluator_2: "-",
+        evaluator2_assigned_date: "-",
         completed_eva_1: "-",
         completed_eva_2: "-",
         evaluator1_progress: "Not Started",
         evaluator2_progress: "Not Started",
+        receipt: "No image yet",
+        amount_spent: "-",
       };
     }
 
@@ -208,6 +248,8 @@ export const getRestaurantViewData = (
     let evaluator1: any = null;
     let evaluator2: any = null;
     let dateAssigned = "-";
+    let evaluator1AssignedDate = "-";
+    let evaluator2AssignedDate = "-";
 
     if (assignment.evaluators) {
       // Use fixed slot keys
@@ -220,10 +262,16 @@ export const getRestaurantViewData = (
         dateAssigned = jevaFirst.assignedAt
           ? new Date(jevaFirst.assignedAt).toLocaleDateString()
           : "-";
+        evaluator1AssignedDate = jevaFirst.assignedAt
+          ? new Date(jevaFirst.assignedAt).toLocaleDateString()
+          : "-";
       }
       if (jevaSecond) {
         evaluator2Data = jevaSecond;
         evaluator2 = evaluators.find((e) => e.id === jevaSecond.evaluatorId);
+        evaluator2AssignedDate = jevaSecond.assignedAt
+          ? new Date(jevaSecond.assignedAt).toLocaleDateString()
+          : "-";
       }
     } else {
       // Legacy structure fallback
@@ -231,6 +279,13 @@ export const getRestaurantViewData = (
       evaluator2 = evaluators.find((e) => e.id === assignment.evaluator2Id);
       dateAssigned = assignment.assignedAt
         ? new Date(assignment.assignedAt).toLocaleDateString()
+        : "-";
+      // For legacy structure, check individual assignment dates
+      evaluator1AssignedDate = assignment.evaluator1AssignedAt
+        ? new Date(assignment.evaluator1AssignedAt).toLocaleDateString()
+        : "-";
+      evaluator2AssignedDate = assignment.evaluator2AssignedAt
+        ? new Date(assignment.evaluator2AssignedAt).toLocaleDateString()
         : "-";
     }
 
@@ -253,21 +308,31 @@ export const getRestaurantViewData = (
       evaluator2Data?.evaluatorStatus ||
       assignment.evaluator2Status;
 
+    // Helper function to safely convert values to strings
+    const safeStringValue = (value: any, fallback: string = "-") => {
+      if (value === null || value === undefined) return fallback;
+      if (typeof value === "object") return fallback;
+      return String(value);
+    };
+
     return {
       id: establishment.id, // Required by Table component
       key: establishment.id, // Add key for table
       res_id: establishment.id,
-      name: establishment.name,
-      category: establishment.category,
+      name: safeStringValue(establishment.name, "Unknown"),
+      category: safeStringValue(establishment.category, "Unknown"),
       matched: "Yes",
       date_assigned: dateAssigned,
-      evaluator_1: evaluator1?.name || "-",
-      evaluator_2: evaluator2?.name || "-",
-
+      evaluator_1: safeStringValue(evaluator1?.name, "-"),
+      evaluator1_assigned_date: evaluator1AssignedDate,
+      evaluator_2: safeStringValue(evaluator2?.name, "-"),
+      evaluator2_assigned_date: evaluator2AssignedDate,
       completed_eva_1: eval1Status === "completed" ? "Yes" : "No",
       completed_eva_2: eval2Status === "completed" ? "Yes" : "No",
       evaluator1_progress: getProgressStatus(eval1Status),
       evaluator2_progress: getProgressStatus(eval2Status),
+      receipt: "No image yet",
+      amount_spent: "-",
     };
   });
 };

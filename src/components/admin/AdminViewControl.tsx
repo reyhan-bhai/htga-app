@@ -21,11 +21,15 @@ import {
 } from "react-icons/md";
 
 interface AdminViewControlProps {
-  type: "assignment" | "evaluator" | "restaurant";
+  type: "assignment" | "evaluator" | "restaurant" | "budget";
 
   // Common
   activeFiltersCount?: number;
   clearFilters?: () => void;
+
+  // Budget Only
+  selectedDateRange?: { start: string; end: string };
+  setSelectedDateRange?: (range: { start: string; end: string }) => void;
 
   // Assignment Only
   selectedView?: string;
@@ -84,6 +88,8 @@ export default function AdminViewControl({
   type,
   activeFiltersCount = 0,
   clearFilters,
+  selectedDateRange,
+  setSelectedDateRange,
   selectedView,
   setSelectedView,
   selectedNDAStatus,
@@ -906,6 +912,183 @@ export default function AdminViewControl({
               type === "evaluator" ? handleAddEvaluator : handleAddRestaurant
             }
           ></Button>
+        </div>
+      );
+
+    case "budget":
+      return (
+        <div className="flex flex-col gap-3 sm:gap-4">
+          {/* Search and Filter Row */}
+          <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4">
+            <div className="flex flex-row gap-2 sm:gap-3 w-full sm:w-auto items-center">
+              {/* Search Input */}
+              <Input
+                placeholder="Search by evaluator name, email, company, or restaurant..."
+                value={searchQuery || ""}
+                onValueChange={(value) => {
+                  if (setSearchQuery) {
+                    setSearchQuery(value);
+                  }
+                }}
+                className="w-full sm:w-[280px] md:w-[400px]"
+                size="sm"
+                variant="bordered"
+                startContent={<MdSearch className="text-black" size={16} />}
+                classNames={{
+                  inputWrapper:
+                    "bg-white border-gray-300 rounded-md h-8 sm:h-10",
+                  input: "text-black placeholder:text-gray-500 text-sm",
+                }}
+              />
+
+              {/* Filter Popover */}
+              <Popover placement="bottom-start">
+                <PopoverTrigger>
+                  <Button
+                    className={`border-2 rounded-lg h-8 sm:h-10 px-3 font-semibold text-xs sm:text-sm transition-all ${
+                      activeFiltersCount > 0
+                        ? "bg-[#A67C37] text-white border-[#A67C37]"
+                        : "bg-white text-[#A67C37] border-[#A67C37] hover:bg-[#A67C37] hover:text-white"
+                    }`}
+                    variant="flat"
+                    startContent={<MdFilterList size={16} />}
+                  >
+                    {activeFiltersCount > 0 && (
+                      <span className="bg-red-500 text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center">
+                        {activeFiltersCount}
+                      </span>
+                    )}
+                    <span className="hidden sm:inline">Filters</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[320px] p-4">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-lg font-semibold text-black">
+                        Filters
+                      </h4>
+                      {activeFiltersCount > 0 && (
+                        <Button
+                          size="sm"
+                          variant="light"
+                          onPress={clearFilters}
+                          className="text-red-500 hover:bg-red-50"
+                          startContent={<MdClose size={16} />}
+                        >
+                          Clear All
+                        </Button>
+                      )}
+                    </div>
+
+                    <Divider className="bg-gray-200" />
+
+                    {/* Date Range Filter */}
+                    <div className="flex flex-col gap-2">
+                      <span className="font-medium text-sm text-gray-700">
+                        Assignment Date Range
+                      </span>
+                      <div className="flex flex-col gap-2">
+                        <Input
+                          type="date"
+                          label="Start Date"
+                          value={selectedDateRange?.start || ""}
+                          onValueChange={(value) => {
+                            if (setSelectedDateRange) {
+                              setSelectedDateRange({
+                                start: value,
+                                end: selectedDateRange?.end || "",
+                              });
+                            }
+                          }}
+                          size="sm"
+                          variant="bordered"
+                          classNames={{
+                            inputWrapper: "bg-white border-gray-300 rounded-md",
+                            input: "text-black text-sm",
+                          }}
+                        />
+                        <Input
+                          type="date"
+                          label="End Date"
+                          value={selectedDateRange?.end || ""}
+                          onValueChange={(value) => {
+                            if (setSelectedDateRange) {
+                              setSelectedDateRange({
+                                start: selectedDateRange?.start || "",
+                                end: value,
+                              });
+                            }
+                          }}
+                          size="sm"
+                          variant="bordered"
+                          classNames={{
+                            inputWrapper: "bg-white border-gray-300 rounded-md",
+                            input: "text-black text-sm",
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <Divider className="bg-gray-200" />
+
+                    {/* Rows Per Page Selector */}
+                    <div className="flex flex-col gap-2">
+                      <span className="font-medium text-sm text-gray-700">
+                        Rows Per Page
+                      </span>
+                      <Select
+                        selectedKeys={[rowsPerPage?.toString() || "10"]}
+                        onSelectionChange={(keys) => {
+                          const value = Array.from(keys)[0];
+                          if (value && setRowsPerPage) {
+                            setRowsPerPage(parseInt(value as string));
+                          }
+                        }}
+                        size="sm"
+                        variant="bordered"
+                        classNames={{
+                          trigger:
+                            "bg-white border-gray-300 rounded-md h-9 text-black",
+                          value: "text-black text-sm",
+                          listboxWrapper: "text-gray-500",
+                          popoverContent: "text-gray-500",
+                        }}
+                      >
+                        <SelectItem
+                          key="10"
+                          value="10"
+                          className="text-gray-600"
+                        >
+                          10
+                        </SelectItem>
+                        <SelectItem
+                          key="25"
+                          value="25"
+                          className="text-gray-600"
+                        >
+                          25
+                        </SelectItem>
+                        <SelectItem
+                          key="50"
+                          value="50"
+                          className="text-gray-600"
+                        >
+                          50
+                        </SelectItem>
+                        <SelectItem
+                          key="100"
+                          value="100"
+                          className="text-gray-600"
+                        >
+                          100
+                        </SelectItem>
+                      </Select>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
         </div>
       );
 

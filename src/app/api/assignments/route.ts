@@ -332,19 +332,26 @@ export async function POST(request: Request) {
 
     const assignmentRef = db.ref(`assignments/${assignmentId}`);
 
+    const assignmentDateTime = new Date().toISOString();
+
     const newAssignment: any = {
       establishmentId,
       evaluator1Id: selectedEvaluator1Id,
       evaluator1Status: "pending",
       evaluator1UniqueID: crypto.randomUUID(),
-      assignedAt: new Date().toISOString(),
+      assignedAt: assignmentDateTime,
     };
+
+    if (selectedEvaluator1Id) {
+      newAssignment.evaluator1AssignedAt = assignmentDateTime;
+    }
 
     // Only add evaluator2 fields if evaluator2 is assigned
     if (selectedEvaluator2Id) {
       newAssignment.evaluator2Id = selectedEvaluator2Id;
       newAssignment.evaluator2Status = "pending";
       newAssignment.evaluator2UniqueID = crypto.randomUUID();
+      newAssignment.evaluator2AssignedAt = assignmentDateTime;
     }
 
     await assignmentRef.set(newAssignment);
@@ -440,10 +447,18 @@ export async function PUT(request: Request) {
 
         if (evaluator1Id !== undefined) {
           updates.evaluator1Id = evaluator1Id;
+          // If evaluator1 is being changed/assigned, update assignment date
+          if (evaluator1Id && evaluator1Id !== currentAssignment.evaluator1Id) {
+            updates.evaluator1AssignedAt = new Date().toISOString();
+          }
         }
 
         if (evaluator2Id !== undefined) {
           updates.evaluator2Id = evaluator2Id;
+          // If evaluator2 is being changed/assigned, update assignment date
+          if (evaluator2Id && evaluator2Id !== currentAssignment.evaluator2Id) {
+            updates.evaluator2AssignedAt = new Date().toISOString();
+          }
         }
 
         await db.ref(`assignments/${id}`).update(updates);
@@ -507,18 +522,25 @@ export async function PUT(request: Request) {
     const assignmentId = `ASSIGN${String(count).padStart(2, "0")}`;
     const assignmentRef = db.ref(`assignments/${assignmentId}`);
 
+    const assignmentDateTime = new Date().toISOString();
+
     const newAssignment: any = {
       establishmentId,
       evaluator1Id: evaluator1Id || "",
       evaluator1Status: "pending",
       evaluator1UniqueID: crypto.randomUUID(),
-      assignedAt: new Date().toISOString(),
+      assignedAt: assignmentDateTime,
     };
+
+    if (evaluator1Id) {
+      newAssignment.evaluator1AssignedAt = assignmentDateTime;
+    }
 
     if (evaluator2Id) {
       newAssignment.evaluator2Id = evaluator2Id;
       newAssignment.evaluator2Status = "pending";
       newAssignment.evaluator2UniqueID = crypto.randomUUID();
+      newAssignment.evaluator2AssignedAt = assignmentDateTime;
     }
 
     if (notes) {

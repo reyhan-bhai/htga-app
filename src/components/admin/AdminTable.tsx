@@ -17,7 +17,7 @@ import {
 } from "react-icons/md";
 
 interface AdminTableProps {
-  type: "assignment" | "evaluator" | "restaurant";
+  type: "assignment" | "evaluator" | "restaurant" | "budget";
   isLoading: boolean;
 
   // Assignment Props
@@ -51,6 +51,7 @@ interface AdminTableProps {
   handleViewItem?: (item: any) => void;
   handleDeleteItem?: (item: any) => void;
   columns?: any[];
+  renderCell?: (item: any, columnKey: React.Key) => React.ReactNode;
 }
 
 interface TableComponentProps {
@@ -164,7 +165,11 @@ function TableComponent({
             contactValue
           );
         default:
-          return cellValue;
+          // Safety check for objects to prevent React error
+          if (typeof cellValue === "object" && cellValue !== null) {
+            return <span className="text-gray-400 italic">—</span>;
+          }
+          return String(cellValue || "—");
       }
     },
     [onEdit, onDelete, onView, hideActions]
@@ -273,6 +278,7 @@ export default function AdminTable({
   handleViewItem,
   handleDeleteItem,
   columns = [],
+  renderCell,
 }: AdminTableProps) {
   if (isLoading) {
     return (
@@ -384,6 +390,22 @@ export default function AdminTable({
             onEdit={handleEditItem}
             onView={handleViewItem}
             onDelete={handleDeleteItem}
+          />
+        </div>
+      );
+
+    case "budget":
+      return (
+        <div className="bg-white rounded-lg">
+          <TableComponent
+            columns={columns}
+            data={data}
+            renderCell={renderCell}
+            emptyMessage={{
+              title: "No Budget Data",
+              description: "No evaluator budget data found.",
+            }}
+            hideActions={true}
           />
         </div>
       );
@@ -559,11 +581,18 @@ const renderEvaluatorCell = (
       );
 
     default:
-      return value;
+      // Safety check for objects to prevent React error
+      if (typeof value === "object" && value !== null) {
+        return <span className="text-gray-400 italic">—</span>;
+      }
+      return String(value || "—");
   }
 };
 
 const renderRestaurantCell = (item: any, columnKey: React.Key) => {
+  if (columnKey === "actions") {
+    return undefined;
+  }
   const value = item[columnKey as string];
 
   switch (columnKey) {
@@ -604,6 +633,22 @@ const renderRestaurantCell = (item: any, columnKey: React.Key) => {
         >
           <span>{matchConfig.icon}</span>
           <span>{matchConfig.text}</span>
+        </div>
+      );
+
+    case "evaluator1_assigned_date":
+    case "evaluator2_assigned_date":
+    case "date_assigned":
+      if (!value || value === "-") {
+        return (
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400 text-xs italic">Not assigned</span>
+          </div>
+        );
+      }
+      return (
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-700">{value}</span>
         </div>
       );
 
@@ -694,7 +739,25 @@ const renderRestaurantCell = (item: any, columnKey: React.Key) => {
         </div>
       );
 
+    case "receipt":
+      return (
+        <div className="flex items-center gap-2">
+          <span className="text-gray-400 italic">No image yet</span>
+        </div>
+      );
+
+    case "amount_spent":
+      return (
+        <div className="flex items-center gap-2">
+          <span className="text-gray-400 italic">-</span>
+        </div>
+      );
+
     default:
-      return value;
+      // Safety check for objects to prevent React error
+      if (typeof value === "object" && value !== null) {
+        return <span className="text-gray-400 italic">—</span>;
+      }
+      return String(value || "—");
   }
 };

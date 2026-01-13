@@ -32,9 +32,11 @@ export interface Assignment {
   evaluator1Id: string;
   evaluator1Status: "pending" | "completed";
   evaluator1UniqueID?: string;
+  evaluator1AssignedAt?: string;
   evaluator2Id: string;
   evaluator2Status: "pending" | "completed";
   evaluator2UniqueID?: string;
+  evaluator2AssignedAt?: string;
   assignedAt: string;
   completedAt?: string;
   notes?: string;

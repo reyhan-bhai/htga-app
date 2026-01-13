@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  MdAccountBalanceWallet,
   MdAssignment,
   MdClose,
   MdLogout,
@@ -133,6 +134,16 @@ export default function DrawerComponent({
               >
                 <MdPeople size={24} />
                 Evaluator Management
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/admin/budget"
+                className={navItemClass("/admin/budget")}
+                onClick={onClose}
+              >
+                <MdAccountBalanceWallet size={24} />
+                Budget Management
               </Link>
             </li>
           </ul>

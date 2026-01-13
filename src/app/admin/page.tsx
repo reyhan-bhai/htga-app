@@ -18,7 +18,7 @@ import {
 } from "@/lib/assignedPageUtils";
 
 import { Pagination } from "@nextui-org/react";
-import { useState, useMemo, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export default function AssignedPage() {
   // Get data from context
@@ -41,8 +41,12 @@ export default function AssignedPage() {
   const [showIncompleteOnly, setShowIncompleteOnly] = useState(false);
   const [selectedMatchStatus, setSelectedMatchStatus] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedEvaOneProgress, setSelectedEvaOneProgress] = useState<string[]>([]);
-  const [selectedEvaTwoProgress, setSelectedEvaTwoProgress] = useState<string[]>([]);
+  const [selectedEvaOneProgress, setSelectedEvaOneProgress] = useState<
+    string[]
+  >([]);
+  const [selectedEvaTwoProgress, setSelectedEvaTwoProgress] = useState<
+    string[]
+  >([]);
   const [isManualMatchOpen, setIsManualMatchOpen] = useState(false);
   const [selectedEvaluator, setSelectedEvaluator] = useState<string>("");
   const [selectedRestaurant, setSelectedRestaurant] = useState<string>("");
@@ -70,6 +74,16 @@ export default function AssignedPage() {
           });
         } else if (typeof evaluator.specialties === "string") {
           specialties.add(evaluator.specialties);
+        } else if (
+          typeof evaluator.specialties === "object" &&
+          evaluator.specialties !== null
+        ) {
+          // Handle Firebase object structure
+          Object.values(evaluator.specialties).forEach((specialty: any) => {
+            if (typeof specialty === "string") {
+              specialties.add(specialty);
+            }
+          });
         }
       }
     });
@@ -96,15 +110,20 @@ export default function AssignedPage() {
       const query = searchQuery.toLowerCase();
       results = results.filter((item) => {
         const searchFields = [
-          item.evaluator_name || "",
+          item.evaluator_name || item.name || "",
           item.email || "",
           item.eva_id || "",
           item.phone || "",
           item.specialty || "",
         ];
-        return searchFields.some((field) =>
-          field.toLowerCase().includes(query)
-        );
+        return searchFields.some((field) => {
+          // Safely convert to string and handle objects
+          const fieldString =
+            typeof field === "object" && field !== null
+              ? JSON.stringify(field)
+              : String(field || "");
+          return fieldString.toLowerCase().includes(query);
+        });
       });
     }
 
@@ -124,7 +143,14 @@ export default function AssignedPage() {
             selectedSpecialties.includes(spec)
           );
         }
-        return selectedSpecialties.includes(specialties);
+        // Handle case where specialties might be an object (Firebase structure)
+        if (typeof specialties === "object" && specialties !== null) {
+          const specialtyValues = Object.values(specialties);
+          return specialtyValues.some((spec: any) =>
+            selectedSpecialties.includes(String(spec))
+          );
+        }
+        return selectedSpecialties.includes(String(specialties || ""));
       });
     }
 
@@ -134,62 +160,133 @@ export default function AssignedPage() {
     }
 
     return results;
-  }, [evaluatorViewData, searchQuery, selectedNDAStatus, selectedSpecialties, showIncompleteOnly]);
+  }, [
+    evaluatorViewData,
+    searchQuery,
+    selectedNDAStatus,
+    selectedSpecialties,
+    showIncompleteOnly,
+  ]);
 
-  // Filter restaurant view data
-  const filteredRestaurantData = useMemo(() => {
-    let results = restaurantViewData;
+// Filter restaurant view data
+const filteredRestaurantData = useMemo(() => {
+  console.log("=== FILTERING RESTAURANT DATA ===");
+  console.log("Raw restaurantViewData:", restaurantViewData);
+  
+  let results = restaurantViewData;
 
-    // Filter by search query
-    if (searchQuery.trim().length > 0) {
-      const query = searchQuery.toLowerCase();
-      results = results.filter((item) => {
-        const searchFields = [
-          item.name || "",
-          item.category || "",
-          item.date_assigned || "",
-          item.evaluator_1 || "",
-          item.evaluator_2 || "",
-        ];
-        return searchFields.some((field) =>
-          field.toLowerCase().includes(query)
-        );
+  // Filter by search query
+  if (searchQuery.trim().length > 0) {
+    const query = searchQuery.toLowerCase();
+    console.log("Applying search filter:", query);
+    
+    results = results.filter((item, index) => {
+      console.log(`Item ${index}:`, item);
+      
+      const searchFields = [
+        item.name || "",
+        item.category || "",
+        item.date_assigned || "",
+        item.evaluator_1 || "",
+        item.evaluator_2 || "",
+        item.evaluator1_assigned_date || "",
+        item.evaluator2_assigned_date || "",
+      ];
+      
+      console.log(`Search fields for item ${index}:`, searchFields);
+      
+      return searchFields.some((field, fieldIndex) => {
+        console.log(`  Field ${fieldIndex}:`, field, `Type: ${typeof field}`);
+        
+        // Check if field is an object
+        if (typeof field === "object" && field !== null) {
+          console.warn(`  ⚠️ WARNING: Field ${fieldIndex} is an object:`, field);
+          console.warn(`  Object keys:`, Object.keys(field));
+        }
+        
+        // Safely convert to string and handle objects
+        const fieldString =
+          typeof field === "object" && field !== null
+            ? JSON.stringify(field)
+            : String(field || "");
+        
+        return fieldString.toLowerCase().includes(query);
       });
-    }
+    });
+    
+    console.log("Results after search filter:", results);
+  }
 
-    // Filter by Category
-    if (selectedCategories.length > 0) {
-      results = results.filter((item) =>
-        selectedCategories.includes(item.category)
-      );
-    }
+  // Filter by Category
+  if (selectedCategories.length > 0) {
+    console.log("Applying category filter:", selectedCategories);
+    results = results.filter((item) => {
+      console.log("Item category:", item.category, "Type:", typeof item.category);
+      return selectedCategories.includes(item.category);
+    });
+    console.log("Results after category filter:", results);
+  }
 
-    // Filter by Match Status
-    if (selectedMatchStatus.length > 0) {
-      results = results.filter((item) =>
-        selectedMatchStatus.includes(item.matched)
-      );
-    }
+  // Filter by Match Status
+  if (selectedMatchStatus.length > 0) {
+    console.log("Applying match status filter:", selectedMatchStatus);
+    results = results.filter((item) => {
+      console.log("Item matched:", item.matched, "Type:", typeof item.matched);
+      return selectedMatchStatus.includes(item.matched);
+    });
+    console.log("Results after match status filter:", results);
+  }
 
-    // Filter by Evaluator 1 Progress
-    if (selectedEvaOneProgress.length > 0) {
-      results = results.filter((item) =>
-        selectedEvaOneProgress.includes(item.evaluator1_progress)
-      );
-    }
+  // Filter by Evaluator 1 Progress
+  if (selectedEvaOneProgress.length > 0) {
+    console.log("Applying evaluator 1 progress filter:", selectedEvaOneProgress);
+    results = results.filter((item) => {
+      console.log("Item evaluator1_progress:", item.evaluator1_progress, "Type:", typeof item.evaluator1_progress);
+      return selectedEvaOneProgress.includes(item.evaluator1_progress);
+    });
+    console.log("Results after evaluator 1 progress filter:", results);
+  }
 
-    // Filter by Evaluator 2 Progress
-    if (selectedEvaTwoProgress.length > 0) {
-      results = results.filter((item) =>
-        selectedEvaTwoProgress.includes(item.evaluator2_progress)
-      );
-    }
+  // Filter by Evaluator 2 Progress
+  if (selectedEvaTwoProgress.length > 0) {
+    console.log("Applying evaluator 2 progress filter:", selectedEvaTwoProgress);
+    results = results.filter((item) => {
+      console.log("Item evaluator2_progress:", item.evaluator2_progress, "Type:", typeof item.evaluator2_progress);
+      return selectedEvaTwoProgress.includes(item.evaluator2_progress);
+    });
+    console.log("Results after evaluator 2 progress filter:", results);
+  }
 
-    return results;
-  }, [restaurantViewData, searchQuery, selectedCategories, selectedMatchStatus, selectedEvaOneProgress, selectedEvaTwoProgress]);
+  console.log("=== FINAL FILTERED RESULTS ===", results);
+  
+  // Deep inspection of final results
+  results.forEach((item, index) => {
+    console.log(`Final item ${index}:`);
+    Object.entries(item).forEach(([key, value]) => {
+      if (typeof value === 'object' && value !== null) {
+        console.error(`  ❌ OBJECT FOUND in key "${key}":`, value);
+        console.error(`    Keys:`, Object.keys(value));
+      } else {
+        console.log(`  ✓ ${key}:`, value, `(${typeof value})`);
+      }
+    });
+  });
+
+  return results;
+}, [
+  restaurantViewData,
+  searchQuery,
+  selectedCategories,
+  selectedMatchStatus,
+  selectedEvaOneProgress,
+  selectedEvaTwoProgress,
+]);
 
   // Get current view's filtered data
-  const currentFilteredData = selectedView === "evaluator" ? filteredEvaluatorData : filteredRestaurantData;
+  const currentFilteredData =
+    selectedView === "evaluator"
+      ? filteredEvaluatorData
+      : filteredRestaurantData;
 
   // Calculate pagination
   const totalPages = Math.ceil(currentFilteredData.length / rowsPerPage);
@@ -201,7 +298,17 @@ export default function AssignedPage() {
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [selectedView, searchQuery, selectedNDAStatus, selectedSpecialties, showIncompleteOnly, selectedCategories, selectedMatchStatus, selectedEvaOneProgress, selectedEvaTwoProgress]);
+  }, [
+    selectedView,
+    searchQuery,
+    selectedNDAStatus,
+    selectedSpecialties,
+    showIncompleteOnly,
+    selectedCategories,
+    selectedMatchStatus,
+    selectedEvaOneProgress,
+    selectedEvaTwoProgress,
+  ]);
 
   // Reset page when rows per page changes
   useEffect(() => {
@@ -313,8 +420,16 @@ export default function AssignedPage() {
         type="assignment"
         selectedView={selectedView}
         isLoading={isLoading}
-        evaluatorViewData={paginatedData.length > 0 && selectedView === "evaluator" ? paginatedData : []}
-        restaurantViewData={paginatedData.length > 0 && selectedView === "restaurant" ? paginatedData : []}
+        evaluatorViewData={
+          paginatedData.length > 0 && selectedView === "evaluator"
+            ? paginatedData
+            : []
+        }
+        restaurantViewData={
+          paginatedData.length > 0 && selectedView === "restaurant"
+            ? paginatedData
+            : []
+        }
         evaluators={evaluators}
         establishments={establishments}
         assignments={assignments}

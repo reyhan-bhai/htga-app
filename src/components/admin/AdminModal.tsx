@@ -887,7 +887,7 @@ export default function AdminModal(props: AdminModalProps) {
     if (type !== "restaurant") return;
 
     // Fetch Categories
-    const categoryRef = ref(db, "establishments/dropdown/category");
+    const categoryRef = ref(db, "dropdown/category");
     const unsubscribeCategory = onValue(categoryRef, (snapshot) => {
       if (snapshot.exists()) {
         const val = snapshot.val();
@@ -900,7 +900,7 @@ export default function AdminModal(props: AdminModalProps) {
     });
 
     // Fetch Halal Statuses
-    const halalRef = ref(db, "establishments/dropdown/halalstatus");
+    const halalRef = ref(db, "dropdown/halalstatus");
     const unsubscribeHalal = onValue(halalRef, (snapshot) => {
       if (snapshot.exists()) {
         const val = snapshot.val();
@@ -950,7 +950,7 @@ export default function AdminModal(props: AdminModalProps) {
 
     if (category && !categories.includes(category)) {
       try {
-        const categoryRef = ref(db, "establishments/dropdown/category");
+        const categoryRef = ref(db, "dropdown/category");
         await set(push(categoryRef), category);
       } catch (error) {
         console.error("Error saving new category:", error);
@@ -959,7 +959,7 @@ export default function AdminModal(props: AdminModalProps) {
 
     if (halalStatus && !halalStatuses.includes(halalStatus)) {
       try {
-        const halalRef = ref(db, "establishments/dropdown/halalstatus");
+        const halalRef = ref(db, "dropdown/halalstatus");
         await set(push(halalRef), halalStatus);
       } catch (error) {
         console.error("Error saving new halal status:", error);
