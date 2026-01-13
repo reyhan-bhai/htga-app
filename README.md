@@ -31,3 +31,4 @@ FIREBASE_CLIENT_EMAIL=...
 4. Run `npm run dev` or `yarn dev` to start the development server
 5. After running the development server open [http://localhost:3010](http://localhost:3010) or you can find your local ip-address in run logs and open on mobile device with your browser to see the result.
 
+commit
