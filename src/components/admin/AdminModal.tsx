@@ -12,6 +12,7 @@ import {
 } from "@nextui-org/react";
 import React, { useEffect, useState } from "react";
 import { MdClose } from "react-icons/md";
+import AdminSearchableSelect from "./AdminSearchableSelect";
 
 // --- EntityModal Implementation ---
 
@@ -174,42 +175,17 @@ function EntityModal<T extends Record<string, any>>({
 
             if (field.type === "select") {
               return (
-                <div key={field.name}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {field.label}
-                  </label>
-                  <div className="relative">
-                    <select
-                      name={field.name}
-                      value={formData[field.name] || ""}
-                      onChange={handleChange}
-                      disabled={isViewMode}
-                      required={!isViewMode && field.required}
-                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 outline-none disabled:bg-gray-100 disabled:text-gray-600 appearance-none"
-                    >
-                      <option value="">
-                        {field.placeholder || `Select ${field.label}`}
-                      </option>
-                      {field.options?.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">
-                      <svg
-                        className="h-5 w-5"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </div>
-                  </div>
+                <div key={field.name} className="mb-4">
+                  <AdminSearchableSelect
+                    name={field.name}
+                    label={field.label}
+                    value={formData[field.name] || ""}
+                    onChange={(e: any) => handleChange(e)}
+                    options={field.options || []}
+                    placeholder={field.placeholder}
+                    disabled={isViewMode}
+                    required={!isViewMode && field.required}
+                  />
                 </div>
               );
             }
