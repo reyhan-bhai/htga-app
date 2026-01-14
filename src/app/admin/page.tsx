@@ -81,6 +81,10 @@ export default function AssignedPage() {
   const [selectedEvaTwoProgress, setSelectedEvaTwoProgress] = useState<
     string[]
   >([]);
+  const [selectedDateRange, setSelectedDateRange] = useState<{
+    start: string;
+    end: string;
+  }>({ start: "", end: "" });
   const [isManualMatchOpen, setIsManualMatchOpen] = useState(false);
   const [selectedEvaluator, setSelectedEvaluator] = useState<string>("");
   const [selectedRestaurant, setSelectedRestaurant] = useState<string>("");
@@ -320,6 +324,40 @@ export default function AssignedPage() {
       console.log("Results after evaluator 2 progress filter:", results);
     }
 
+    // Filter by Date Range
+    if (selectedDateRange.start || selectedDateRange.end) {
+      console.log("Applying date range filter:", selectedDateRange);
+      results = results.filter((item) => {
+        const eva1Date = item.evaluator1_assigned_date;
+        const eva2Date = item.evaluator2_assigned_date;
+
+        // Check if either evaluator has an assignment date within the range
+        const checkDate = (dateStr: string) => {
+          if (!dateStr) return false;
+
+          const itemDate = new Date(dateStr);
+          const startDate = selectedDateRange.start
+            ? new Date(selectedDateRange.start)
+            : null;
+          const endDate = selectedDateRange.end
+            ? new Date(selectedDateRange.end)
+            : null;
+
+          if (startDate && endDate) {
+            return itemDate >= startDate && itemDate <= endDate;
+          } else if (startDate) {
+            return itemDate >= startDate;
+          } else if (endDate) {
+            return itemDate <= endDate;
+          }
+          return false;
+        };
+
+        return checkDate(eva1Date) || checkDate(eva2Date);
+      });
+      console.log("Results after date range filter:", results);
+    }
+
     console.log("=== FINAL FILTERED RESULTS ===", results);
 
     // Deep inspection of final results
@@ -343,6 +381,7 @@ export default function AssignedPage() {
     selectedMatchStatus,
     selectedEvaOneProgress,
     selectedEvaTwoProgress,
+    selectedDateRange,
   ]);
 
   // Get current view's filtered data
@@ -371,6 +410,7 @@ export default function AssignedPage() {
     selectedMatchStatus,
     selectedEvaOneProgress,
     selectedEvaTwoProgress,
+    selectedDateRange,
   ]);
 
   // Reset page when rows per page changes
@@ -420,6 +460,7 @@ export default function AssignedPage() {
     setSelectedMatchStatus([]);
     setSelectedEvaOneProgress([]);
     setSelectedEvaTwoProgress([]);
+    setSelectedDateRange({ start: "", end: "" });
   };
 
   return (
@@ -461,6 +502,8 @@ export default function AssignedPage() {
         setSelectedEvaTwoProgress={setSelectedEvaTwoProgress}
         toggleEvaOneProgress={toggleEvaOneProgress}
         toggleEvaTwoProgress={toggleEvaTwoProgress}
+        selectedDateRange={selectedDateRange}
+        setSelectedDateRange={setSelectedDateRange}
         activeFiltersCount={
           selectedNDAStatus.length +
           selectedSpecialties.length +
@@ -469,6 +512,7 @@ export default function AssignedPage() {
           selectedCategories.length +
           selectedEvaOneProgress.length +
           selectedEvaTwoProgress.length +
+          (selectedDateRange.start || selectedDateRange.end ? 1 : 0) +
           (searchQuery.trim().length > 0 ? 1 : 0)
         }
         evaluatorViewData={evaluatorViewData}
