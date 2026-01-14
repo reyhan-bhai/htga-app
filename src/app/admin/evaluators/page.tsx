@@ -4,15 +4,14 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import AdminModal from "@/components/admin/AdminModal";
 import AdminTable from "@/components/admin/AdminTable";
 import AdminViewControl from "@/components/admin/AdminViewControl";
-import { useAssignedContext } from "@/context/AssignedContext";
-import { useEvaluators } from "@/context/EvaluatorContext";
+import { useAssignedContext } from "@/context/admin/AssignedContext";
+import { useEvaluators } from "@/context/admin/EvaluatorContext";
 import { Pagination } from "@nextui-org/react";
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
 
 // Dummy data removed - now using real data from Firebase
 // const users = [...];
-
 
 export default function EvaluatorsPage() {
   const { evaluators, isLoading, refetchEvaluators } = useEvaluators();
@@ -177,8 +176,7 @@ export default function EvaluatorsPage() {
     setSearchQuery("");
   };
 
-  const activeFiltersCount =
-    selectedSpecialties.length;
+  const activeFiltersCount = selectedSpecialties.length;
 
   // Extract unique specialties from evaluators data
   const availableSpecialties = useMemo(() => {
@@ -227,12 +225,12 @@ export default function EvaluatorsPage() {
           evaluator.position || "",
           evaluator.company || "",
         ];
-        
+
         // Check if query matches any of the basic fields
         const basicFieldMatch = searchFields.some((field) =>
           field.toLowerCase().includes(query)
         );
-        
+
         // Check if query matches specialties
         let specialtyMatch = false;
         if (Array.isArray(evaluator.specialties)) {
@@ -240,9 +238,11 @@ export default function EvaluatorsPage() {
             specialty.toLowerCase().includes(query)
           );
         } else if (typeof evaluator.specialties === "string") {
-          specialtyMatch = (evaluator.specialties as string).toLowerCase().includes(query);
+          specialtyMatch = (evaluator.specialties as string)
+            .toLowerCase()
+            .includes(query);
         }
-        
+
         return basicFieldMatch || specialtyMatch;
       });
     }

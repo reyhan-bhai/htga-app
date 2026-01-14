@@ -4,7 +4,7 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import AdminModal from "@/components/admin/AdminModal";
 import AdminTable from "@/components/admin/AdminTable";
 import AdminViewControl from "@/components/admin/AdminViewControl";
-import { useAssignedContext } from "@/context/AssignedContext";
+import { useAssignedContext } from "@/context/admin/AssignedContext";
 import {
   getEvaluatorViewData,
   getRestaurantViewData,
@@ -168,119 +168,148 @@ export default function AssignedPage() {
     showIncompleteOnly,
   ]);
 
-// Filter restaurant view data
-const filteredRestaurantData = useMemo(() => {
-  console.log("=== FILTERING RESTAURANT DATA ===");
-  console.log("Raw restaurantViewData:", restaurantViewData);
-  
-  let results = restaurantViewData;
+  // Filter restaurant view data
+  const filteredRestaurantData = useMemo(() => {
+    console.log("=== FILTERING RESTAURANT DATA ===");
+    console.log("Raw restaurantViewData:", restaurantViewData);
 
-  // Filter by search query
-  if (searchQuery.trim().length > 0) {
-    const query = searchQuery.toLowerCase();
-    console.log("Applying search filter:", query);
-    
-    results = results.filter((item, index) => {
-      console.log(`Item ${index}:`, item);
-      
-      const searchFields = [
-        item.name || "",
-        item.category || "",
-        item.date_assigned || "",
-        item.evaluator_1 || "",
-        item.evaluator_2 || "",
-        item.evaluator1_assigned_date || "",
-        item.evaluator2_assigned_date || "",
-      ];
-      
-      console.log(`Search fields for item ${index}:`, searchFields);
-      
-      return searchFields.some((field, fieldIndex) => {
-        console.log(`  Field ${fieldIndex}:`, field, `Type: ${typeof field}`);
-        
-        // Check if field is an object
-        if (typeof field === "object" && field !== null) {
-          console.warn(`  ⚠️ WARNING: Field ${fieldIndex} is an object:`, field);
-          console.warn(`  Object keys:`, Object.keys(field));
+    let results = restaurantViewData;
+
+    // Filter by search query
+    if (searchQuery.trim().length > 0) {
+      const query = searchQuery.toLowerCase();
+      console.log("Applying search filter:", query);
+
+      results = results.filter((item, index) => {
+        console.log(`Item ${index}:`, item);
+
+        const searchFields = [
+          item.name || "",
+          item.category || "",
+          item.date_assigned || "",
+          item.evaluator_1 || "",
+          item.evaluator_2 || "",
+          item.evaluator1_assigned_date || "",
+          item.evaluator2_assigned_date || "",
+        ];
+
+        console.log(`Search fields for item ${index}:`, searchFields);
+
+        return searchFields.some((field, fieldIndex) => {
+          console.log(`  Field ${fieldIndex}:`, field, `Type: ${typeof field}`);
+
+          // Check if field is an object
+          if (typeof field === "object" && field !== null) {
+            console.warn(
+              `  ⚠️ WARNING: Field ${fieldIndex} is an object:`,
+              field
+            );
+            console.warn(`  Object keys:`, Object.keys(field));
+          }
+
+          // Safely convert to string and handle objects
+          const fieldString =
+            typeof field === "object" && field !== null
+              ? JSON.stringify(field)
+              : String(field || "");
+
+          return fieldString.toLowerCase().includes(query);
+        });
+      });
+
+      console.log("Results after search filter:", results);
+    }
+
+    // Filter by Category
+    if (selectedCategories.length > 0) {
+      console.log("Applying category filter:", selectedCategories);
+      results = results.filter((item) => {
+        console.log(
+          "Item category:",
+          item.category,
+          "Type:",
+          typeof item.category
+        );
+        return selectedCategories.includes(item.category);
+      });
+      console.log("Results after category filter:", results);
+    }
+
+    // Filter by Match Status
+    if (selectedMatchStatus.length > 0) {
+      console.log("Applying match status filter:", selectedMatchStatus);
+      results = results.filter((item) => {
+        console.log(
+          "Item matched:",
+          item.matched,
+          "Type:",
+          typeof item.matched
+        );
+        return selectedMatchStatus.includes(item.matched);
+      });
+      console.log("Results after match status filter:", results);
+    }
+
+    // Filter by Evaluator 1 Progress
+    if (selectedEvaOneProgress.length > 0) {
+      console.log(
+        "Applying evaluator 1 progress filter:",
+        selectedEvaOneProgress
+      );
+      results = results.filter((item) => {
+        console.log(
+          "Item evaluator1_progress:",
+          item.evaluator1_progress,
+          "Type:",
+          typeof item.evaluator1_progress
+        );
+        return selectedEvaOneProgress.includes(item.evaluator1_progress);
+      });
+      console.log("Results after evaluator 1 progress filter:", results);
+    }
+
+    // Filter by Evaluator 2 Progress
+    if (selectedEvaTwoProgress.length > 0) {
+      console.log(
+        "Applying evaluator 2 progress filter:",
+        selectedEvaTwoProgress
+      );
+      results = results.filter((item) => {
+        console.log(
+          "Item evaluator2_progress:",
+          item.evaluator2_progress,
+          "Type:",
+          typeof item.evaluator2_progress
+        );
+        return selectedEvaTwoProgress.includes(item.evaluator2_progress);
+      });
+      console.log("Results after evaluator 2 progress filter:", results);
+    }
+
+    console.log("=== FINAL FILTERED RESULTS ===", results);
+
+    // Deep inspection of final results
+    results.forEach((item, index) => {
+      console.log(`Final item ${index}:`);
+      Object.entries(item).forEach(([key, value]) => {
+        if (typeof value === "object" && value !== null) {
+          console.error(`  ❌ OBJECT FOUND in key "${key}":`, value);
+          console.error(`    Keys:`, Object.keys(value));
+        } else {
+          console.log(`  ✓ ${key}:`, value, `(${typeof value})`);
         }
-        
-        // Safely convert to string and handle objects
-        const fieldString =
-          typeof field === "object" && field !== null
-            ? JSON.stringify(field)
-            : String(field || "");
-        
-        return fieldString.toLowerCase().includes(query);
       });
     });
-    
-    console.log("Results after search filter:", results);
-  }
 
-  // Filter by Category
-  if (selectedCategories.length > 0) {
-    console.log("Applying category filter:", selectedCategories);
-    results = results.filter((item) => {
-      console.log("Item category:", item.category, "Type:", typeof item.category);
-      return selectedCategories.includes(item.category);
-    });
-    console.log("Results after category filter:", results);
-  }
-
-  // Filter by Match Status
-  if (selectedMatchStatus.length > 0) {
-    console.log("Applying match status filter:", selectedMatchStatus);
-    results = results.filter((item) => {
-      console.log("Item matched:", item.matched, "Type:", typeof item.matched);
-      return selectedMatchStatus.includes(item.matched);
-    });
-    console.log("Results after match status filter:", results);
-  }
-
-  // Filter by Evaluator 1 Progress
-  if (selectedEvaOneProgress.length > 0) {
-    console.log("Applying evaluator 1 progress filter:", selectedEvaOneProgress);
-    results = results.filter((item) => {
-      console.log("Item evaluator1_progress:", item.evaluator1_progress, "Type:", typeof item.evaluator1_progress);
-      return selectedEvaOneProgress.includes(item.evaluator1_progress);
-    });
-    console.log("Results after evaluator 1 progress filter:", results);
-  }
-
-  // Filter by Evaluator 2 Progress
-  if (selectedEvaTwoProgress.length > 0) {
-    console.log("Applying evaluator 2 progress filter:", selectedEvaTwoProgress);
-    results = results.filter((item) => {
-      console.log("Item evaluator2_progress:", item.evaluator2_progress, "Type:", typeof item.evaluator2_progress);
-      return selectedEvaTwoProgress.includes(item.evaluator2_progress);
-    });
-    console.log("Results after evaluator 2 progress filter:", results);
-  }
-
-  console.log("=== FINAL FILTERED RESULTS ===", results);
-  
-  // Deep inspection of final results
-  results.forEach((item, index) => {
-    console.log(`Final item ${index}:`);
-    Object.entries(item).forEach(([key, value]) => {
-      if (typeof value === 'object' && value !== null) {
-        console.error(`  ❌ OBJECT FOUND in key "${key}":`, value);
-        console.error(`    Keys:`, Object.keys(value));
-      } else {
-        console.log(`  ✓ ${key}:`, value, `(${typeof value})`);
-      }
-    });
-  });
-
-  return results;
-}, [
-  restaurantViewData,
-  searchQuery,
-  selectedCategories,
-  selectedMatchStatus,
-  selectedEvaOneProgress,
-  selectedEvaTwoProgress,
-]);
+    return results;
+  }, [
+    restaurantViewData,
+    searchQuery,
+    selectedCategories,
+    selectedMatchStatus,
+    selectedEvaOneProgress,
+    selectedEvaTwoProgress,
+  ]);
 
   // Get current view's filtered data
   const currentFilteredData =

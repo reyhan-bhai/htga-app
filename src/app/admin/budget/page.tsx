@@ -3,7 +3,7 @@
 import AdminHeader from "@/components/admin/AdminHeader";
 import AdminTable from "@/components/admin/AdminTable";
 import AdminViewControl from "@/components/admin/AdminViewControl";
-import { useAssignedContext } from "@/context/AssignedContext";
+import { useAssignedContext } from "@/context/admin/AssignedContext";
 import { Pagination } from "@nextui-org/react";
 import { useEffect, useMemo, useState } from "react";
 

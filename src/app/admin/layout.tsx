@@ -2,9 +2,9 @@
 
 import DrawerComponent from "@/components/drawer/DrawerComponent";
 import PushNotificationsProvider from "@/components/notifications/PushNotificationsProvider";
-import { AssignedProvider } from "@/context/AssignedContext";
-import { EvaluatorsProvider } from "@/context/EvaluatorContext";
-import { RestaurantsProvider } from "@/context/RestaurantContext";
+import { AssignedProvider } from "@/context/admin/AssignedContext";
+import { EvaluatorsProvider } from "@/context/admin/EvaluatorContext";
+import { RestaurantsProvider } from "@/context/admin/RestaurantContext";
 import { UserProvider } from "@/utils/useCurrentUser";
 import localFont from "next/font/local";
 import React, { useState } from "react";

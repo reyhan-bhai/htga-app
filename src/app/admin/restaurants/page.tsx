@@ -5,11 +5,11 @@ import AdminModal from "@/components/admin/AdminModal";
 import AdminTable from "@/components/admin/AdminTable";
 import AdminViewControl from "@/components/admin/AdminViewControl";
 
-import { useAssignedContext } from "@/context/AssignedContext";
+import { useAssignedContext } from "@/context/admin/AssignedContext";
 import React, { useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
 
-import { useRestaurants } from "@/context/RestaurantContext";
+import { useRestaurants } from "@/context/admin/RestaurantContext";
 import { Pagination } from "@nextui-org/react";
 
 const columns = [
