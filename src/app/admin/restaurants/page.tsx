@@ -12,14 +12,14 @@ import Swal from "sweetalert2";
 import { useRestaurants } from "@/context/admin/RestaurantContext";
 import { Pagination } from "@nextui-org/react";
 
-const columns = [
+const restaurantColumns = [
   // { name: "ID", uid: "id" },
   { name: "Restaurant Name", uid: "name" },
   { name: "Category", uid: "category" },
   { name: "Address", uid: "address" },
   { name: "Contact", uid: "contactInfo" },
   { name: "Rating", uid: "rating" },
-  { name: "Budget (MYR)", uid: "budget" },
+  { name: "Budget", uid: "budget" },
   { name: "Halal Status", uid: "halalStatus" },
   { name: "Remarks", uid: "remarks" },
   { name: "Actions", uid: "actions" },
@@ -279,7 +279,7 @@ export default function RestaurantsPage() {
       <AdminTable
         type="restaurant"
         isLoading={isLoading}
-        columns={columns}
+        columns={restaurantColumns}
         data={paginatedRestaurants}
         handleEditItem={handleEditRestaurant}
         handleViewItem={handleViewRestaurant}

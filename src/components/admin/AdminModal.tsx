@@ -830,7 +830,7 @@ const baseRestaurantFields: FieldConfig[] = [
   },
   {
     name: "budget",
-    label: "Budget (MYR)",
+    label: "Budget",
     type: "text",
     placeholder: "e.g., 50",
   },

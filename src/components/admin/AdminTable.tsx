@@ -1,4 +1,3 @@
-import { evaluatorColumns, restaurantColumns } from "@/constants/assignedData";
 import {
   Table,
   TableBody,
@@ -297,7 +296,7 @@ export default function AdminTable({
           <div className="overflow-x-auto">
             {selectedView === "evaluator" ? (
               <TableComponent
-                columns={evaluatorColumns}
+                columns={columns}
                 data={evaluatorViewData}
                 onView={handleViewDetails}
                 onEdit={(item) =>
@@ -332,7 +331,7 @@ export default function AdminTable({
               />
             ) : (
               <TableComponent
-                columns={restaurantColumns}
+                columns={columns}
                 data={restaurantViewData}
                 onEdit={(item) =>
                   handleEdit?.(
@@ -363,16 +362,7 @@ export default function AdminTable({
       return (
         <div className="bg-white rounded-lg">
           <TableComponent
-            columns={[
-              { name: "ID", uid: "id" },
-              { name: "Evaluator Name", uid: "name" },
-              { name: "Specialties", uid: "specialties" },
-              { name: "Email/Contact", uid: "email" },
-              { name: "Phone Number", uid: "phone" },
-              { name: "Current Position", uid: "position" },
-              { name: "Company/Organization", uid: "company" },
-              { name: "Actions", uid: "actions" },
-            ]}
+            columns={columns}
             data={data}
             onEdit={handleEditItem}
             onView={handleViewItem}

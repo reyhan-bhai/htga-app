@@ -10,8 +10,16 @@ import { Pagination } from "@nextui-org/react";
 import React, { useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
 
-// Dummy data removed - now using real data from Firebase
-// const users = [...];
+const evaluatorColumns = [
+  { name: "ID", uid: "id" },
+  { name: "Evaluator Name", uid: "name" },
+  { name: "Specialties", uid: "specialties" },
+  { name: "Email/Contact", uid: "email" },
+  { name: "Phone Number", uid: "phone" },
+  { name: "Current Position", uid: "position" },
+  { name: "Company/Organization", uid: "company" },
+  { name: "Actions", uid: "actions" },
+];
 
 export default function EvaluatorsPage() {
   const { evaluators, isLoading, refetchEvaluators } = useEvaluators();
@@ -298,6 +306,7 @@ export default function EvaluatorsPage() {
       <AdminTable
         type="evaluator"
         isLoading={isLoading}
+        columns={evaluatorColumns}
         data={paginatedEvaluators}
         handleEditItem={handleEditEvaluator}
         handleViewItem={handleViewEvaluator}

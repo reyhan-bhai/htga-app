@@ -20,6 +20,40 @@ import {
 import { Pagination } from "@nextui-org/react";
 import { useEffect, useMemo, useState } from "react";
 
+// Columns for Evaluator View
+export const byEvaluatorColumns = [
+  { name: "Eva ID", uid: "eva_id" },
+  { name: "Name", uid: "name" },
+  { name: "Email", uid: "email" },
+  { name: "Phone", uid: "phone" },
+  { name: "Specialty", uid: "specialty" },
+  { name: "NDA Status", uid: "nda_status" },
+  { name: "Send Reminder", uid: "nda_reminder" },
+  // { name: "Rest. 1", uid: "restaurant_1" },
+  // { name: "Rest. 2", uid: "restaurant_2" },
+  { name: "Reminder Sent", uid: "total_reminder_sent" },
+  { name: "Completed", uid: "restaurant_completed" },
+];
+
+// Columns for Restaurant View
+export const byRestaurantColumns = [
+  { name: "Name", uid: "name" },
+  { name: "Category", uid: "category" },
+  { name: "Matched", uid: "matched" },
+  // { name: "Date Assigned", uid: "date_assigned" },
+  { name: "Eva 1 Date Assigned", uid: "evaluator1_assigned_date" },
+  { name: "Evaluator 1", uid: "evaluator_1" },
+  { name: "Eva 1 Progress", uid: "completed_eva_1" },
+  { name: "Evaluator 1 Receipt", uid: "evaluator1_receipt" },
+  { name: "Evaluator 1 Amount Spent", uid: "evaluator1_amount_spent" },
+  { name: "Eva 2 Date Assigned", uid: "evaluator2_assigned_date" },
+  { name: "Evaluator 2", uid: "evaluator_2" },
+  { name: "Eva 2 Progress", uid: "completed_eva_2" },
+  { name: "Evaluator 2 Receipt", uid: "evaluator2_receipt" },
+  { name: "Evaluator 2 Amount Spent", uid: "evaluator2_amount_spent" },
+  { name: "Actions", uid: "actions" },
+];
+
 export default function AssignedPage() {
   // Get data from context
   const {
@@ -449,6 +483,11 @@ export default function AssignedPage() {
         type="assignment"
         selectedView={selectedView}
         isLoading={isLoading}
+        columns={
+          selectedView === "evaluator"
+            ? byEvaluatorColumns
+            : byRestaurantColumns
+        }
         evaluatorViewData={
           paginatedData.length > 0 && selectedView === "evaluator"
             ? paginatedData
@@ -459,6 +498,7 @@ export default function AssignedPage() {
             ? paginatedData
             : []
         }
+        // ... props handlers lainnya (handleEdit, dll) tetap sama
         evaluators={evaluators}
         establishments={establishments}
         assignments={assignments}
