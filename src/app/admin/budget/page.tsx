@@ -186,7 +186,6 @@ export default function BudgetPage() {
       <AdminHeader
         type="budget"
         title="Budget Management"
-        subtitle="Track evaluator expenses, receipts, and reimbursements"
       />
 
       {/* View Control & Search/Filter Section */}

@@ -33,10 +33,14 @@ export interface Assignment {
   evaluator1Status: "pending" | "completed";
   evaluator1UniqueID?: string;
   evaluator1AssignedAt?: string;
+  evaluator1Receipt?: string; // URL to receipt image
+  evaluator1AmountSpent?: number; // Amount spent in RM
   evaluator2Id: string;
   evaluator2Status: "pending" | "completed";
   evaluator2UniqueID?: string;
   evaluator2AssignedAt?: string;
+  evaluator2Receipt?: string; // URL to receipt image
+  evaluator2AmountSpent?: number; // Amount spent in RM
   assignedAt: string;
   completedAt?: string;
   notes?: string;

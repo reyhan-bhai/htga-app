@@ -237,8 +237,10 @@ export const getRestaurantViewData = (
         completed_eva_2: "-",
         evaluator1_progress: "Not Started",
         evaluator2_progress: "Not Started",
-        receipt: "No image yet",
-        amount_spent: "-",
+        evaluator1_receipt: null,
+        evaluator1_amount_spent: null,
+        evaluator2_receipt: null,
+        evaluator2_amount_spent: null,
       };
     }
 
@@ -308,6 +310,32 @@ export const getRestaurantViewData = (
       evaluator2Data?.evaluatorStatus ||
       assignment.evaluator2Status;
 
+    // Get receipt and amount spent for each evaluator
+    // Check JEVA structure first, then legacy structure
+    const evaluator1Receipt =
+      evaluator1Data?.receiptUrl ||
+      evaluator1Data?.receipt ||
+      assignment.evaluator1Receipt ||
+      null;
+    const evaluator1AmountSpent =
+      evaluator1Data?.amountSpent !== undefined
+        ? evaluator1Data.amountSpent
+        : assignment.evaluator1AmountSpent !== undefined
+          ? assignment.evaluator1AmountSpent
+          : null;
+
+    const evaluator2Receipt =
+      evaluator2Data?.receiptUrl ||
+      evaluator2Data?.receipt ||
+      assignment.evaluator2Receipt ||
+      null;
+    const evaluator2AmountSpent =
+      evaluator2Data?.amountSpent !== undefined
+        ? evaluator2Data.amountSpent
+        : assignment.evaluator2AmountSpent !== undefined
+          ? assignment.evaluator2AmountSpent
+          : null;
+
     // Helper function to safely convert values to strings
     const safeStringValue = (value: any, fallback: string = "-") => {
       if (value === null || value === undefined) return fallback;
@@ -331,8 +359,10 @@ export const getRestaurantViewData = (
       completed_eva_2: eval2Status === "completed" ? "Yes" : "No",
       evaluator1_progress: getProgressStatus(eval1Status),
       evaluator2_progress: getProgressStatus(eval2Status),
-      receipt: "No image yet",
-      amount_spent: "-",
+      evaluator1_receipt: evaluator1Receipt,
+      evaluator1_amount_spent: evaluator1AmountSpent,
+      evaluator2_receipt: evaluator2Receipt,
+      evaluator2_amount_spent: evaluator2AmountSpent,
     };
   });
 };

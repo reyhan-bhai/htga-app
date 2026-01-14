@@ -386,6 +386,10 @@ export async function PUT(request: Request) {
       notes,
       evaluator1Id,
       evaluator2Id,
+      evaluator1Receipt,
+      evaluator1AmountSpent,
+      evaluator2Receipt,
+      evaluator2AmountSpent,
     } = body;
 
     // If id is provided, try to update existing assignment
@@ -459,6 +463,24 @@ export async function PUT(request: Request) {
           if (evaluator2Id && evaluator2Id !== currentAssignment.evaluator2Id) {
             updates.evaluator2AssignedAt = new Date().toISOString();
           }
+        }
+
+        // Update receipt and amount spent for evaluator 1
+        if (evaluator1Receipt !== undefined) {
+          updates.evaluator1Receipt = evaluator1Receipt;
+        }
+
+        if (evaluator1AmountSpent !== undefined) {
+          updates.evaluator1AmountSpent = evaluator1AmountSpent;
+        }
+
+        // Update receipt and amount spent for evaluator 2
+        if (evaluator2Receipt !== undefined) {
+          updates.evaluator2Receipt = evaluator2Receipt;
+        }
+
+        if (evaluator2AmountSpent !== undefined) {
+          updates.evaluator2AmountSpent = evaluator2AmountSpent;
         }
 
         await db.ref(`assignments/${id}`).update(updates);

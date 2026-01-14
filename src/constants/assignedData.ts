@@ -17,16 +17,18 @@ export const evaluatorColumns = [
 export const restaurantColumns = [
   { name: "Name", uid: "name" },
   { name: "Category", uid: "category" },
+  { name: "Matched", uid: "matched" },
   // { name: "Date Assigned", uid: "date_assigned" },
   { name: "Eva 1 Date Assigned", uid: "evaluator1_assigned_date" },
   { name: "Evaluator 1", uid: "evaluator_1" },
   { name: "Eva 1 Progress", uid: "completed_eva_1" },
+  { name: "Evaluator 1 Receipt", uid: "evaluator1_receipt" },
+  { name: "Evaluator 1 Amount Spent", uid: "evaluator1_amount_spent" },
   { name: "Eva 2 Date Assigned", uid: "evaluator2_assigned_date" },
   { name: "Evaluator 2", uid: "evaluator_2" },
   { name: "Eva 2 Progress", uid: "completed_eva_2" },
-  { name: "Matched", uid: "matched" },
-  { name: "Receipt", uid: "receipt" },
-  { name: "Amount Spent", uid: "amount_spent" },
+  { name: "Evaluator 2 Receipt", uid: "evaluator2_receipt" },
+  { name: "Evaluator 2 Amount Spent", uid: "evaluator2_amount_spent" },
   { name: "Actions", uid: "actions" },
 ];
 

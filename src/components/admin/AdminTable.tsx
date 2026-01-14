@@ -739,17 +739,41 @@ const renderRestaurantCell = (item: any, columnKey: React.Key) => {
         </div>
       );
 
-    case "receipt":
+    case "evaluator1_receipt":
+    case "evaluator2_receipt":
+      if (value) {
+        return (
+          <div className="flex items-center gap-2">
+            <a
+              href={value}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 underline text-xs"
+            >
+              View Receipt
+            </a>
+          </div>
+        );
+      }
       return (
         <div className="flex items-center gap-2">
-          <span className="text-gray-400 italic">No image yet</span>
+          <span className="text-gray-400 italic text-xs">No image yet</span>
         </div>
       );
 
-    case "amount_spent":
+    case "evaluator1_amount_spent":
+    case "evaluator2_amount_spent":
+      if (value !== null && value !== undefined && value !== "") {
+        return (
+          <div className="flex items-center gap-2">
+            {/* this will be fetched from firebase for the money currency */}
+            <span className="text-xs text-gray-700"> {'{' }moneyCurrency{ '}' } {value}</span> 
+          </div>
+        );
+      }
       return (
         <div className="flex items-center gap-2">
-          <span className="text-gray-400 italic">-</span>
+          <span className="text-gray-400 italic text-xs">-</span>
         </div>
       );
 
