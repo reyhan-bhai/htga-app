@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { MobileLayoutWrapper } from "../layout-wrapper";
+import { MobileLayoutWrapper } from "@/app/layout-wrapper";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -11,7 +11,7 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setStatus("loading");
     
-    // Simulasi API call
+    // Send password reset request (about to be implemented)
     setTimeout(() => {
       setStatus("success");
     }, 2000);
@@ -65,7 +65,7 @@ export default function ForgotPasswordPage() {
                     {status === "loading" ? "Sending..." : "Reset Password"}
                 </button>
 
-                <Link href="/login" className="block text-center text-gray-500 text-sm hover:text-gray-800 font-medium">
+                <Link href="/" className="block text-center text-gray-500 text-sm hover:text-gray-800 font-medium">
                     Cancel & Back to Login
                 </Link>
             </form>

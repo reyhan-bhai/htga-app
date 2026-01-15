@@ -38,7 +38,7 @@ export default function InstallPrompt() {
 
     // 4. Show for all users on Login Page who haven't installed the app
     // This ensures it works on Desktop (for testing) and Mobile
-    setShowPrompt(true);
+    setShowPrompt(false);
 
     // Android/Desktop - listen for beforeinstallprompt
     const handleBeforeInstallPrompt = (e: Event) => {
