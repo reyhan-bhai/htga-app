@@ -206,19 +206,20 @@ export default function AdminViewControl({
               >
                 <PopoverTrigger>
                   <Button
-                    isIconOnly
-                    className="bg-white border border-gray-300 rounded-md relative overflow-visible min-w-8 sm:min-w-10 h-8 sm:h-10"
-                    size="sm"
+                    className={`border-2 rounded-lg h-8 sm:h-10 px-3 font-semibold text-xs sm:text-sm transition-all relative overflow-visible ${
+                      activeFiltersCount > 0
+                        ? "bg-[#A67C37] text-white border-[#A67C37]"
+                        : "bg-white text-[#A67C37] border-[#A67C37] hover:bg-[#A67C37] hover:text-white"
+                    }`}
+                    variant="flat"
+                    startContent={<MdFilterList size={16} />}
                   >
-                    <MdFilterList
-                      size={16}
-                      className="text-gray-500 sm:w-5 sm:h-5"
-                    />
                     {activeFiltersCount > 0 && (
                       <span className="absolute -top-1 sm:-top-2 -right-1 sm:-right-2 bg-[#A67C37] text-white text-xs w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center z-10 border-2 border-white">
                         {activeFiltersCount}
                       </span>
                     )}
+                    <span className="hidden sm:inline">Filters</span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="p-0 w-[280px] sm:w-[320px] bg-white shadow-lg rounded-lg max-h-[70vh] overflow-hidden flex flex-col">
@@ -401,42 +402,32 @@ export default function AdminViewControl({
                             <span className="font-medium text-xs sm:text-sm text-gray-700">
                               Match Status
                             </span>
-                            <div className="flex flex-wrap gap-2">
-                              {["Yes", "Partial", "No"].map((status) => (
-                                <Checkbox
-                                  key={status}
-                                  size="sm"
-                                  isSelected={selectedMatchStatus?.includes(
-                                    status
-                                  )}
-                                  onValueChange={() => {
-                                    if (
-                                      selectedMatchStatus &&
-                                      setSelectedMatchStatus
-                                    ) {
-                                      const newStatus =
-                                        selectedMatchStatus.includes(status)
-                                          ? selectedMatchStatus.filter(
-                                              (s) => s !== status
-                                            )
-                                          : [...selectedMatchStatus, status];
-                                      setSelectedMatchStatus(newStatus);
-                                    }
-                                  }}
-                                  classNames={{
-                                    label: "text-black text-xs sm:text-sm",
-                                  }}
-                                >
-                                  {status === "Yes"
-                                    ? "Matched"
-                                    : status === "Partial"
-                                      ? "Partial"
-                                      : "Unassigned"}
-                                </Checkbox>
-                              ))}
-                            </div>
+                            <Tabs
+                              size="sm"
+                              aria-label="Match Status Filter"
+                              selectedKey={selectedMatchStatus?.[0] ?? "all"}
+                              onSelectionChange={(key) => {
+                                if (setSelectedMatchStatus) {
+                                  const nextKey = key as string;
+                                  setSelectedMatchStatus(
+                                    nextKey === "all" ? [] : [nextKey]
+                                  );
+                                }
+                              }}
+                              variant="bordered"
+                              classNames={{
+                                tabList: "p-1 bg-transparent",
+                                tab: "h-7 hover:bg-[#A67C37] transition-colors",
+                                tabContent:
+                                  "group-data-[selected=true]:text-white text-gray-600 hover:text-white",
+                                cursor: "bg-[#A67C37] shadow-md",
+                              }}
+                            >
+                              <Tab key="all" title="All" />
+                              <Tab key="Yes" title="Matched" />
+                              <Tab key="No" title="Not Matched" />
+                            </Tabs>
                           </div>
-
                           <Divider className="bg-gray-200" />
 
                           {/* Categories Filter */}
@@ -682,16 +673,20 @@ export default function AdminViewControl({
             <Popover placement="bottom-start">
               <PopoverTrigger>
                 <Button
-                  isIconOnly
-                  className="bg-white border border-gray-300 rounded-md relative overflow-visible"
-                  size="sm"
+                  className={`border-2 rounded-lg h-8 sm:h-10 px-3 font-semibold text-xs sm:text-sm transition-all relative overflow-visible ${
+                    activeFiltersCount > 0
+                      ? "bg-[#A67C37] text-white border-[#A67C37]"
+                      : "bg-white text-[#A67C37] border-[#A67C37] hover:bg-[#A67C37] hover:text-white"
+                  }`}
+                  variant="flat"
+                  startContent={<MdFilterList size={16} />}
                 >
-                  <MdFilterList size={20} className="text-gray-500" />
                   {activeFiltersCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-[#A67C37] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center z-10 border-2 border-white">
+                    <span className="absolute -top-1 sm:-top-2 -right-1 sm:-right-2 bg-[#A67C37] text-white text-xs w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center z-10 border-2 border-white">
                       {activeFiltersCount}
                     </span>
                   )}
+                  <span className="hidden sm:inline">Filters</span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="p-0 w-[280px] sm:w-[320px] bg-white shadow-lg rounded-lg max-h-[70vh] overflow-hidden flex flex-col">
@@ -1008,7 +1003,7 @@ export default function AdminViewControl({
               <Popover placement="bottom-start">
                 <PopoverTrigger>
                   <Button
-                    className={`border-2 rounded-lg h-8 sm:h-10 px-3 font-semibold text-xs sm:text-sm transition-all ${
+                    className={`border-2 rounded-lg h-8 sm:h-10 px-3 font-semibold text-xs sm:text-sm transition-all relative overflow-visible ${
                       activeFiltersCount > 0
                         ? "bg-[#A67C37] text-white border-[#A67C37]"
                         : "bg-white text-[#A67C37] border-[#A67C37] hover:bg-[#A67C37] hover:text-white"
@@ -1017,7 +1012,7 @@ export default function AdminViewControl({
                     startContent={<MdFilterList size={16} />}
                   >
                     {activeFiltersCount > 0 && (
-                      <span className="bg-red-500 text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center">
+                      <span className="absolute -top-1 sm:-top-2 -right-1 sm:-right-2 bg-[#A67C37] text-white text-xs w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center z-10 border-2 border-white">
                         {activeFiltersCount}
                       </span>
                     )}

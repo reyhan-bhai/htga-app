@@ -274,7 +274,10 @@ export default function AssignedPage() {
     }
 
     // Filter by Match Status
-    if (selectedMatchStatus.length > 0) {
+    if (
+      selectedMatchStatus.length > 0 &&
+      !selectedMatchStatus.includes("all")
+    ) {
       console.log("Applying match status filter:", selectedMatchStatus);
       results = results.filter((item) => {
         console.log(
