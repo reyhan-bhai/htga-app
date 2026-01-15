@@ -129,7 +129,7 @@ export async function saveFCMTokenToServer(
       userId,
     });
 
-  const response = await fetch("/api/admin/tokens", {
+    const response = await fetch("/api/admin/tokens", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -164,7 +164,7 @@ export async function removeFCMTokenFromServer(
   userId: string
 ): Promise<boolean> {
   try {
-  const response = await fetch("/api/admin/tokens", {
+    const response = await fetch("/api/admin/tokens", {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",

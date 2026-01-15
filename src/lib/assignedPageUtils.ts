@@ -393,7 +393,7 @@ export const handleMatchEvaluator = async (
     }
 
     // Auto-assign each unassigned restaurant
-      const results = await Promise.allSettled(
+    const results = await Promise.allSettled(
       unassignedEstablishments.map((establishment) =>
         fetch("/api/admin/assignments", {
           method: "POST",
@@ -503,7 +503,7 @@ export const handleSaveManualMatch = async (
     }
 
     // Create new assignment (API will auto-select second evaluator if available)
-  const response = await fetch("/api/admin/assignments", {
+    const response = await fetch("/api/admin/assignments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -570,7 +570,7 @@ export const handleSendNDAReminder = async (evaluator: any) => {
 
   if (result.isConfirmed) {
     try {
-  const response = await fetch("/api/admin/notifications/send", {
+      const response = await fetch("/api/admin/notifications/send", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -629,7 +629,7 @@ export const handleSendCompletionReminder = async (evaluator: any) => {
 
   if (result.isConfirmed) {
     try {
-  const response = await fetch("/api/admin/notifications/send", {
+      const response = await fetch("/api/admin/notifications/send", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -787,9 +787,12 @@ export const handleSaveEdit = async (
     // If both evaluators are removed, delete the assignment (only if assignment exists)
     if (!editEvaluator1 && !editEvaluator2) {
       if (assignment) {
-  const response = await fetch(`/api/admin/assignments?id=${assignment.id}`, {
-          method: "DELETE",
-        });
+        const response = await fetch(
+          `/api/admin/assignments?id=${assignment.id}`,
+          {
+            method: "DELETE",
+          }
+        );
 
         if (!response.ok) {
           throw new Error("Failed to delete assignment");
@@ -821,7 +824,7 @@ export const handleSaveEdit = async (
         payload.id = assignment.id;
       }
 
-  const response = await fetch(`/api/admin/assignments`, {
+      const response = await fetch(`/api/admin/assignments`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

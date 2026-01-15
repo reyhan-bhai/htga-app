@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { ReactElement } from "react";
 import { useState } from "react";
 
 // Import Library Phone & Style-nya
@@ -17,30 +18,23 @@ export default function RegisterPage() {
     company: "",
     position: "",
     specialties: "",
-    password: "", // Saya tambahkan input password lagi sesuai request sebelumnya
-    confirmPassword: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   // Handle Text Inputs biasa
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   // Handle Phone Input (Library mengembalikan string langsung)
-  const handlePhoneChange = (phone: string) => {
+  const handlePhoneChange = (phone: string): void => {
     setFormData({ ...formData, phone: phone });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setError("");
-
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
 
     setLoading(true);
 
@@ -51,17 +45,27 @@ export default function RegisterPage() {
       company: formData.company,
       position: formData.position,
       specialties: formData.specialties.split(",").map((s) => s.trim()),
-      password: formData.password,
     };
 
     try {
-      console.log("Registering:", payload);
-      setTimeout(() => {
-        setLoading(false);
-        router.push("/login"); // Sebaiknya ke login setelah register
-      }, 1500);
+      const response = await fetch("/api/user/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(data.error || "Registration failed");
+      }
+
+      setLoading(false);
+      router.push("/"); 
     } catch (err) {
-      setError("Failed to register. Please try again.");
+      const message =
+        err instanceof Error ? err.message : "Failed to register.";
+      setError(message);
       setLoading(false);
       console.log("Registration error:", err);
     }
@@ -187,6 +191,15 @@ export default function RegisterPage() {
   );
 }
 
+interface InputGroupProps {
+  label: string;
+  name: string;
+  type?: string;
+  value: string;
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder: string;
+}
+
 const InputGroup = ({
   label,
   name,
@@ -194,7 +207,7 @@ const InputGroup = ({
   value,
   onChange,
   placeholder,
-}: any) => (
+}: InputGroupProps): ReactElement => (
   <div>
     <label className="block text-gray-600 text-xs font-bold mb-1 ml-1">
       {label}

@@ -1,15 +1,15 @@
-import { useForm, Controller } from "react-hook-form";
 import {
-  TextField,
+  Alert,
   Button,
   Container,
-  Typography,
-  Snackbar,
-  Alert,
-  SlideProps,
   Slide,
+  SlideProps,
+  Snackbar,
+  TextField,
+  Typography,
 } from "@mui/material";
 import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 
 export default function NotificationForm() {
   const [open, setOpen] = useState(false);
@@ -31,7 +31,7 @@ export default function NotificationForm() {
 
   const onSubmit = async (data: any) => {
     try {
-  const response = await fetch("/api/admin/notifications", {
+      const response = await fetch("/api/admin/notifications", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

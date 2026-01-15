@@ -1,7 +1,7 @@
 "use client";
+import { useCurrentUser } from "@/utils/useCurrentUser";
 import { Alert, Button, Slide, SlideProps, Snackbar } from "@mui/material";
 import { useState } from "react";
-import { useCurrentUser } from "@/utils/useCurrentUser";
 
 export const UnsubscribeButton: React.FC = () => {
   const { user } = useCurrentUser();
@@ -17,7 +17,7 @@ export const UnsubscribeButton: React.FC = () => {
     try {
       if (user?.data.firebaseToken) {
         // Hapus token dari database
-  await fetch("/api/admin/tokens", {
+        await fetch("/api/admin/tokens", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token: user.data.firebaseToken }),

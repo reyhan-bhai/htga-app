@@ -1,20 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { SubscribeButton } from "@/components/notifications/SubscribeButton";
+import { UnsubscribeButton } from "@/components/notifications/UnsubscribeButton";
+import { useCurrentUser } from "@/utils/useCurrentUser";
 import {
   Button,
   Card,
   CardBody,
   CardHeader,
+  Chip,
   Input,
   Textarea,
-  Chip,
 } from "@nextui-org/react";
-import { MdSend, MdNotifications, MdContentCopy } from "react-icons/md";
+import { useEffect, useState } from "react";
+import { MdContentCopy, MdNotifications, MdSend } from "react-icons/md";
 import Swal from "sweetalert2";
-import { SubscribeButton } from "@/components/notifications/SubscribeButton";
-import { UnsubscribeButton } from "@/components/notifications/UnsubscribeButton";
-import { useCurrentUser } from "@/utils/useCurrentUser";
 
 export default function NotificationsPage() {
   const [title, setTitle] = useState("");
@@ -30,7 +30,7 @@ export default function NotificationsPage() {
 
   async function fetchSubscriberCount() {
     try {
-  const response = await fetch("/api/admin/tokens");
+      const response = await fetch("/api/admin/tokens");
       if (response.ok) {
         const data = await response.json();
         setSubscriberCount(data.count);
@@ -72,7 +72,7 @@ export default function NotificationsPage() {
 
     try {
       setLoading(true);
-  const response = await fetch("/api/admin/notifications", {
+      const response = await fetch("/api/admin/notifications", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
