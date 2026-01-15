@@ -647,17 +647,12 @@ export default function AdminViewControl({
       );
 
     case "evaluator":
-    case "restaurant":
       return (
         <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-4 md:bg-transparent">
           <div className="flex flex-row gap-3 w-full md:w-auto items-center">
             {/* Search Input */}
             <Input
-              placeholder={
-                type === "evaluator"
-                  ? "Search by name, email, ID, phone, position, company or specialties..."
-                  : "Search by name, address, category or remarks..."
-              }
+              placeholder="Search by name, email, ID, phone, position, company or specialties..."
               className="w-full md:w-[450px]"
               size="sm"
               variant="bordered"
@@ -690,7 +685,7 @@ export default function AdminViewControl({
                   <span className="hidden sm:inline">Filters</span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="p-0 w-full sm:w-[320px] bg-white shadow-lg rounded-lg max-h-[70vh] overflow-hidden flex flex-col">
+              <PopoverContent className="p-0 w-[280px] sm:w-[320px] bg-white shadow-lg rounded-lg max-h-[70vh] overflow-hidden flex flex-col">
                 {/* Fixed Header */}
                 <div className="sticky top-0 bg-white z-10 px-3 sm:px-4 pt-3 sm:pt-4 pb-3 border-b border-gray-200">
                   <div className="flex justify-between items-center">
@@ -710,199 +705,39 @@ export default function AdminViewControl({
                 </div>
 
                 {/* Scrollable Content */}
-                <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-3">
+                <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-3 w-full">
                   <div className="flex flex-col gap-4 text-black">
-                    {type === "evaluator" &&
-                      specialties &&
-                      specialties.length > 0 && (
-                        <>
-                          {/* Specialties Filter */}
-                          <div className="flex flex-col gap-2">
-                            <span className="font-medium text-sm text-gray-700">
-                              Specialties
-                            </span>
-                            <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
-                              {specialties.map((specialty) => (
-                                <Checkbox
-                                  key={specialty}
-                                  size="sm"
-                                  isSelected={selectedSpecialties?.includes(
-                                    specialty
-                                  )}
-                                  onValueChange={() =>
-                                    toggleSpecialty?.(specialty)
-                                  }
-                                  classNames={{
-                                    label: "text-black text-sm",
-                                  }}
-                                >
-                                  {specialty}
-                                </Checkbox>
-                              ))}
-                            </div>
+                    {specialties && specialties.length > 0 && (
+                      <>
+                        {/* Specialties Filter */}
+                        <div className="flex flex-col gap-2">
+                          <span className="font-medium text-sm text-gray-700">
+                            Specialties
+                          </span>
+                          <div className="flex flex-col gap-2 max-h-48 overflow-y-auto overflow-x-hidden pr-1">
+                            {specialties.map((specialty) => (
+                              <Checkbox
+                                key={specialty}
+                                size="sm"
+                                isSelected={selectedSpecialties?.includes(
+                                  specialty
+                                )}
+                                onValueChange={() =>
+                                  toggleSpecialty?.(specialty)
+                                }
+                                classNames={{
+                                  label: "text-black text-sm truncate",
+                                }}
+                              >
+                                {specialty}
+                              </Checkbox>
+                            ))}
                           </div>
+                        </div>
 
-                          <Divider className="bg-gray-200" />
-                        </>
-                      )}
-
-                    {type === "restaurant" &&
-                      categories &&
-                      categories.length > 0 && (
-                        <>
-                          {/* Categories Filter */}
-                          <div className="flex flex-col gap-2">
-                            <span className="font-medium text-sm text-gray-700">
-                              Category
-                            </span>
-                            <div className="flex flex-col gap-2 max-h-48 overflow-y-auto overflow-x-hidden pr-1">
-                              {categories.map((category) => (
-                                <Checkbox
-                                  key={category}
-                                  size="sm"
-                                  isSelected={selectedCategories?.includes(
-                                    category
-                                  )}
-                                  onValueChange={() =>
-                                    toggleCategory?.(category)
-                                  }
-                                  classNames={{
-                                    label: "text-black text-sm truncate",
-                                  }}
-                                >
-                                  {category}
-                                </Checkbox>
-                              ))}
-                            </div>
-                          </div>
-
-                          <Divider className="bg-gray-200" />
-
-                          {/* Rating Range Filter */}
-                          <div className="flex flex-col gap-2">
-                            <span className="font-medium text-sm text-gray-700">
-                              Rating Range
-                            </span>
-                            <div className="flex gap-2 items-end">
-                              <div className="flex-1">
-                                <label className="text-xs text-gray-600">
-                                  Min
-                                </label>
-                                <Input
-                                  type="number"
-                                  size="sm"
-                                  min="0"
-                                  max="5"
-                                  step="0.1"
-                                  value={ratingRange?.min.toString()}
-                                  onValueChange={(val) => {
-                                    if (setRatingRange && ratingRange) {
-                                      setRatingRange({
-                                        ...ratingRange,
-                                        min: parseFloat(val) || 0,
-                                      });
-                                    }
-                                  }}
-                                  variant="bordered"
-                                  classNames={{
-                                    inputWrapper: "bg-white border-gray-300",
-                                    input: "text-black text-sm",
-                                  }}
-                                />
-                              </div>
-                              <div className="flex-1">
-                                <label className="text-xs text-gray-600">
-                                  Max
-                                </label>
-                                <Input
-                                  type="number"
-                                  size="sm"
-                                  min="0"
-                                  max="5"
-                                  step="0.1"
-                                  value={ratingRange?.max.toString()}
-                                  onValueChange={(val) => {
-                                    if (setRatingRange && ratingRange) {
-                                      setRatingRange({
-                                        ...ratingRange,
-                                        max: parseFloat(val) || 5,
-                                      });
-                                    }
-                                  }}
-                                  variant="bordered"
-                                  classNames={{
-                                    inputWrapper: "bg-white border-gray-300",
-                                    input: "text-black text-sm",
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                          <Divider className="bg-gray-200" />
-
-                          {/* Budget Range Filter */}
-                          <div className="flex flex-col gap-2">
-                            <span className="font-medium text-sm text-gray-700">
-                              Budget (MYR)
-                            </span>
-                            <div className="flex gap-2 items-end">
-                              <div className="flex-1">
-                                <label className="text-xs text-gray-600">
-                                  Min
-                                </label>
-                                <Input
-                                  type="number"
-                                  size="sm"
-                                  min="0"
-                                  step="100"
-                                  value={budgetRange?.min.toString()}
-                                  onValueChange={(val) => {
-                                    if (setBudgetRange && budgetRange) {
-                                      setBudgetRange({
-                                        ...budgetRange,
-                                        min: parseFloat(val) || 0,
-                                      });
-                                    }
-                                  }}
-                                  variant="bordered"
-                                  classNames={{
-                                    inputWrapper: "bg-white border-gray-300",
-                                    input: "text-black text-sm",
-                                  }}
-                                />
-                              </div>
-                              <div className="flex-1">
-                                <label className="text-xs text-gray-600">
-                                  Max
-                                </label>
-                                <Input
-                                  type="number"
-                                  size="sm"
-                                  min="0"
-                                  step="100"
-                                  value={budgetRange?.max.toString()}
-                                  onValueChange={(val) => {
-                                    if (setBudgetRange && budgetRange) {
-                                      setBudgetRange({
-                                        ...budgetRange,
-                                        max: parseFloat(val) || 10000,
-                                      });
-                                    }
-                                  }}
-                                  variant="bordered"
-                                  classNames={{
-                                    inputWrapper: "bg-white border-gray-300",
-                                    input: "text-black text-sm",
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                          <Divider className="bg-gray-200" />
-                        </>
-                      )}
+                        <Divider className="bg-gray-200" />
+                      </>
+                    )}
 
                     <Divider className="bg-gray-200" />
 
@@ -967,9 +802,290 @@ export default function AdminViewControl({
           <Button
             className="bg-[#A67C37] text-white font-semibold rounded-full p-0"
             startContent={<MdAdd size={30} />}
-            onPress={
-              type === "evaluator" ? handleAddEvaluator : handleAddRestaurant
-            }
+            onPress={handleAddEvaluator}
+          ></Button>
+        </div>
+      );
+
+    case "restaurant":
+      return (
+        <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-4 md:bg-transparent">
+          <div className="flex flex-row gap-3 w-full md:w-auto items-center">
+            {/* Search Input */}
+            <Input
+              placeholder="Search by name, address, category or remarks..."
+              className="w-full md:w-[450px]"
+              size="sm"
+              variant="bordered"
+              value={searchQuery}
+              onValueChange={setSearchQuery}
+              startContent={<MdSearch className="text-black" size={18} />}
+              classNames={{
+                inputWrapper: "bg-white border-gray-300 rounded-md text-red",
+                input: "text-black placeholder:text-gray-500",
+              }}
+            />
+
+            {/* Filter Popover */}
+            <Popover placement="bottom-start">
+              <PopoverTrigger>
+                <Button
+                  className={`border-2 rounded-lg h-8 sm:h-10 px-3 font-semibold text-xs sm:text-sm transition-all relative overflow-visible ${
+                    activeFiltersCount > 0
+                      ? "bg-[#A67C37] text-white border-[#A67C37]"
+                      : "bg-white text-[#A67C37] border-[#A67C37] hover:bg-[#A67C37] hover:text-white"
+                  }`}
+                  variant="flat"
+                  startContent={<MdFilterList size={16} />}
+                >
+                  {activeFiltersCount > 0 && (
+                    <span className="absolute -top-1 sm:-top-2 -right-1 sm:-right-2 bg-[#A67C37] text-white text-xs w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center z-10 border-2 border-white">
+                      {activeFiltersCount}
+                    </span>
+                  )}
+                  <span className="hidden sm:inline">Filters</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="p-0 w-[280px] sm:w-[320px] bg-white shadow-lg rounded-lg max-h-[70vh] overflow-hidden flex flex-col">
+                {/* Fixed Header */}
+                <div className="sticky top-0 bg-white z-10 px-3 sm:px-4 pt-3 sm:pt-4 pb-3 border-b border-gray-200">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-sm sm:text-base text-black">
+                      Filters
+                    </span>
+                    {activeFiltersCount > 0 && (
+                      <button
+                        onClick={clearFilters}
+                        className="text-xs sm:text-sm text-[#A67C37] hover:underline flex items-center gap-1"
+                      >
+                        <MdClose size={14} />
+                        Clear all
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-3 w-full">
+                  <div className="flex flex-col gap-4 text-black">
+                    {categories && categories.length > 0 && (
+                      <>
+                        {/* Categories Filter */}
+                        <div className="flex flex-col gap-2">
+                          <span className="font-medium text-sm text-gray-700">
+                            Category
+                          </span>
+                          <div className="flex flex-col gap-2 max-h-48 overflow-y-auto overflow-x-hidden pr-1">
+                            {categories.map((category) => (
+                              <Checkbox
+                                key={category}
+                                size="sm"
+                                isSelected={selectedCategories?.includes(
+                                  category
+                                )}
+                                onValueChange={() => toggleCategory?.(category)}
+                                classNames={{
+                                  label: "text-black text-sm truncate",
+                                }}
+                              >
+                                {category}
+                              </Checkbox>
+                            ))}
+                          </div>
+                        </div>
+
+                        <Divider className="bg-gray-200" />
+
+                        {/* Rating Range Filter */}
+                        <div className="flex flex-col gap-2">
+                          <span className="font-medium text-sm text-gray-700">
+                            Rating Range
+                          </span>
+                          <div className="flex gap-2 items-end">
+                            <div className="flex-1">
+                              <label className="text-xs text-gray-600">
+                                Min
+                              </label>
+                              <Input
+                                type="number"
+                                size="sm"
+                                min="0"
+                                max="5"
+                                step="0.1"
+                                value={ratingRange?.min.toString()}
+                                onValueChange={(val) => {
+                                  if (setRatingRange && ratingRange) {
+                                    setRatingRange({
+                                      ...ratingRange,
+                                      min: parseFloat(val) || 0,
+                                    });
+                                  }
+                                }}
+                                variant="bordered"
+                                classNames={{
+                                  inputWrapper: "bg-white border-gray-300",
+                                  input: "text-black text-sm",
+                                }}
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <label className="text-xs text-gray-600">
+                                Max
+                              </label>
+                              <Input
+                                type="number"
+                                size="sm"
+                                min="0"
+                                max="5"
+                                step="0.1"
+                                value={ratingRange?.max.toString()}
+                                onValueChange={(val) => {
+                                  if (setRatingRange && ratingRange) {
+                                    setRatingRange({
+                                      ...ratingRange,
+                                      max: parseFloat(val) || 5,
+                                    });
+                                  }
+                                }}
+                                variant="bordered"
+                                classNames={{
+                                  inputWrapper: "bg-white border-gray-300",
+                                  input: "text-black text-sm",
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <Divider className="bg-gray-200" />
+
+                        {/* Budget Range Filter */}
+                        <div className="flex flex-col gap-2">
+                          <span className="font-medium text-sm text-gray-700">
+                            Budget (MYR)
+                          </span>
+                          <div className="flex gap-2 items-end">
+                            <div className="flex-1">
+                              <label className="text-xs text-gray-600">
+                                Min
+                              </label>
+                              <Input
+                                type="number"
+                                size="sm"
+                                min="0"
+                                step="100"
+                                value={budgetRange?.min.toString()}
+                                onValueChange={(val) => {
+                                  if (setBudgetRange && budgetRange) {
+                                    setBudgetRange({
+                                      ...budgetRange,
+                                      min: parseFloat(val) || 0,
+                                    });
+                                  }
+                                }}
+                                variant="bordered"
+                                classNames={{
+                                  inputWrapper: "bg-white border-gray-300",
+                                  input: "text-black text-sm",
+                                }}
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <label className="text-xs text-gray-600">
+                                Max
+                              </label>
+                              <Input
+                                type="number"
+                                size="sm"
+                                min="0"
+                                step="100"
+                                value={budgetRange?.max.toString()}
+                                onValueChange={(val) => {
+                                  if (setBudgetRange && budgetRange) {
+                                    setBudgetRange({
+                                      ...budgetRange,
+                                      max: parseFloat(val) || 10000,
+                                    });
+                                  }
+                                }}
+                                variant="bordered"
+                                classNames={{
+                                  inputWrapper: "bg-white border-gray-300",
+                                  input: "text-black text-sm",
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <Divider className="bg-gray-200" />
+                      </>
+                    )}
+
+                    <Divider className="bg-gray-200" />
+
+                    {/* Rows Per Page Selector */}
+                    <div className="flex flex-col gap-2">
+                      <span className="font-medium text-sm text-gray-700">
+                        Rows Per Page
+                      </span>
+                      <Select
+                        selectedKeys={[rowsPerPage.toString()]}
+                        onSelectionChange={(keys) => {
+                          const value = Array.from(keys)[0];
+                          if (value && setRowsPerPage) {
+                            setRowsPerPage(parseInt(value as string));
+                          }
+                        }}
+                        size="sm"
+                        variant="bordered"
+                        classNames={{
+                          trigger:
+                            "bg-white border-gray-300 rounded-md h-9 text-black",
+                          value: "text-black text-sm",
+                          listboxWrapper: "text-gray-500",
+                          popoverContent: "text-gray-500",
+                        }}
+                      >
+                        <SelectItem
+                          key="10"
+                          value="10"
+                          className="text-gray-600"
+                        >
+                          10
+                        </SelectItem>
+                        <SelectItem
+                          key="25"
+                          value="25"
+                          className="text-gray-600"
+                        >
+                          25
+                        </SelectItem>
+                        <SelectItem
+                          key="50"
+                          value="50"
+                          className="text-gray-600"
+                        >
+                          50
+                        </SelectItem>
+                        <SelectItem
+                          key="100"
+                          value="100"
+                          className="text-gray-600"
+                        >
+                          100
+                        </SelectItem>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+          <Button
+            className="bg-[#A67C37] text-white font-semibold rounded-full p-0"
+            startContent={<MdAdd size={30} />}
+            onPress={handleAddRestaurant}
           ></Button>
         </div>
       );
