@@ -19,6 +19,13 @@ import { onValue, push, ref, set } from "firebase/database";
 
 // --- EntityModal Implementation ---
 
+const DEFAULT_CATEGORIES = ["Bakery", "FastFood", "Italian"];
+const DEFAULT_HALAL_STATUSES = [
+  "Muslim-Owned",
+  "Muslim-friendly",
+  "Halal Certified by JAKIM",
+];
+
 export interface FieldConfig {
   name: string;
   label: string;
@@ -69,8 +76,16 @@ function EntityModal<T extends Record<string, any>>({
     if (entity && (mode === "edit" || mode === "view")) {
       const initialData: Record<string, any> = {};
       fields.forEach((field) => {
-        initialData[field.name] =
-          entity[field.name] || (field.type === "multiselect" ? [] : "");
+        const rawValue = entity[field.name];
+        if (field.type === "multiselect") {
+          initialData[field.name] = Array.isArray(rawValue) ? rawValue : [];
+          return;
+        }
+        if (field.type === "select" && Array.isArray(rawValue)) {
+          initialData[field.name] = rawValue[0] || "";
+          return;
+        }
+        initialData[field.name] = rawValue || "";
       });
       setFormData(initialData);
     } else {
@@ -752,7 +767,7 @@ function EditAssignmentModal({
 }
 
 // Evaluator field configuration
-const evaluatorFields: FieldConfig[] = [
+const baseEvaluatorFields: FieldConfig[] = [
   {
     name: "name",
     label: "Evaluator Name",
@@ -788,8 +803,8 @@ const evaluatorFields: FieldConfig[] = [
   {
     name: "specialties",
     label: "Specialties",
-    type: "text",
-    placeholder: "e.g., Bakery, Italian, Fast Food",
+    type: "select",
+    placeholder: "Select specialty",
   },
 ];
 
@@ -875,16 +890,12 @@ export default function AdminModal(props: AdminModalProps) {
   const [halalStatuses, setHalalStatuses] = useState<string[]>([]);
 
   // Default values for fail-safe
-  const defaultCategories = ["Bakery", "FastFood", "Italian"];
-  const defaultHalalStatuses = [
-    "Muslim-Owned",
-    "Muslim-friendly",
-    "Halal Certified by JAKIM",
-  ];
+  const defaultCategories = DEFAULT_CATEGORIES;
+  const defaultHalalStatuses = DEFAULT_HALAL_STATUSES;
 
   // Fetch dropdown data for restaurants
   useEffect(() => {
-    if (type !== "restaurant") return;
+    if (type !== "restaurant" && type !== "evaluator") return;
 
     // Fetch Categories
     const categoryRef = ref(db, "dropdown/category");
@@ -899,6 +910,14 @@ export default function AdminModal(props: AdminModalProps) {
       }
     });
 
+    return () => {
+      unsubscribeCategory();
+    };
+  }, [type, defaultCategories]);
+
+  useEffect(() => {
+    if (type !== "restaurant") return;
+
     // Fetch Halal Statuses
     const halalRef = ref(db, "dropdown/halalstatus");
     const unsubscribeHalal = onValue(halalRef, (snapshot) => {
@@ -912,10 +931,21 @@ export default function AdminModal(props: AdminModalProps) {
     });
 
     return () => {
-      unsubscribeCategory();
       unsubscribeHalal();
     };
-  }, [type]);
+  }, [type, defaultHalalStatuses]);
+
+  const evaluatorFields = useMemo(() => {
+    return baseEvaluatorFields.map((field) => {
+      if (field.name === "specialties") {
+        return {
+          ...field,
+          options: categories.length > 0 ? categories : defaultCategories,
+        };
+      }
+      return field;
+    });
+  }, [categories, defaultCategories]);
 
   // Construct restaurant fields with dynamic options
   const restaurantFields = useMemo(() => {
@@ -935,7 +965,7 @@ export default function AdminModal(props: AdminModalProps) {
       }
       return field;
     });
-  }, [categories, halalStatuses]);
+  }, [categories, halalStatuses, defaultCategories, defaultHalalStatuses]);
 
   // Handle save logic for restaurant to persist new dropdown items
   const handleRestaurantSave = async (data: any) => {

@@ -367,6 +367,9 @@ export default function AdminTable({
             onEdit={handleEditItem}
             onView={handleViewItem}
             onDelete={handleDeleteItem}
+            renderCell={(item, columnKey) =>
+              renderEvaluatorListCell(item, columnKey)
+            }
           />
         </div>
       );
@@ -579,6 +582,25 @@ const renderEvaluatorCell = (
   }
 };
 
+const renderEvaluatorListCell = (item: any, columnKey: React.Key) => {
+  if (columnKey !== "specialties") {
+    return undefined;
+  }
+
+  const rawValue = item.specialties;
+  console.log("Evaluator specialties:", item.id, rawValue);
+
+  if (Array.isArray(rawValue)) {
+    return rawValue.length > 0 ? rawValue.join(", ") : "—";
+  }
+
+  if (typeof rawValue === "string") {
+    return rawValue.trim() || "—";
+  }
+
+  return "—";
+};
+
 const renderRestaurantCell = (item: any, columnKey: React.Key) => {
   if (columnKey === "actions") {
     return undefined;
@@ -757,7 +779,10 @@ const renderRestaurantCell = (item: any, columnKey: React.Key) => {
         return (
           <div className="flex items-center gap-2">
             {/* this will be fetched from firebase for the money currency */}
-            <span className="text-xs text-gray-700"> {'{' }moneyCurrency{ '}' } {value}</span> 
+            <span className="text-xs text-gray-700">
+              {" "}
+              {"{"}moneyCurrency{"}"} {value}
+            </span>
           </div>
         );
       }

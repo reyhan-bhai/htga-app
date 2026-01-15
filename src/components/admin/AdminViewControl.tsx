@@ -437,7 +437,7 @@ export default function AdminViewControl({
                                 <span className="font-medium text-xs sm:text-sm text-gray-700">
                                   Categories
                                 </span>
-                                <div className="flex flex-col gap-2 max-h-[150px] overflow-y-auto">
+                                <div className="flex flex-col gap-2 max-h-[150px] overflow-y-auto overflow-x-hidden pr-1">
                                   {categories.map((category) => (
                                     <Checkbox
                                       key={category}
@@ -451,7 +451,8 @@ export default function AdminViewControl({
                                         }
                                       }}
                                       classNames={{
-                                        label: "text-black text-xs sm:text-sm",
+                                        label:
+                                          "text-black text-xs sm:text-sm truncate",
                                       }}
                                     >
                                       {category}
@@ -689,7 +690,7 @@ export default function AdminViewControl({
                   <span className="hidden sm:inline">Filters</span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="p-0 w-[280px] sm:w-[320px] bg-white shadow-lg rounded-lg max-h-[70vh] overflow-hidden flex flex-col">
+              <PopoverContent className="p-0 w-full sm:w-[320px] bg-white shadow-lg rounded-lg max-h-[70vh] overflow-hidden flex flex-col">
                 {/* Fixed Header */}
                 <div className="sticky top-0 bg-white z-10 px-3 sm:px-4 pt-3 sm:pt-4 pb-3 border-b border-gray-200">
                   <div className="flex justify-between items-center">
@@ -754,7 +755,7 @@ export default function AdminViewControl({
                             <span className="font-medium text-sm text-gray-700">
                               Category
                             </span>
-                            <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
+                            <div className="flex flex-col gap-2 max-h-48 overflow-y-auto overflow-x-hidden pr-1">
                               {categories.map((category) => (
                                 <Checkbox
                                   key={category}
@@ -766,7 +767,7 @@ export default function AdminViewControl({
                                     toggleCategory?.(category)
                                   }
                                   classNames={{
-                                    label: "text-black text-sm",
+                                    label: "text-black text-sm truncate",
                                   }}
                                 >
                                   {category}
