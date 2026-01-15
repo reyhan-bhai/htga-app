@@ -57,7 +57,7 @@ export default function RestaurantsPage() {
     setIsSaving(true);
     try {
       if (modalMode === "add") {
-        const response = await fetch("/api/establishments", {
+  const response = await fetch("/api/admin/establishments", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(restaurant),
@@ -75,7 +75,7 @@ export default function RestaurantsPage() {
           confirmButtonColor: "#A67C37",
         });
       } else if (modalMode === "edit") {
-        const response = await fetch("/api/establishments", {
+  const response = await fetch("/api/admin/establishments", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(restaurant),
@@ -127,7 +127,7 @@ export default function RestaurantsPage() {
       }
 
       const response = await fetch(
-        `/api/establishments?id=${restaurantToDelete.id}`,
+        `/api/admin/establishments?id=${restaurantToDelete.id}`,
         {
           method: "DELETE",
         }

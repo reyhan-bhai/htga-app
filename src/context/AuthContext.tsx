@@ -246,7 +246,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Fetch user data from Realtime Database
       try {
         const response = await fetch(
-          `/api/evaluators?id=${userCredential.user.uid}`
+          `/api/admin/evaluators?id=${userCredential.user.uid}`
         );
         if (response.ok) {
           const data = await response.json();

@@ -30,7 +30,7 @@ export default function NotificationsPage() {
 
   async function fetchSubscriberCount() {
     try {
-      const response = await fetch("/api/tokens");
+  const response = await fetch("/api/admin/tokens");
       if (response.ok) {
         const data = await response.json();
         setSubscriberCount(data.count);
@@ -72,7 +72,7 @@ export default function NotificationsPage() {
 
     try {
       setLoading(true);
-      const response = await fetch("/api/notifications", {
+  const response = await fetch("/api/admin/notifications", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

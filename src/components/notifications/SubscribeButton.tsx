@@ -119,7 +119,7 @@ export const SubscribeButton: React.FC = () => {
         setProgress(100);
 
         // Simpan token ke database
-        await fetch("/api/tokens", {
+  await fetch("/api/admin/tokens", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token: firebaseToken }),

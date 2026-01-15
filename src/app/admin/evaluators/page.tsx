@@ -53,7 +53,7 @@ export default function EvaluatorsPage() {
     try {
       if (modalMode === "add") {
         // Create new evaluator
-        const response = await fetch("/api/evaluators", {
+  const response = await fetch("/api/admin/evaluators", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -82,7 +82,7 @@ export default function EvaluatorsPage() {
         });
       } else if (modalMode === "edit") {
         // Update existing evaluator
-        const response = await fetch("/api/evaluators", {
+  const response = await fetch("/api/admin/evaluators", {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -141,7 +141,7 @@ export default function EvaluatorsPage() {
       }
 
       const response = await fetch(
-        `/api/evaluators?id=${evaluatorToDelete.id}`,
+        `/api/admin/evaluators?id=${evaluatorToDelete.id}`,
         {
           method: "DELETE",
         }

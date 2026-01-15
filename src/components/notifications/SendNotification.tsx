@@ -31,7 +31,7 @@ export default function NotificationForm() {
 
   const onSubmit = async (data: any) => {
     try {
-      const response = await fetch("/api/notifications", {
+  const response = await fetch("/api/admin/notifications", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -17,7 +17,7 @@ export const UnsubscribeButton: React.FC = () => {
     try {
       if (user?.data.firebaseToken) {
         // Hapus token dari database
-        await fetch("/api/tokens", {
+  await fetch("/api/admin/tokens", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token: user.data.firebaseToken }),
