@@ -87,15 +87,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const directSnapshot = await get(directRef);
 
             if (directSnapshot.exists() && directSnapshot.val().name) {
-              // This is a proper evaluator profile keyed by UID
-              console.log(
-                "AuthContext: Found user by direct UID with valid profile"
-              );
               targetRef = directRef;
               resolvedKey = firebaseUser.uid;
             } else {
-              // 2. Try lookup by firebaseUid (the standard way)
-              console.log("AuthContext: Trying firebaseUid lookup...");
+              // 2. Try lookup by firebaseUid
               let userQuery = query(
                 evaluatorsRef,
                 orderByChild("firebaseUid"),
@@ -106,17 +101,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               if (querySnapshot.exists()) {
                 const val = querySnapshot.val();
                 const key = Object.keys(val)[0];
-                console.log(
-                  "AuthContext: Found user by firebaseUid, key:",
-                  key
-                );
                 targetRef = ref(db, `evaluators/${key}`);
                 resolvedKey = key;
               } else if (firebaseUser.email) {
                 // 3. Try lookup by email
-                console.log(
-                  "AuthContext: firebaseUid lookup failed, trying email..."
-                );
                 userQuery = query(
                   evaluatorsRef,
                   orderByChild("email"),
@@ -127,20 +115,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 if (querySnapshot.exists()) {
                   const val = querySnapshot.val();
                   const key = Object.keys(val)[0];
-                  console.log("AuthContext: Found user by email, key:", key);
                   targetRef = ref(db, `evaluators/${key}`);
                   resolvedKey = key;
-                } else {
-                  console.warn("AuthContext: User profile not found in DB");
                 }
               }
             }
 
             if (!targetRef || !resolvedKey) {
-              // No profile found, use basic auth info
-              console.log(
-                "AuthContext: No valid profile found, using basic auth info"
-              );
               setUser({
                 id: firebaseUser.uid,
                 name: firebaseUser.displayName || "Evaluator",
@@ -151,16 +132,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               return;
             }
 
-            // 4. Subscribe to the resolved node
-            const finalKey = resolvedKey; // Capture for closure
+            // 4. Subscribe to the resolved node (Real-time listener)
+            const finalKey = resolvedKey;
             dataUnsubscribe = onValue(targetRef, (snapshot) => {
               if (snapshot.exists()) {
                 const evaluatorData = snapshot.val();
-
-                // Use the resolved key (JEVA01, etc.) as the user ID
                 const userId = finalKey;
-                console.log("AuthContext: Setting user with ID:", userId);
 
+                // UPDATED: Now includes phone and company
                 setUser({
                   id: userId,
                   name:
@@ -169,19 +148,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     "Evaluator",
                   email: firebaseUser.email || "",
                   role: "evaluator",
+                  phone: evaluatorData.phone || "",     // <--- Added
+                  company: evaluatorData.company || "", // <--- Added
                 });
 
-                // Check NDA status from backend
+                // Check NDA status
                 const isSigned =
                   evaluatorData.nda?.status === "signed" ||
                   evaluatorData.ndaSigned === true ||
                   evaluatorData.ndaSigned === "true";
-
-                console.log("AuthContext: NDA status check:", {
-                  ndaStatus: evaluatorData.nda?.status,
-                  ndaSigned: evaluatorData.ndaSigned,
-                  isSigned,
-                });
 
                 if (isSigned) {
                   setNdaSigned(true);
@@ -191,10 +166,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   localStorage.removeItem("htga_nda");
                 }
               } else {
-                // Fallback if data doesn't exist yet
-                console.log(
-                  "AuthContext: No data at target ref, using basic auth info"
-                );
                 setUser({
                   id: firebaseUser.uid,
                   name: firebaseUser.displayName || "Evaluator",
@@ -206,7 +177,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
           } catch (error) {
             console.error("AuthContext: Error resolving user profile", error);
-            // Fallback on error
             setUser({
               id: firebaseUser.uid,
               name: firebaseUser.displayName || "Evaluator",
@@ -243,7 +213,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password
       );
 
-      // Fetch user data from Realtime Database
+      // Fetch user data manually for immediate update
       try {
         const response = await fetch(
           `/api/admin/evaluators?id=${userCredential.user.uid}`
@@ -254,15 +224,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           setUser({
             id: evaluatorData.id || userCredential.user.uid,
-            name:
-              evaluatorData.name ||
-              userCredential.user.displayName ||
-              "Evaluator",
+            name: evaluatorData.name || userCredential.user.displayName || "Evaluator",
             email: userCredential.user.email || "",
             role: "evaluator",
+            phone: evaluatorData.phone || "",     // <--- Added
+            company: evaluatorData.company || "", // <--- Added
           });
 
-          // Check NDA status from backend
           if (evaluatorData.ndaSigned) {
             setNdaSigned(true);
             localStorage.setItem("htga_nda", "true");
@@ -272,7 +240,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error("Error fetching user data:", error);
       }
 
-      // Set isLogged flag for keep login feature
       if (typeof window !== "undefined") {
         localStorage.setItem("htga_isLogged", "true");
         localStorage.setItem("htga_rememberMe", rememberMe.toString());
@@ -282,36 +249,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: true };
     } catch (error: unknown) {
       setLoading(false);
-      console.error("Login error:", error);
-
-      let errorMessage = "Invalid email or password";
-      const firebaseError = error as { code?: string };
-      if (firebaseError.code === "auth/user-not-found") {
-        errorMessage = "No account found with this email";
-      } else if (firebaseError.code === "auth/wrong-password") {
-        errorMessage = "Incorrect password";
-      } else if (firebaseError.code === "auth/invalid-email") {
-        errorMessage = "Invalid email format";
-      } else if (firebaseError.code === "auth/too-many-requests") {
-        errorMessage = "Too many failed attempts. Please try again later";
-      }
-
-      return { success: false, error: errorMessage };
+      return { success: false, error: `Login Error: ${(error as Error).message}` };
     }
   };
 
+  // ... keep logout and signNDA as they were ...
   const logout = async () => {
     try {
-      // Get FCM token before logout
       const fcmToken = getStoredFCMToken();
       const userId = user?.id;
 
-      // Remove FCM token from server if exists
       if (fcmToken && userId) {
-        console.log("🗑️ Removing FCM token for user:", userId);
         await removeFCMTokenFromServer(fcmToken, userId);
-        removeFCMToken(); // Remove from localStorage
-        console.log("✅ FCM token removed successfully");
+        removeFCMToken();
       }
 
       await signOut(auth);
@@ -334,23 +284,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Prevent hydration mismatch by not rendering until mounted
   if (!mounted) {
     return null;
   }
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        login,
-        logout,
-        ndaSigned,
-        signNDA,
-        loading,
-      }}
-    >
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout, ndaSigned, signNDA, loading }}>
       {children}
     </AuthContext.Provider>
   );

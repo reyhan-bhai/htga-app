@@ -58,5 +58,6 @@ export interface User {
   username?: string;
   email: string;
   role: "evaluator";
-  avatar?: string;
+  phone?: string;
+  company?: string;
 }
