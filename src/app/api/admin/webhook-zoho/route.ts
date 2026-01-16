@@ -29,11 +29,11 @@ export async function POST(request: Request) {
     const assignment = assignmentSnap.val();
     const updates: any = {};
 
-    // 2. Check which evaluator completed the assignment and update status
+    // 2. Check which evaluator submitted the assignment and update status
     if (assignment.evaluator1Id === evaluator_id) {
-      updates.evaluator1Status = "completed";
+      updates.evaluator1Status = "submitted";
     } else if (assignment.evaluator2Id === evaluator_id) {
-      updates.evaluator2Status = "completed";
+      updates.evaluator2Status = "submitted";
     } else {
       console.log("Evaluator Mismatch:", {
         received: evaluator_id,
@@ -46,13 +46,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Check if both are completed to set completedAt
+    // 3. Check if both are submitted to set submittedAt
     const newEval1Status =
       updates.evaluator1Status || assignment.evaluator1Status;
     const newEval2Status =
       updates.evaluator2Status || assignment.evaluator2Status;
 
-    if (newEval1Status === "completed" && newEval2Status === "completed") {
+    if (newEval1Status === "submitted" && newEval2Status === "submitted") {
       updates.completedAt = new Date().toISOString();
     }
 

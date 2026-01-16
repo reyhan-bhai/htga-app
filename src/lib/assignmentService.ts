@@ -5,7 +5,7 @@ import { get, off, onValue, ref } from "firebase/database";
 export interface EvaluatorAssignment {
   id: string;
   establishmentId: string;
-  status: "pending" | "completed";
+  status: "pending" | "submitted" | "completed";
   uniqueId?: string;
   assignedAt: string;
   establishment: Establishment;

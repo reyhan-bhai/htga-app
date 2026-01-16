@@ -586,7 +586,9 @@ export default function DashboardPage() {
                     className={`absolute left-0 top-0 bottom-0 w-1.5 ${
                       assignment.status === "completed"
                         ? "bg-green-500"
-                        : "bg-[#FFA200]"
+                        : assignment.status === "submitted"
+                          ? "bg-blue-500"
+                          : "bg-[#FFA200]"
                     }`}
                   ></div>
 
@@ -603,12 +605,16 @@ export default function DashboardPage() {
                       className={`px-3 py-1 rounded-full text-xs font-bold ${
                         assignment.status === "completed"
                           ? "bg-green-100 text-green-700"
-                          : "bg-orange-100 text-orange-700"
+                          : assignment.status === "submitted"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-orange-100 text-orange-700"
                       }`}
                     >
                       {assignment.status === "completed"
                         ? "Completed"
-                        : "Pending"}
+                        : assignment.status === "submitted"
+                          ? "Submitted"
+                          : "Pending"}
                     </span>
                   </div>
 
@@ -656,51 +662,96 @@ export default function DashboardPage() {
 
                   <div className="pl-2 space-y-3">
                     <button
-                      onClick={() =>
-                        assignment.status === "completed"
-                          ? handleClaimSubmission(assignment)
-                          : handleSubmitForm(assignment)
-                      }
+                      onClick={() => {
+                        if (assignment.status === "pending") {
+                          handleSubmitForm(assignment);
+                          return;
+                        }
+
+                        if (assignment.status === "submitted") {
+                          handleClaimSubmission(assignment);
+                        }
+                      }}
+                      disabled={assignment.status === "completed"}
                       className={`w-full py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
                         assignment.status === "completed"
-                          ? "bg-[#FFA200] text-white hover:bg-[#f29a00] shadow-lg shadow-orange-100"
-                          : "bg-[#1B1B1B] text-white hover:bg-black shadow-lg shadow-gray-200"
+                          ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                          : assignment.status === "submitted"
+                            ? "bg-blue-500 text-white hover:bg-blue-600 shadow-lg shadow-orange-100"
+                            : "bg-[#1B1B1B] text-white hover:bg-black shadow-lg shadow-gray-200"
                       }`}
                     >
                       {assignment.status === "completed"
-                        ? "Claim Submission"
-                        : "Submit Form"}
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                        ? "Completed"
+                        : assignment.status === "submitted"
+                          ? "Claim Submission"
+                          : "Submit Form"}
+                      <div
+                        className={
+                          assignment.status === "completed"
+                            ? "hidden"
+                            : "transform transition-transform group-hover:translate-x-1"
+                        }
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M14 5l7 7m0 0l-7 7m7-7H3"
-                        />
-                      </svg>
+                        {" "}
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M14 5l7 7m0 0l-7 7m7-7H3"
+                          />
+                        </svg>
+                      </div>
                     </button>
 
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <button
                         onClick={() => handleReassign(assignment)}
-                        disabled={assignment.status === "completed"}
-                        className={`py-2.5 rounded-xl text-xs font-semibold border transition-all ${
-                          assignment.status === "completed"
+                        disabled={assignment.status !== "pending"}
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold border transition-all ${
+                          assignment.status !== "pending"
                             ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                             : "bg-white text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                         }`}
                       >
+                        <svg
+                          className="h-3.5 w-3.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M3 10h11l-1.5-1.5M3 14h11l-1.5 1.5M14 6h7v12h-7"
+                          />
+                        </svg>
                         Reassign
                       </button>
                       <button
                         onClick={() => handleReport(assignment)}
-                        className="py-2.5 rounded-xl text-xs font-semibold border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 transition-all"
+                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 transition-all"
                       >
+                        <svg
+                          className="h-3.5 w-3.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                          />
+                        </svg>
                         Report
                       </button>
                     </div>
