@@ -253,7 +253,7 @@ export default function DashboardPage() {
     }
   };
 
-  const handleStartEvaluation = (assignment: EvaluatorAssignment) => {
+  const handleStartEvaluation = (assignment: EvaluatorAssignment): void => {
     if (!user) return;
 
     console.log("[Dashboard] handleStartEvaluation assignment:", assignment);
@@ -273,12 +273,109 @@ export default function DashboardPage() {
     window.open(`${baseUrl}?${params.toString()}`, "_blank");
   };
 
-  const handleProfile = () => {
+  const handleProfile = (): void => {
     router.push("/user/profile");
   };
 
-  const handleNotifications = () => {
+  const handleNotifications = (): void => {
     router.push("/user/notifications");
+  };
+
+  const handleSubmitForm = async (
+    assignment: EvaluatorAssignment
+  ): Promise<void> => {
+    const result = await Swal.fire({
+      title: "Before you submit",
+      html: `
+        <div style="text-align:left;font-size:14px;line-height:1.4;">
+          <p style="margin-bottom:8px;">Please make sure you have:</p>
+          <ul style="padding-left:18px;">
+            <li>Visited the restaurant</li>
+            <li>Completed all required form sections</li>
+            <li>Saved your notes and scores</li>
+          </ul>
+        </div>
+      `,
+      icon: "info",
+      showCancelButton: true,
+      confirmButtonColor: "#1B1B1B",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Continue to Form",
+    });
+
+    if (result.isConfirmed) {
+      handleStartEvaluation(assignment);
+    }
+  };
+
+  const handleClaimSubmission = async (
+    assignment: EvaluatorAssignment
+  ): Promise<void> => {
+    await Swal.fire({
+      title: "Claim Submission",
+      text: "Receipt capture will open here once the page is ready.",
+      icon: "info",
+      confirmButtonColor: "#1B1B1B",
+    });
+    console.log("[Dashboard] Claim submission for", assignment.id);
+  };
+
+  const handleReassign = async (
+    assignment: EvaluatorAssignment
+  ): Promise<void> => {
+    const result = await Swal.fire({
+      title: "Request Reassign",
+      input: "textarea",
+      inputLabel: "Reason",
+      inputPlaceholder: "Tell us why you need a reassign...",
+      inputAttributes: { "aria-label": "Reassign reason" },
+      showCancelButton: true,
+      confirmButtonColor: "#1B1B1B",
+      confirmButtonText: "Send Request",
+    });
+
+    if (result.isConfirmed && result.value) {
+      await Swal.fire({
+        icon: "success",
+        title: "Request sent",
+        text: "Admin has been notified.",
+        confirmButtonColor: "#1B1B1B",
+      });
+      console.log("[Dashboard] Reassign request", {
+        assignmentId: assignment.id,
+        reason: result.value,
+      });
+    }
+  };
+
+  const handleReport = async (
+    assignment: EvaluatorAssignment
+  ): Promise<void> => {
+    const result = await Swal.fire({
+      title: "Report Issue",
+      input: "select",
+      inputOptions: {
+        closed: "Restaurant closed",
+        food_poisoning: "Food poisoning",
+      },
+      inputPlaceholder: "Select a reason",
+      showCancelButton: true,
+      confirmButtonColor: "#1B1B1B",
+      confirmButtonText: "Send Report",
+    });
+
+    if (result.isConfirmed && result.value) {
+      await Swal.fire({
+        icon: "success",
+        title: "Report sent",
+        text: "Admin has been notified.",
+        confirmButtonColor: "#1B1B1B",
+      });
+      console.log("[Dashboard] Report issue", {
+        assignmentId: assignment.id,
+        reason: result.value,
+      });
+    }
   };
 
   // Filtering
@@ -557,34 +654,56 @@ export default function DashboardPage() {
                     </p>
                   </div>
 
-                  <div className="pl-2">
+                  <div className="pl-2 space-y-3">
                     <button
-                      onClick={() => handleStartEvaluation(assignment)}
+                      onClick={() =>
+                        assignment.status === "completed"
+                          ? handleClaimSubmission(assignment)
+                          : handleSubmitForm(assignment)
+                      }
                       className={`w-full py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
                         assignment.status === "completed"
-                          ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                          ? "bg-[#FFA200] text-white hover:bg-[#f29a00] shadow-lg shadow-orange-100"
                           : "bg-[#1B1B1B] text-white hover:bg-black shadow-lg shadow-gray-200"
                       }`}
                     >
                       {assignment.status === "completed"
-                        ? "View Submission"
-                        : "Start Evaluation"}
-                      {assignment.status !== "completed" && (
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M14 5l7 7m0 0l-7 7m7-7H3"
-                          />
-                        </svg>
-                      )}
+                        ? "Claim Submission"
+                        : "Submit Form"}
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M14 5l7 7m0 0l-7 7m7-7H3"
+                        />
+                      </svg>
                     </button>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => handleReassign(assignment)}
+                        disabled={assignment.status === "completed"}
+                        className={`py-2.5 rounded-xl text-xs font-semibold border transition-all ${
+                          assignment.status === "completed"
+                            ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                            : "bg-white text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                        }`}
+                      >
+                        Reassign
+                      </button>
+                      <button
+                        onClick={() => handleReport(assignment)}
+                        className="py-2.5 rounded-xl text-xs font-semibold border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 transition-all"
+                      >
+                        Report
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))
