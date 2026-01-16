@@ -17,15 +17,23 @@ function ResetPasswordContent() {
   >("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
+  // 1. Real-time validation logic
+  const doPasswordsMatch = password === confirmPassword;
+  const isPasswordValid = password.length >= 6;
+  // Only show error if user has started typing confirm password
+  const showMatchError = confirmPassword.length > 0 && !doPasswordsMatch;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) {
+    
+    // Double check on submit (redundant safety)
+    if (!doPasswordsMatch) {
       setStatus("error");
       setErrorMsg("Passwords do not match");
       return;
     }
 
-    if (password.length < 6) {
+    if (!isPasswordValid) {
       setStatus("error");
       setErrorMsg("Password must be at least 6 characters");
       return;
@@ -44,7 +52,7 @@ function ResetPasswordContent() {
 
       if (res.ok) {
         setStatus("success");
-        setTimeout(() => router.push("/"), 3000);
+        setTimeout(() => router.push("/login"), 3000);
       } else {
         setStatus("error");
         setErrorMsg(data.error || "Failed to reset password");
@@ -63,7 +71,7 @@ function ResetPasswordContent() {
         <p className="text-gray-500 text-sm mb-6">
           This password reset link is invalid or incomplete.
         </p>
-        <Link href="/forgot-password" className="text-[#FFA200] font-bold">
+        <Link href="/user/forgot-password" className="text-[#FFA200] font-bold">
           Request a new one
         </Link>
       </div>
@@ -113,6 +121,10 @@ function ResetPasswordContent() {
               className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl focus:ring-2 focus:ring-[#FFA200] focus:border-transparent p-4 outline-none"
               required
             />
+            {/* Helper text for password length */}
+            {password.length > 0 && !isPasswordValid && (
+               <p className="text-xs text-red-500 mt-1 ml-1">Must be at least 6 characters</p>
+            )}
           </div>
 
           <div className="mb-6">
@@ -123,19 +135,41 @@ function ResetPasswordContent() {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl focus:ring-2 focus:ring-[#FFA200] focus:border-transparent p-4 outline-none"
+              // 2. Conditional styling: Red border if error, Normal if match
+              className={`w-full border text-gray-800 rounded-xl focus:ring-2 focus:border-transparent p-4 outline-none transition-colors ${
+                showMatchError 
+                  ? "bg-red-50 border-red-500 focus:ring-red-200" 
+                  : "bg-gray-50 border-gray-200 focus:ring-[#FFA200]"
+              }`}
               required
             />
+            
+            {/* 3. Real-time Error Message */}
+            {showMatchError && (
+              <p className="text-red-500 text-xs mt-2 ml-1 flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                Passwords do not match
+              </p>
+            )}
+            
+            {/* Optional: Success indicator when they DO match */}
+            {confirmPassword.length > 0 && doPasswordsMatch && (
+               <p className="text-green-600 text-xs mt-2 ml-1 flex items-center gap-1">
+                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                 Passwords match
+               </p>
+            )}
           </div>
 
-          {status === "error" && (
+          {status === "error" && !showMatchError && (
             <p className="text-red-500 text-sm text-center mb-4">{errorMsg}</p>
           )}
 
           <button
             type="submit"
-            disabled={status === "loading"}
-            className="w-full bg-[#FFA200] hover:bg-[#FF9500] text-white font-bold py-4 rounded-xl shadow-lg transition-all mb-4"
+            // 4. Disable button if mismatch or invalid length
+            disabled={status === "loading" || showMatchError || !isPasswordValid || !doPasswordsMatch}
+            className="w-full bg-[#FFA200] hover:bg-[#FF9500] text-white font-bold py-4 rounded-xl shadow-lg transition-all mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {status === "loading" ? "Updating..." : "Update Password"}
           </button>

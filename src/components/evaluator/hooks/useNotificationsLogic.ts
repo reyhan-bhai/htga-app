@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export type NotificationItem = {
   id: string;
@@ -46,7 +46,7 @@ export const useNotificationsLogic = () => {
     useState<NotificationItem[]>(initialNotifications);
 
   const handleBack = () => {
-    router.push("/dashboard");
+    router.push("/user/dashboard");
   };
 
   const removeNotification = (id: string) => {

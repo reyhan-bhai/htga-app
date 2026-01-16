@@ -16,7 +16,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useContext, useEffect, useState } from "react";
 import Swal from "sweetalert2";
-import { MobileLayoutWrapper } from "../layout-wrapper";
+import { MobileLayoutWrapper } from "../../layout-wrapper";
 
 type CategoryFilter = "All" | "Concept" | "Ethnic" | "Specialty";
 
@@ -274,11 +274,11 @@ export default function DashboardPage() {
   };
 
   const handleProfile = () => {
-    router.push("/profile");
+    router.push("/user/profile");
   };
 
   const handleNotifications = () => {
-    router.push("/notifications");
+    router.push("/user/notifications");
   };
 
   // Filtering

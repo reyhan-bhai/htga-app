@@ -11,7 +11,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useContext, useEffect, useRef, useState } from "react";
 import Swal from "sweetalert2";
-import { MobileLayoutWrapper } from "../layout-wrapper";
+import { MobileLayoutWrapper } from "../../layout-wrapper";
 
 export default function NDAPage() {
   const [agreed, setAgreed] = useState(false);
@@ -248,7 +248,7 @@ export default function NDAPage() {
     }
 
     signNDA();
-    router.push("/dashboard");
+    router.push("/user/dashboard");
   };
 
   const startDrawing = (

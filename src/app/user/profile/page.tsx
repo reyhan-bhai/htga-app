@@ -1,12 +1,12 @@
 "use client";
-import { MobileLayoutWrapper } from "../layout-wrapper";
-import { useProfileLogic } from "@/components/evaluator/hooks/useProfileLogic";
 import {
-  ProfileHeader,
+  ProfileActions,
   ProfileAvatar,
   ProfileDetails,
-  ProfileActions,
+  ProfileHeader,
 } from "@/components/evaluator";
+import { useProfileLogic } from "@/components/evaluator/hooks/useProfileLogic";
+import { MobileLayoutWrapper } from "../../layout-wrapper";
 
 export default function ProfilePage() {
   const { user, handleEditProfile, handleBack, handleLogout } =

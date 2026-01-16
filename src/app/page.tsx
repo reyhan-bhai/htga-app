@@ -1,8 +1,8 @@
 "use client";
 import { useAuth } from "@/context/AuthContext";
+import Link from "next/link"; // Import Link
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import Link from "next/link"; // Import Link
 import { MobileLayoutWrapper } from "./layout-wrapper";
 
 export default function LoginPage() {
@@ -15,7 +15,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      router.push("/dashboard");
+      router.push("/user/dashboard");
     }
   }, [isAuthenticated, loading, router]);
 
@@ -24,7 +24,7 @@ export default function LoginPage() {
     setError("");
     const result = await login(username, password, true);
     if (result.success) {
-      router.push("/dashboard");
+      router.push("/user/dashboard");
     } else {
       setError(result.error || "Invalid email or password");
     }
@@ -57,7 +57,9 @@ export default function LoginPage() {
           <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl px-8 pt-10 pb-8 flex flex-col">
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-gray-800">Welcome Back</h2>
-              <p className="text-gray-500 text-sm">Please sign in to continue</p>
+              <p className="text-gray-500 text-sm">
+                Please sign in to continue
+              </p>
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col space-y-5">
@@ -72,7 +74,19 @@ export default function LoginPage() {
                   required
                 />
                 <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-gray-400">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
                 </div>
               </div>
 
@@ -92,17 +106,47 @@ export default function LoginPage() {
                   className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   {showPassword ? (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      />
+                    </svg>
                   ) : (
-                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                      />
+                    </svg>
                   )}
                 </button>
               </div>
 
               {/* Forgot Password Link */}
               <div className="flex justify-end">
-                <Link 
-                  href="/forgot-password" 
+                <Link
+                  href="/user/forgot-password"
                   className="text-sm font-medium text-[#FFA200] hover:text-[#e59100] transition-colors"
                 >
                   Forgot Password?
@@ -128,8 +172,8 @@ export default function LoginPage() {
             <div className="mt-8 text-center">
               <p className="text-gray-500 text-sm">
                 Dont have an account?{" "}
-                <Link 
-                  href="/register" 
+                <Link
+                  href="/user/register"
                   className="font-bold text-[#FFA200] hover:underline"
                 >
                   Register Now

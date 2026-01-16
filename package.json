@@ -21,6 +21,7 @@
     "@nextui-org/react": "^2.6.11",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/nodemailer": "^7.0.4",
+    "bcrypt": "^6.0.0",
     "firebase": "^10.13.2",
     "firebase-admin": "^13.1.0",
     "framer-motion": "^12.23.25",
@@ -37,6 +38,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@types/bcrypt": "^6.0.0",
     "@types/docusign-esign": "^5.19.9",
     "@types/node": "^20",
     "@types/react": "^19",

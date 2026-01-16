@@ -3,6 +3,7 @@ import admin, { db } from "@/lib/firebase-admin";
 import { sendNDA } from "@/lib/nda-service";
 import type { Evaluator } from "@/types/restaurant";
 import { NextResponse } from "next/server";
+import bcrypt from "bcrypt";
 
 interface RegisterRequestBody {
   name: string;
@@ -132,14 +133,15 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     await ensureEmailAvailable(email);
-
     const evaluatorId = await generateEvaluatorId();
-
     const password = generatePassword();
+
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     const firebaseUser = await admin.auth().createUser({
       email,
-      password,
+      password: hashedPassword,
       displayName: name,
     });
 
@@ -151,7 +153,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       company,
       specialties: normalizeSpecialties(specialties),
       firebaseUid: firebaseUser.uid,
-      password,
+      password: hashedPassword,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

@@ -1,9 +1,9 @@
 "use client";
+import { MobileLayoutWrapper } from "@/app/layout-wrapper";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactElement } from "react";
 import { useState } from "react";
-import { MobileLayoutWrapper } from "@/app/layout-wrapper";
 import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
 
@@ -59,7 +59,7 @@ export default function RegisterPage() {
       }
 
       setLoading(false);
-      router.push("/"); 
+      router.push("/");
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to register.";
@@ -75,7 +75,7 @@ export default function RegisterPage() {
         {/* Header */}
         <div className="mb-8 pt-4">
           <Link
-            href="/login"
+            href="/"
             className="text-white flex items-center gap-2 mb-4 hover:opacity-80"
           >
             <svg

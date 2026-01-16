@@ -1,11 +1,8 @@
 "use client";
 
-import { MobileLayoutWrapper } from "../layout-wrapper";
+import { NotificationHeader, NotificationList } from "@/components/evaluator";
 import { useNotificationsLogic } from "@/components/evaluator/hooks/useNotificationsLogic";
-import {
-  NotificationHeader,
-  NotificationList,
-} from "@/components/evaluator";
+import { MobileLayoutWrapper } from "../../layout-wrapper";
 
 export default function NotificationsPage() {
   const { groupedNotifications, handleBack, removeNotification } =
