@@ -3,8 +3,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactElement } from "react";
 import { useState } from "react";
-
-// Import Library Phone & Style-nya
 import { MobileLayoutWrapper } from "@/app/layout-wrapper";
 import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
