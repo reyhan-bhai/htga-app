@@ -18,13 +18,15 @@ import { useContext, useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import { MobileLayoutWrapper } from "../../layout-wrapper";
 
-type CategoryFilter = "All" | "Concept" | "Ethnic" | "Specialty";
+type CategoryFilter = string;
+type StatusFilter = "All" | "Pending" | "Submitted" | "Completed";
 
 export default function DashboardPage() {
   const [assignments, setAssignments] = useState<EvaluatorAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] =
     useState<CategoryFilter>("All");
+  const [selectedStatus, setSelectedStatus] = useState<StatusFilter>("All");
   const [notificationEnabled, setNotificationEnabled] = useState(false);
 
   const router = useRouter();
@@ -379,10 +381,30 @@ export default function DashboardPage() {
   };
 
   // Filtering
-  const filteredAssignments = assignments.filter((a) => {
+  const categoryOptions = [
+    "All",
+    ...Array.from(
+      new Set(
+        assignments
+          .map((assignment) => assignment.establishment.category)
+          .filter((category) => category && category.trim().length > 0),
+      ),
+    ),
+  ];
+
+  const filteredAssignments = assignments.filter((assignment) => {
+    if (
+      selectedStatus !== "All" &&
+      assignment.status !== selectedStatus.toLowerCase()
+    ) {
+      return false;
+    }
+
     if (selectedCategory === "All") return true;
+
     return (
-      a.establishment.category?.toLowerCase() === selectedCategory.toLowerCase()
+      assignment.establishment.category?.toLowerCase() ===
+      selectedCategory.toLowerCase()
     );
   });
 
@@ -586,22 +608,71 @@ export default function DashboardPage() {
 
           {/* Filters */}
           <div className="mb-6">
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {(
-                ["All", "Concept", "Ethnic", "Specialty"] as CategoryFilter[]
-              ).map((category) => (
-                <button
-                  key={category}
-                  onClick={() => setSelectedCategory(category)}
-                  className={`px-5 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
-                    selectedCategory === category
-                      ? "bg-[#1B1B1B] text-white shadow-md"
-                      : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
-                  }`}
-                >
-                  {category}
-                </button>
-              ))}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+                <div className="flex-1">
+                  <label
+                    htmlFor="status-filter"
+                    className="text-xs font-semibold uppercase tracking-wide text-gray-400"
+                  >
+                    Status
+                  </label>
+                  <div className="mt-2 relative">
+                    <select
+                      id="status-filter"
+                      value={selectedStatus}
+                      onChange={(event) =>
+                        setSelectedStatus(event.target.value as StatusFilter)
+                      }
+                      className="w-full appearance-none rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] transition focus:border-[#1B1B1B] focus:outline-none focus:ring-4 focus:ring-[#1B1B1B]/10"
+                    >
+                      {(
+                        [
+                          "All",
+                          "Pending",
+                          "Submitted",
+                          "Completed",
+                        ] as StatusFilter[]
+                      ).map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
+                      ▾
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex-1">
+                  <label
+                    htmlFor="category-filter"
+                    className="text-xs font-semibold uppercase tracking-wide text-gray-400"
+                  >
+                    Specialty
+                  </label>
+                  <div className="mt-2 relative">
+                    <select
+                      id="category-filter"
+                      value={selectedCategory}
+                      onChange={(event) =>
+                        setSelectedCategory(event.target.value)
+                      }
+                      className="w-full appearance-none rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] transition focus:border-[#FFA200] focus:outline-none focus:ring-4 focus:ring-[#FFA200]/20"
+                    >
+                      {categoryOptions.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
+                      ▾
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
