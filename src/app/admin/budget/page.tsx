@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 
 // Budget management specific columns
 const budgetColumns = [
+  
   { name: "Evaluator Name", uid: "evaluatorName" },
   { name: "Email", uid: "email" },
   { name: "Company/Organization", uid: "company" },

@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase-admin";
 import { sendNotificationEmail } from "@/lib/emailService";
+import { db } from "@/lib/firebase-admin";
 import crypto from "crypto";
+import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       // Security: Don't reveal if email exists or not
       return NextResponse.json(
         { message: "If that email exists, we sent a link." },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
@@ -43,8 +43,8 @@ export async function POST(request: Request) {
     });
 
     // 4. Send Email
-    const resetLink = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${resetToken}&email=${email}`;
-    
+    const resetLink = `${process.env.NEXT_PUBLIC_APP_URL}/user/reset-password?token=${resetToken}&email=${email}`;
+
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
         <h2 style="color: #A67C37;">Password Reset Request</h2>
@@ -61,12 +61,15 @@ export async function POST(request: Request) {
       email,
       "Reset your password",
       `Click here to reset: ${resetLink}`,
-      emailHtml
+      emailHtml,
     );
 
     return NextResponse.json({ message: "Email sent" }, { status: 200 });
   } catch (error) {
     console.error("Forgot Password Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }
