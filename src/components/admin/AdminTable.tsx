@@ -7,6 +7,7 @@ import {
   TableRow,
   Tooltip,
 } from "@nextui-org/react";
+import Image from "next/image";
 import React from "react";
 import {
   MdDelete,
@@ -38,7 +39,7 @@ interface AdminTableProps {
     setEditingRestaurant: (restaurant: any) => void,
     setEditEvaluator1: (id: string) => void,
     setEditEvaluator2: (id: string) => void,
-    setIsEditModalOpen: (open: boolean) => void
+    setIsEditModalOpen: (open: boolean) => void,
   ) => void;
   handleSendNDAEmail?: (evaluator: any) => void;
   handleSendNDAReminder?: (evaluator: any) => void;
@@ -51,6 +52,11 @@ interface AdminTableProps {
   handleDeleteItem?: (item: any) => void;
   columns?: any[];
   renderCell?: (item: any, columnKey: React.Key) => React.ReactNode;
+  emptyMessage?: {
+    title: string;
+    description: string;
+  };
+  hideActions?: boolean;
 }
 
 interface TableComponentProps {
@@ -171,7 +177,7 @@ function TableComponent({
           return String(cellValue || "—");
       }
     },
-    [onEdit, onDelete, onView, hideActions]
+    [onEdit, onDelete, onView, hideActions],
   );
 
   const renderCell = React.useCallback(
@@ -185,7 +191,7 @@ function TableComponent({
       }
       return defaultRenderCell(item, columnKey);
     },
-    [customRenderCell, defaultRenderCell]
+    [customRenderCell, defaultRenderCell],
   );
 
   return (
@@ -279,6 +285,16 @@ export default function AdminTable({
   columns = [],
   renderCell,
 }: AdminTableProps) {
+  const [previewImage, setPreviewImage] = React.useState<string | null>(null);
+
+  const handlePreviewImage = (imageUrl: string) => {
+    setPreviewImage(imageUrl);
+  };
+
+  const handleClosePreview = () => {
+    setPreviewImage(null);
+  };
+
   if (isLoading) {
     return (
       <div className="bg-white rounded-lg overflow-hidden">
@@ -289,123 +305,165 @@ export default function AdminTable({
     );
   }
 
-  switch (type) {
-    case "assignment":
-      return (
-        <div className="bg-white rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            {selectedView === "evaluator" ? (
-              <TableComponent
-                columns={columns}
-                data={evaluatorViewData}
-                onView={handleViewDetails}
-                onEdit={(item) =>
-                  handleEdit?.(
-                    item,
-                    selectedView,
-                    assignments,
-                    setEditingRestaurant!,
-                    setEditEvaluator1!,
-                    setEditEvaluator2!,
-                    setIsEditModalOpen!
-                  )
-                }
-                hideActions={true}
-                renderCell={(item, columnKey) =>
-                  renderEvaluatorCell(item, columnKey, {
-                    onSendNDAEmail: handleSendNDAEmail!,
-                    onSendNDAReminder: handleSendNDAReminder!,
-                    onSendCompletionReminder: handleSendCompletionReminder!,
-                  })
-                }
-                emptyMessage={{
-                  title:
-                    evaluators.length === 0
-                      ? "No evaluators yet"
-                      : "No assignments yet",
-                  description:
-                    evaluators.length === 0
-                      ? "Add evaluators first in the Evaluators page."
-                      : "Click 'Match Evaluator' to start assigning evaluators to restaurants.",
-                }}
+  const tableContent = (() => {
+    switch (type) {
+      case "assignment":
+        return (
+          <div className="bg-white rounded-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              {selectedView === "evaluator" ? (
+                <TableComponent
+                  columns={columns}
+                  data={evaluatorViewData}
+                  onView={handleViewDetails}
+                  onEdit={(item) =>
+                    handleEdit?.(
+                      item,
+                      selectedView,
+                      assignments,
+                      setEditingRestaurant!,
+                      setEditEvaluator1!,
+                      setEditEvaluator2!,
+                      setIsEditModalOpen!,
+                    )
+                  }
+                  hideActions={true}
+                  renderCell={(item, columnKey) =>
+                    renderEvaluatorCell(item, columnKey, {
+                      onSendNDAEmail: handleSendNDAEmail!,
+                      onSendNDAReminder: handleSendNDAReminder!,
+                      onSendCompletionReminder: handleSendCompletionReminder!,
+                    })
+                  }
+                  emptyMessage={{
+                    title:
+                      evaluators.length === 0
+                        ? "No evaluators yet"
+                        : "No assignments yet",
+                    description:
+                      evaluators.length === 0
+                        ? "Add evaluators first in the Evaluators page."
+                        : "Click 'Match Evaluator' to start assigning evaluators to restaurants.",
+                  }}
+                />
+              ) : (
+                <TableComponent
+                  columns={columns}
+                  data={restaurantViewData}
+                  onEdit={(item) =>
+                    handleEdit?.(
+                      item,
+                      selectedView!,
+                      assignments,
+                      setEditingRestaurant!,
+                      setEditEvaluator1!,
+                      setEditEvaluator2!,
+                      setIsEditModalOpen!,
+                    )
+                  }
+                  // onView={handleViewDetails} There is no detail button in assignment so we comment this
+                  renderCell={(item, columnKey) =>
+                    renderRestaurantCell(item, columnKey, {
+                      onPreviewImage: handlePreviewImage,
+                    })
+                  }
+                  emptyMessage={{
+                    title: "No restaurants found",
+                    description: "Add restaurants in the Restaurants page.",
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        );
+
+      case "evaluator":
+        return (
+          <div className="bg-white rounded-lg">
+            <TableComponent
+              columns={columns}
+              data={data}
+              onEdit={handleEditItem}
+              onView={handleViewItem}
+              onDelete={handleDeleteItem}
+              renderCell={(item, columnKey) =>
+                renderEvaluatorListCell(item, columnKey)
+              }
+            />
+          </div>
+        );
+
+      case "restaurant":
+        return (
+          <div className="bg-white rounded-lg">
+            <TableComponent
+              columns={columns}
+              data={data}
+              onEdit={handleEditItem}
+              onView={handleViewItem}
+              onDelete={handleDeleteItem}
+            />
+          </div>
+        );
+
+      case "budget":
+        return (
+          <div className="bg-white rounded-lg">
+            <TableComponent
+              columns={columns}
+              data={data}
+              renderCell={renderCell}
+              emptyMessage={{
+                title: "No Budget Data",
+                description: "No evaluator budget data found.",
+              }}
+              hideActions={true}
+            />
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  })();
+
+  return (
+    <>
+      {tableContent}
+
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={handleClosePreview}
+        >
+          <div
+            className="max-h-[85vh] w-full max-w-3xl rounded-3xl bg-white p-4 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex justify-end">
+              <button
+                onClick={handleClosePreview}
+                className="rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-gray-600"
+              >
+                Close
+              </button>
+            </div>
+            <div className="mt-3 flex justify-center">
+              <Image
+                src={previewImage}
+                alt="Receipt preview"
+                width={900}
+                height={700}
+                className="max-h-[70vh] w-auto rounded-2xl object-contain"
               />
-            ) : (
-              <TableComponent
-                columns={columns}
-                data={restaurantViewData}
-                onEdit={(item) =>
-                  handleEdit?.(
-                    item,
-                    selectedView!,
-                    assignments,
-                    setEditingRestaurant!,
-                    setEditEvaluator1!,
-                    setEditEvaluator2!,
-                    setIsEditModalOpen!
-                  )
-                }
-                // onView={handleViewDetails} There is no detail button in assignment so we comment this
-                renderCell={(item, columnKey) =>
-                  renderRestaurantCell(item, columnKey)
-                }
-                emptyMessage={{
-                  title: "No restaurants found",
-                  description: "Add restaurants in the Restaurants page.",
-                }}
-              />
-            )}
+            </div>
           </div>
         </div>
-      );
-
-    case "evaluator":
-      return (
-        <div className="bg-white rounded-lg">
-          <TableComponent
-            columns={columns}
-            data={data}
-            onEdit={handleEditItem}
-            onView={handleViewItem}
-            onDelete={handleDeleteItem}
-            renderCell={(item, columnKey) =>
-              renderEvaluatorListCell(item, columnKey)
-            }
-          />
-        </div>
-      );
-
-    case "restaurant":
-      return (
-        <div className="bg-white rounded-lg">
-          <TableComponent
-            columns={columns}
-            data={data}
-            onEdit={handleEditItem}
-            onView={handleViewItem}
-            onDelete={handleDeleteItem}
-          />
-        </div>
-      );
-
-    case "budget":
-      return (
-        <div className="bg-white rounded-lg">
-          <TableComponent
-            columns={columns}
-            data={data}
-            renderCell={renderCell}
-            emptyMessage={{
-              title: "No Budget Data",
-              description: "No evaluator budget data found.",
-            }}
-            hideActions={true}
-          />
-        </div>
-      );
-
-    default:
-      return null;
-  }
+      )}
+    </>
+  );
 }
 
 const renderEvaluatorCell = (
@@ -415,7 +473,7 @@ const renderEvaluatorCell = (
     onSendNDAEmail: (item: any) => void;
     onSendNDAReminder: (item: any) => void;
     onSendCompletionReminder: (item: any) => void;
-  }
+  },
 ) => {
   const value = item[columnKey as string];
 
@@ -601,7 +659,13 @@ const renderEvaluatorListCell = (item: any, columnKey: React.Key) => {
   return "—";
 };
 
-const renderRestaurantCell = (item: any, columnKey: React.Key) => {
+const renderRestaurantCell = (
+  item: any,
+  columnKey: React.Key,
+  handlers: {
+    onPreviewImage: (imageUrl: string) => void;
+  },
+) => {
   if (columnKey === "actions") {
     return undefined;
   }
@@ -756,14 +820,19 @@ const renderRestaurantCell = (item: any, columnKey: React.Key) => {
       if (value) {
         return (
           <div className="flex items-center gap-2">
-            <a
-              href={value}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800 underline text-xs"
+            <button
+              type="button"
+              onClick={() => handlers.onPreviewImage(value)}
+              className="rounded-xl border border-gray-200 p-1 shadow-sm transition hover:border-[#A67C37]"
             >
-              View Receipt
-            </a>
+              <Image
+                src={value}
+                alt="Receipt thumbnail"
+                width={64}
+                height={64}
+                className="h-16 w-16 rounded-lg object-cover"
+              />
+            </button>
           </div>
         );
       }

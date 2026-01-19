@@ -5,6 +5,7 @@ import AdminTable from "@/components/admin/AdminTable";
 import AdminViewControl from "@/components/admin/AdminViewControl";
 import { useAssignedContext } from "@/context/admin/AssignedContext";
 import { Pagination } from "@nextui-org/react";
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 
 // Budget management specific columns
@@ -23,32 +24,70 @@ const budgetColumns = [
 // Helper function to calculate reimbursement
 const calculateReimbursement = (
   amountSpent: number,
-  budget: number
+  budget: number,
 ): number => {
   return Math.min(amountSpent, budget);
+};
+
+interface ClaimInfo {
+  receipt: string | null;
+  amountSpent: number | null;
+}
+
+const getClaimInfo = (
+  assignment: any,
+  slot: "evaluator1" | "evaluator2",
+): ClaimInfo => {
+  const slotKey = slot === "evaluator1" ? "JEVA_FIRST" : "JEVA_SECOND";
+  const evaluatorData = assignment.evaluators?.[slotKey];
+
+  const receipt =
+    evaluatorData?.receiptUrl ||
+    evaluatorData?.receipt ||
+    assignment[
+      slot === "evaluator1" ? "evaluator1Receipt" : "evaluator2Receipt"
+    ] ||
+    null;
+
+  const rawAmount =
+    evaluatorData?.amountSpent ??
+    assignment[
+      slot === "evaluator1" ? "evaluator1AmountSpent" : "evaluator2AmountSpent"
+    ];
+
+  const amountSpent =
+    rawAmount === null || rawAmount === undefined
+      ? null
+      : Number.parseFloat(String(rawAmount));
+
+  return {
+    receipt,
+    amountSpent: Number.isNaN(amountSpent) ? null : amountSpent,
+  };
 };
 
 // Helper function to get budget view data
 const getBudgetViewData = (
   assignments: any[],
   evaluators: any[],
-  establishments: any[]
-) => {
+  establishments: any[],
+): any[] => {
   const budgetData: any[] = [];
 
   assignments.forEach((assignment) => {
     const establishment = establishments.find(
-      (est) => est.id === assignment.establishmentId
+      (est) => est.id === assignment.establishmentId,
     );
 
     // Add evaluator 1 data
     if (assignment.evaluator1Id) {
       const evaluator1 = evaluators.find(
-        (evaluator) => evaluator.id === assignment.evaluator1Id
+        (evaluator) => evaluator.id === assignment.evaluator1Id,
       );
       if (evaluator1 && establishment) {
         const budget = parseFloat(establishment.budget || "0");
-        const amountSpent = 0; // Placeholder for now
+        const claimInfo = getClaimInfo(assignment, "evaluator1");
+        const amountSpent = claimInfo.amountSpent ?? 0;
 
         budgetData.push({
           id: `${assignment.id}-eval1`,
@@ -60,7 +99,7 @@ const getBudgetViewData = (
           restaurantName: establishment.name || "Unknown",
           dateAssigned:
             assignment.evaluator1AssignedAt || assignment.assignedAt || "-",
-          receipt: "No image yet",
+          receipt: claimInfo.receipt,
           amountSpent: amountSpent,
           budget: budget,
           reimbursement: calculateReimbursement(amountSpent, budget),
@@ -72,11 +111,12 @@ const getBudgetViewData = (
     // Add evaluator 2 data
     if (assignment.evaluator2Id) {
       const evaluator2 = evaluators.find(
-        (evaluator) => evaluator.id === assignment.evaluator2Id
+        (evaluator) => evaluator.id === assignment.evaluator2Id,
       );
       if (evaluator2 && establishment) {
         const budget = parseFloat(establishment.budget || "0");
-        const amountSpent = 0; // Placeholder for now
+        const claimInfo = getClaimInfo(assignment, "evaluator2");
+        const amountSpent = claimInfo.amountSpent ?? 0;
 
         budgetData.push({
           id: `${assignment.id}-eval2`,
@@ -88,7 +128,7 @@ const getBudgetViewData = (
           restaurantName: establishment.name || "Unknown",
           dateAssigned:
             assignment.evaluator2AssignedAt || assignment.assignedAt || "-",
-          receipt: "No image yet",
+          receipt: claimInfo.receipt,
           amountSpent: amountSpent,
           budget: budget,
           reimbursement: calculateReimbursement(amountSpent, budget),
@@ -110,6 +150,7 @@ export default function BudgetPage() {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedDateRange, setSelectedDateRange] = useState<{
     start: string;
     end: string;
@@ -135,7 +176,7 @@ export default function BudgetPage() {
           item.restaurantName || "",
         ];
         return searchFields.some((field) =>
-          field.toLowerCase().includes(query)
+          field.toLowerCase().includes(query),
         );
       });
     }
@@ -158,7 +199,7 @@ export default function BudgetPage() {
   const totalPages = Math.ceil(filteredBudgetData.length / rowsPerPage);
   const paginatedData = filteredBudgetData.slice(
     (page - 1) * rowsPerPage,
-    page * rowsPerPage
+    page * rowsPerPage,
   );
 
   // Reset page when filters change
@@ -183,10 +224,7 @@ export default function BudgetPage() {
   return (
     <div className="text-black flex flex-col gap-4 lg:gap-6 p-4 sm:p-6">
       {/* Header Section */}
-      <AdminHeader
-        type="budget"
-        title="Budget Management"
-      />
+      <AdminHeader type="budget" title="Budget Management" />
 
       {/* View Control & Search/Filter Section */}
       <AdminViewControl
@@ -220,9 +258,28 @@ export default function BudgetPage() {
               return new Date(cellValue).toLocaleDateString();
 
             case "receipt":
+              if (cellValue) {
+                return (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewImage(cellValue)}
+                      className="rounded-xl border border-gray-200 p-1 shadow-sm transition hover:border-[#A67C37]"
+                    >
+                      <Image
+                        src={cellValue}
+                        alt="Receipt thumbnail"
+                        width={64}
+                        height={64}
+                        className="h-16 w-16 rounded-lg object-cover"
+                      />
+                    </button>
+                  </div>
+                );
+              }
               return (
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-400 italic">{cellValue}</span>
+                  <span className="text-gray-400 italic">No image yet</span>
                 </div>
               );
 
@@ -230,7 +287,7 @@ export default function BudgetPage() {
               return (
                 <div className="flex items-center gap-2">
                   <span className="text-gray-400 italic">
-                    {cellValue === 0 ? "-" : `RM ${cellValue.toFixed(2)}`}
+                    {!cellValue ? "-" : `RM ${cellValue.toFixed(2)}`}
                   </span>
                 </div>
               );
@@ -249,7 +306,7 @@ export default function BudgetPage() {
               const spentValue = item.amountSpent || 0;
               const reimbursementValue = calculateReimbursement(
                 spentValue,
-                budgetValue
+                budgetValue,
               );
 
               return (
@@ -300,6 +357,38 @@ export default function BudgetPage() {
           />
         </div>
       </div>
+
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div
+            className="max-h-[85vh] w-full max-w-3xl rounded-3xl bg-white p-4 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex justify-end">
+              <button
+                onClick={() => setPreviewImage(null)}
+                className="rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-gray-600"
+              >
+                Close
+              </button>
+            </div>
+            <div className="mt-3 flex justify-center">
+              <Image
+                src={previewImage}
+                alt="Receipt preview"
+                width={900}
+                height={700}
+                className="max-h-[70vh] w-auto rounded-2xl object-contain"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

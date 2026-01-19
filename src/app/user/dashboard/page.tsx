@@ -13,8 +13,9 @@ import {
   removeFCMTokenFromServer,
   saveFCMTokenToServer,
 } from "@/lib/fcmTokenHelper";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import Swal from "sweetalert2";
 import { MobileLayoutWrapper } from "../../layout-wrapper";
 
@@ -28,6 +29,15 @@ export default function DashboardPage() {
     useState<CategoryFilter>("All");
   const [selectedStatus, setSelectedStatus] = useState<StatusFilter>("All");
   const [notificationEnabled, setNotificationEnabled] = useState(false);
+  const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
+  const [claimAssignment, setClaimAssignment] =
+    useState<EvaluatorAssignment | null>(null);
+  const [claimAmount, setClaimAmount] = useState("");
+  const [claimFile, setClaimFile] = useState<File | null>(null);
+  const [claimPreviewUrl, setClaimPreviewUrl] = useState<string | null>(null);
+  const [claimError, setClaimError] = useState<string | null>(null);
+  const [claimSubmitting, setClaimSubmitting] = useState(false);
+  const claimInputRef = useRef<HTMLInputElement | null>(null);
 
   const router = useRouter();
   const { user, ndaSigned, loading: authLoading } = useAuth();
@@ -131,6 +141,20 @@ export default function DashboardPage() {
     checkAndPromptNotifications();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, messaging, needsPWAInstall]);
+
+  useEffect(() => {
+    if (!claimFile) {
+      setClaimPreviewUrl(null);
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(claimFile);
+    setClaimPreviewUrl(previewUrl);
+
+    return () => {
+      URL.revokeObjectURL(previewUrl);
+    };
+  }, [claimFile]);
 
   const handleToggleNotification = async (forceEnable = false) => {
     // Check if push is supported
@@ -310,16 +334,83 @@ export default function DashboardPage() {
     }
   };
 
+  const openClaimModal = (assignment: EvaluatorAssignment): void => {
+    setClaimAssignment(assignment);
+    setClaimAmount("");
+    setClaimFile(null);
+    setClaimError(null);
+    setIsClaimModalOpen(true);
+  };
+
+  const closeClaimModal = (): void => {
+    setIsClaimModalOpen(false);
+    setClaimAssignment(null);
+    setClaimAmount("");
+    setClaimFile(null);
+    setClaimError(null);
+  };
+
+  const handleClaimSubmit = async (): Promise<void> => {
+    if (!user?.id || !claimAssignment) return;
+
+    setClaimError(null);
+
+    if (!claimFile) {
+      setClaimError("Please capture or upload a receipt image.");
+      return;
+    }
+
+    const amount = Number.parseFloat(claimAmount);
+    if (Number.isNaN(amount) || amount <= 0) {
+      setClaimError("Please enter a valid amount spent.");
+      return;
+    }
+
+    setClaimSubmitting(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("assignmentId", claimAssignment.id);
+      formData.append("evaluatorId", user.id);
+      formData.append("amountSpent", amount.toString());
+      formData.append("receipt", claimFile);
+
+      const response = await fetch("/api/user/claim-submission", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result?.error || "Failed to submit claim.");
+      }
+
+      closeClaimModal();
+
+      await Swal.fire({
+        icon: "success",
+        title: "Claim submitted",
+        text: "Your receipt and amount have been sent to admin.",
+        confirmButtonColor: "#1B1B1B",
+      });
+    } catch (error) {
+      console.error("[Dashboard] Claim submission failed:", error);
+      await Swal.fire({
+        icon: "error",
+        title: "Submission failed",
+        text: "Please try again in a moment.",
+        confirmButtonColor: "#1B1B1B",
+      });
+    } finally {
+      setClaimSubmitting(false);
+    }
+  };
+
   const handleClaimSubmission = async (
     assignment: EvaluatorAssignment,
   ): Promise<void> => {
-    await Swal.fire({
-      title: "Claim Submission",
-      text: "Receipt capture will open here once the page is ready.",
-      icon: "info",
-      confirmButtonColor: "#1B1B1B",
-    });
-    console.log("[Dashboard] Claim submission for", assignment.id);
+    openClaimModal(assignment);
   };
 
   const handleReassign = async (
@@ -882,6 +973,110 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {isClaimModalOpen && claimAssignment && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={closeClaimModal}
+        >
+          <div
+            className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-5 rounded-2xl bg-[#1B1B1B] px-4 py-3 text-white">
+              <p className="text-xs uppercase tracking-[0.2em] text-white/60">
+                Claim Submission
+              </p>
+              <h3 className="text-lg font-semibold">
+                {claimAssignment.establishment.name}
+              </h3>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label
+                  htmlFor="claim-receipt"
+                  className="text-xs font-semibold uppercase tracking-wide text-gray-400"
+                >
+                  Receipt Image
+                </label>
+                <input
+                  id="claim-receipt"
+                  ref={claimInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={(event) =>
+                    setClaimFile(event.target.files?.[0] || null)
+                  }
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => claimInputRef.current?.click()}
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] transition hover:border-[#FFA200]"
+                >
+                  <span className="text-base">📷</span>
+                  {claimFile ? "Retake Receipt" : "Open Camera"}
+                </button>
+                {claimPreviewUrl && (
+                  <Image
+                    src={claimPreviewUrl}
+                    alt="Receipt preview"
+                    width={400}
+                    height={160}
+                    className="mt-3 h-40 w-full rounded-2xl object-cover"
+                  />
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="claim-amount"
+                  className="text-xs font-semibold uppercase tracking-wide text-gray-400"
+                >
+                  Amount Spent (RM)
+                </label>
+                <input
+                  id="claim-amount"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={claimAmount}
+                  onChange={(event) => setClaimAmount(event.target.value)}
+                  placeholder="e.g. 25.50"
+                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)]"
+                />
+              </div>
+
+              {claimError && (
+                <p className="text-sm font-semibold text-red-600">
+                  {claimError}
+                </p>
+              )}
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                onClick={closeClaimModal}
+                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600"
+                disabled={claimSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleClaimSubmit}
+                className="rounded-full bg-[#1B1B1B] px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-gray-200 transition hover:bg-black"
+                disabled={claimSubmitting}
+              >
+                {claimSubmitting ? "Submitting..." : "Submit Claim"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </MobileLayoutWrapper>
   );
 }
