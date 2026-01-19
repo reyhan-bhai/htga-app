@@ -781,7 +781,12 @@ export default function DashboardPage() {
                       </button>
                       <button
                         onClick={() => handleReport(assignment)}
-                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 transition-all"
+                        disabled={assignment.status !== "pending"}
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold border transition-all ${
+                          assignment.status !== "pending"
+                            ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                            : "border border-red-200 text-red-600 bg-red-50 hover:bg-red-100"
+                        }`}
                       >
                         <svg
                           className="h-3.5 w-3.5"
