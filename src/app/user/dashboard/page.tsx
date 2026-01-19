@@ -29,6 +29,8 @@ export default function DashboardPage() {
     useState<CategoryFilter>("All");
   const [selectedStatus, setSelectedStatus] = useState<StatusFilter>("All");
   const [notificationEnabled, setNotificationEnabled] = useState(false);
+  
+  // Claim Modal State
   const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
   const [claimAssignment, setClaimAssignment] =
     useState<EvaluatorAssignment | null>(null);
@@ -39,6 +41,10 @@ export default function DashboardPage() {
   const [claimSubmitting, setClaimSubmitting] = useState(false);
   const claimCameraInputRef = useRef<HTMLInputElement | null>(null);
   const claimFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Request Restaurant Modal State
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [requestSubmitting, setRequestSubmitting] = useState(false);
 
   const router = useRouter();
   const { user, ndaSigned, loading: authLoading } = useAuth();
@@ -414,6 +420,25 @@ export default function DashboardPage() {
     openClaimModal(assignment);
   };
 
+  // --- Request Restaurant Handlers ---
+  const handleRequestSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRequestSubmitting(true);
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    setRequestSubmitting(false);
+    setIsRequestModalOpen(false);
+    
+    await Swal.fire({
+        icon: "success",
+        title: "Request Sent!",
+        text: "Thank you for your recommendation. We will review it shortly.",
+        confirmButtonColor: "#1B1B1B",
+    });
+  };
+
   const handleReassign = async (
     assignment: EvaluatorAssignment,
   ): Promise<void> => {
@@ -620,7 +645,7 @@ export default function DashboardPage() {
         {/* Main Content */}
         <div className="px-6 pt-6">
           {/* Progress Card */}
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 mb-8">
+          <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 mb-6">
             <h3 className="text-gray-900 text-lg font-bold mb-6">
               Evaluation Progress
             </h3>
@@ -698,6 +723,36 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Request Restaurant Hook */}
+          <div className="mb-8">
+            <div className="bg-[#1B1B1B] rounded-3xl p-5 shadow-lg shadow-gray-300/50 flex items-center justify-between relative overflow-hidden">
+               {/* Decorative background element */}
+               <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10 blur-xl"></div>
+               
+               <div className="relative z-10">
+                 <h4 className="text-white font-bold text-lg mb-1">Know a hidden gem?</h4>
+                 <p className="text-gray-400 text-xs mb-3 max-w-[200px]">Recommend a restaurant for us to evaluate and expand our list.</p>
+                 <button 
+                   onClick={() => setIsRequestModalOpen(true)}
+                   className="bg-[#FFA200] text-[#1B1B1B] text-xs font-bold px-4 py-2 rounded-xl hover:bg-[#ffb333] transition-colors flex items-center gap-1"
+                 >
+                   Recommend Place
+                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                   </svg>
+                 </button>
+               </div>
+               <div className="relative z-10 bg-white/10 p-3 rounded-2xl">
+                 <span className="text-2xl">🍽️</span>
+               </div>
+            </div>
+          </div>
+
+          {/* Assignments List */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              Your Assignments
+            </h3>
           {/* Filters */}
           <div className="mb-6">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
@@ -767,13 +822,6 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-
-          {/* Assignments List */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">
-              Your Assignments
-            </h3>
-
             {loading ? (
               <div className="flex justify-center py-10">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FFA200]"></div>
@@ -975,6 +1023,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Claim Modal */}
       {isClaimModalOpen && claimAssignment && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
@@ -1004,7 +1053,7 @@ export default function DashboardPage() {
                   Receipt Image
                 </label>
 
-                {/* Hidden Inputs (Position doesn't matter since they are hidden) */}
+                {/* Hidden Inputs */}
                 <input
                   id="claim-receipt"
                   ref={claimCameraInputRef}
@@ -1027,7 +1076,6 @@ export default function DashboardPage() {
                   className="hidden"
                 />
 
-                {/* ✅ FIX: Wrap buttons in a flex-row container */}
                 <div className="mt-2 flex flex-row gap-3">
                   <button
                     type="button"
@@ -1099,6 +1147,101 @@ export default function DashboardPage() {
                 {claimSubmitting ? "Submitting..." : "Submit Claim"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Recommend Restaurant Modal */}
+      {isRequestModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setIsRequestModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-6">
+              <h3 className="text-xl font-bold text-gray-900">
+                Recommend a Place
+              </h3>
+              <p className="text-sm text-gray-500">
+                Found a great spot? Share the details with us!
+              </p>
+            </div>
+
+            <form onSubmit={handleRequestSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="req-name" className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  Restaurant Name
+                </label>
+                <input
+                  id="req-name"
+                  type="text"
+                  required
+                  placeholder="e.g. The Coffee Corner"
+                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] focus:border-[#FFA200] focus:ring-2 focus:ring-[#FFA200]/20 outline-none"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="req-category" className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  Category
+                </label>
+                <input
+                  id="req-category"
+                  type="text"
+                  required
+                  placeholder="e.g. Cafe, Italian, Seafood"
+                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] focus:border-[#FFA200] focus:ring-2 focus:ring-[#FFA200]/20 outline-none"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="req-address" className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  Address
+                </label>
+                <textarea
+                  id="req-address"
+                  rows={2}
+                  required
+                  placeholder="Street name, Area..."
+                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] focus:border-[#FFA200] focus:ring-2 focus:ring-[#FFA200]/20 outline-none resize-none"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="req-contact" className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  Contact (Optional)
+                </label>
+                <input
+                  id="req-contact"
+                  type="tel"
+                  placeholder="Phone number or Instagram handle"
+                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] focus:border-[#FFA200] focus:ring-2 focus:ring-[#FFA200]/20 outline-none"
+                />
+              </div>
+
+              <div className="mt-8 flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsRequestModalOpen(false)}
+                  className="rounded-full border border-gray-200 px-5 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+                  disabled={requestSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-full bg-[#1B1B1B] px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-gray-400/50 transition hover:bg-black disabled:opacity-70"
+                  disabled={requestSubmitting}
+                >
+                  {requestSubmitting ? "Sending..." : "Submit Recommendation"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
