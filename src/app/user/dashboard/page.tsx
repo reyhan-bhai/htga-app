@@ -37,7 +37,8 @@ export default function DashboardPage() {
   const [claimPreviewUrl, setClaimPreviewUrl] = useState<string | null>(null);
   const [claimError, setClaimError] = useState<string | null>(null);
   const [claimSubmitting, setClaimSubmitting] = useState(false);
-  const claimInputRef = useRef<HTMLInputElement | null>(null);
+  const claimCameraInputRef = useRef<HTMLInputElement | null>(null);
+  const claimFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const router = useRouter();
   const { user, ndaSigned, loading: authLoading } = useAuth();
@@ -985,26 +986,28 @@ export default function DashboardPage() {
             className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="mb-5 rounded-2xl bg-[#1B1B1B] px-4 py-3 text-white">
-              <p className="text-xs uppercase tracking-[0.2em] text-white/60">
+            <div className="mb-4">
+              <h3 className="text-lg font-bold text-gray-900">
                 Claim Submission
-              </p>
-              <h3 className="text-lg font-semibold">
-                {claimAssignment.establishment.name}
               </h3>
+              <p className="text-sm text-gray-500">
+                {claimAssignment.establishment.name}
+              </p>
             </div>
 
             <div className="space-y-4">
-              <div>
+              <div className="flex flex-col">
                 <label
                   htmlFor="claim-receipt"
                   className="text-xs font-semibold uppercase tracking-wide text-gray-400"
                 >
                   Receipt Image
                 </label>
+
+                {/* Hidden Inputs (Position doesn't matter since they are hidden) */}
                 <input
                   id="claim-receipt"
-                  ref={claimInputRef}
+                  ref={claimCameraInputRef}
                   type="file"
                   accept="image/*"
                   capture="environment"
@@ -1013,14 +1016,37 @@ export default function DashboardPage() {
                   }
                   className="hidden"
                 />
-                <button
-                  type="button"
-                  onClick={() => claimInputRef.current?.click()}
-                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] transition hover:border-[#FFA200]"
-                >
-                  <span className="text-base">📷</span>
-                  {claimFile ? "Retake Receipt" : "Open Camera"}
-                </button>
+                <input
+                  id="claim-receipt-file"
+                  ref={claimFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) =>
+                    setClaimFile(event.target.files?.[0] || null)
+                  }
+                  className="hidden"
+                />
+
+                {/* ✅ FIX: Wrap buttons in a flex-row container */}
+                <div className="mt-2 flex flex-row gap-3">
+                  <button
+                    type="button"
+                    onClick={() => claimCameraInputRef.current?.click()}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] transition hover:border-[#FFA200]"
+                  >
+                    <span className="text-base">📷</span>
+                    Camera
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => claimFileInputRef.current?.click()}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] transition hover:border-[#1B1B1B]"
+                  >
+                    <span className="text-base">🗂️</span>
+                    File
+                  </button>
+                </div>
+
                 {claimPreviewUrl && (
                   <Image
                     src={claimPreviewUrl}
@@ -1031,13 +1057,12 @@ export default function DashboardPage() {
                   />
                 )}
               </div>
-
               <div>
                 <label
                   htmlFor="claim-amount"
                   className="text-xs font-semibold uppercase tracking-wide text-gray-400"
                 >
-                  Amount Spent (RM)
+                  Amount Spent 
                 </label>
                 <input
                   id="claim-amount"
@@ -1068,7 +1093,7 @@ export default function DashboardPage() {
               </button>
               <button
                 onClick={handleClaimSubmit}
-                className="rounded-full bg-[#1B1B1B] px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-gray-200 transition hover:bg-black"
+                className="rounded-full bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700"
                 disabled={claimSubmitting}
               >
                 {claimSubmitting ? "Submitting..." : "Submit Claim"}

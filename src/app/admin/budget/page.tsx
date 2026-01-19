@@ -286,8 +286,8 @@ export default function BudgetPage() {
             case "amountSpent":
               return (
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-400 italic">
-                    {!cellValue ? "-" : `RM ${cellValue.toFixed(2)}`}
+                  <span className="text-black italic">
+                    {!cellValue ? "-" : ` ${cellValue.toFixed(2)}`}
                   </span>
                 </div>
               );
@@ -296,7 +296,7 @@ export default function BudgetPage() {
               return (
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-blue-600">
-                    RM {cellValue.toFixed(2)}
+                   {cellValue.toFixed(2)}
                   </span>
                 </div>
               );
@@ -312,7 +312,7 @@ export default function BudgetPage() {
               return (
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-green-600">
-                    RM {reimbursementValue.toFixed(2)}
+                   {reimbursementValue.toFixed(2)}
                   </span>
                 </div>
               );

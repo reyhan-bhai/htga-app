@@ -848,9 +848,9 @@ const renderRestaurantCell = (
         return (
           <div className="flex items-center gap-2">
             {/* this will be fetched from firebase for the money currency */}
-            <span className="text-xs text-gray-700">
+            <span className="text-xs text-black">
               {" "}
-              {"{"}moneyCurrency{"}"} {value}
+              {value}
             </span>
           </div>
         );
