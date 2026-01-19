@@ -253,7 +253,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // ... keep logout and signNDA as they were ...
   const logout = async () => {
     try {
       const fcmToken = getStoredFCMToken();

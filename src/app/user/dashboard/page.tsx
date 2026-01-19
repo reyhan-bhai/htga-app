@@ -184,7 +184,7 @@ export default function DashboardPage() {
           Swal.fire(
             "Disabled!",
             "Notifications have been disabled.",
-            "success"
+            "success",
           );
         } catch (error) {
           console.error("Error disabling notifications:", error);
@@ -282,7 +282,7 @@ export default function DashboardPage() {
   };
 
   const handleSubmitForm = async (
-    assignment: EvaluatorAssignment
+    assignment: EvaluatorAssignment,
   ): Promise<void> => {
     const result = await Swal.fire({
       title: "Before you submit",
@@ -309,7 +309,7 @@ export default function DashboardPage() {
   };
 
   const handleClaimSubmission = async (
-    assignment: EvaluatorAssignment
+    assignment: EvaluatorAssignment,
   ): Promise<void> => {
     await Swal.fire({
       title: "Claim Submission",
@@ -321,7 +321,7 @@ export default function DashboardPage() {
   };
 
   const handleReassign = async (
-    assignment: EvaluatorAssignment
+    assignment: EvaluatorAssignment,
   ): Promise<void> => {
     const result = await Swal.fire({
       title: "Request Reassign",
@@ -349,7 +349,7 @@ export default function DashboardPage() {
   };
 
   const handleReport = async (
-    assignment: EvaluatorAssignment
+    assignment: EvaluatorAssignment,
   ): Promise<void> => {
     const result = await Swal.fire({
       title: "Report Issue",
@@ -381,18 +381,23 @@ export default function DashboardPage() {
   // Filtering
   const filteredAssignments = assignments.filter((a) => {
     if (selectedCategory === "All") return true;
-    // Assuming establishment has a category field. If not, we might need to adjust.
-    // The type definition says it does.
     return (
       a.establishment.category?.toLowerCase() === selectedCategory.toLowerCase()
     );
   });
 
-  const completedCount = assignments.filter(
-    (a) => a.status === "completed"
+  const submittedCount = assignments.filter(
+    (a) => a.status === "submitted" || a.status === "completed",
+  ).length;
+  const claimedCount = assignments.filter(
+    (a) => a.status === "completed",
   ).length;
   const totalCount = assignments.length;
-  const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
+  const submittedProgress =
+    totalCount > 0 ? (submittedCount / totalCount) * 100 : 0;
+  const claimedProgress =
+    totalCount > 0 ? (claimedCount / totalCount) * 100 : 0;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -501,42 +506,81 @@ export default function DashboardPage() {
         {/* Main Content */}
         <div className="px-6 pt-6">
           {/* Progress Card */}
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6">
-            <div className="flex justify-between items-end mb-3">
+          <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 mb-8">
+            <h3 className="text-gray-900 text-lg font-bold mb-6">
+              Evaluation Progress
+            </h3>
+
+            <div className="space-y-6">
+              {/* Submitted Progress */}
               <div>
-                <h3 className="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">
-                  Your Progress
-                </h3>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-bold text-[#FFA200]">
-                    {completedCount}
-                  </span>
-                  <span className="text-gray-400 text-sm">
-                    / {totalCount} Completed
+                <div className="flex justify-between items-end mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-blue-50">
+                      <svg
+                        className="w-4 h-4 text-blue-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-700">
+                      Forms Submitted
+                    </span>
+                  </div>
+                  <span className="text-sm font-bold text-blue-600">
+                    {submittedCount}/{totalCount}
                   </span>
                 </div>
+                <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                  <div
+                    className="bg-blue-600 h-full rounded-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(37,99,235,0.3)]"
+                    style={{ width: `${submittedProgress}%` }}
+                  ></div>
+                </div>
               </div>
-              <div className="h-10 w-10 rounded-full bg-orange-50 flex items-center justify-center">
-                <svg
-                  className="w-5 h-5 text-[#FFA200]"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                  />
-                </svg>
+
+              {/* Claimed Progress */}
+              <div>
+                <div className="flex justify-between items-end mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-green-50">
+                      <svg
+                        className="w-4 h-4 text-green-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                        />
+                      </svg>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-700">
+                      Claims Processed
+                    </span>
+                  </div>
+                  <span className="text-sm font-bold text-green-600">
+                    {claimedCount}/{totalCount}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                  <div
+                    className="bg-green-600 h-full rounded-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(22,163,74,0.3)]"
+                    style={{ width: `${claimedProgress}%` }}
+                  ></div>
+                </div>
               </div>
-            </div>
-            <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-              <div
-                className="bg-[#FFA200] h-full rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${progress}%` }}
-              ></div>
             </div>
           </div>
 
