@@ -15,16 +15,9 @@ import { MdClose } from "react-icons/md";
 import AdminSearchableSelect from "./AdminSearchableSelect";
 
 import { db } from "@/lib/firebase";
-import { onValue, push, ref, set } from "firebase/database";
+import { onValue, push, ref, remove, set } from "firebase/database";
 
 // --- EntityModal Implementation ---
-
-const DEFAULT_CATEGORIES = ["Bakery", "FastFood", "Italian"];
-const DEFAULT_HALAL_STATUSES = [
-  "Muslim-Owned",
-  "Muslim-friendly",
-  "Halal Certified by JAKIM",
-];
 
 export interface FieldConfig {
   name: string;
@@ -41,6 +34,7 @@ export interface FieldConfig {
   required?: boolean;
   options?: string[]; // For select and multiselect
   rows?: number; // For textarea
+  allowDelete?: boolean; // New: Allow deleting options
 }
 
 interface EntityModalProps<T> {
@@ -57,6 +51,7 @@ interface EntityModalProps<T> {
   fields: FieldConfig[];
   idField?: string; // Field name for the ID (e.g., 'id')
   isLoading?: boolean;
+  onDeleteOption?: (fieldName: string, option: string) => void; // New prop
 }
 
 function EntityModal<T extends Record<string, any>>({
@@ -69,6 +64,7 @@ function EntityModal<T extends Record<string, any>>({
   fields,
   idField = "id",
   isLoading = false,
+  onDeleteOption,
 }: EntityModalProps<T>) {
   const [formData, setFormData] = useState<Record<string, any>>({});
 
@@ -111,7 +107,7 @@ function EntityModal<T extends Record<string, any>>({
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
+    >,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -203,6 +199,11 @@ function EntityModal<T extends Record<string, any>>({
                     placeholder={field.placeholder}
                     disabled={isViewMode}
                     required={!isViewMode && field.required}
+                    onDeleteOption={
+                      field.allowDelete && onDeleteOption
+                        ? (opt) => onDeleteOption(field.name, opt)
+                        : undefined
+                    }
                   />
                 </div>
               );
@@ -216,25 +217,39 @@ function EntityModal<T extends Record<string, any>>({
                   </label>
                   <div className="flex gap-2 flex-wrap">
                     {field.options?.map((option) => (
-                      <button
-                        key={option}
-                        type="button"
-                        onClick={() =>
-                          handleMultiSelectToggle(field.name, option)
-                        }
-                        disabled={isViewMode}
-                        className={`px-4 py-2 rounded-md border transition ${
-                          (formData[field.name] || []).includes(option)
-                            ? "bg-gradient-to-r from-[#FF6B00] to-[#FFA200] text-white border-orange-500"
-                            : "bg-white text-gray-700 border-gray-300 hover:border-orange-500"
-                        } ${
-                          isViewMode
-                            ? "opacity-60 cursor-not-allowed"
-                            : "cursor-pointer"
-                        }`}
-                      >
-                        {option}
-                      </button>
+                      <div key={option} className="relative group">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleMultiSelectToggle(field.name, option)
+                          }
+                          disabled={isViewMode}
+                          className={`px-4 py-2 rounded-md border transition ${
+                            (formData[field.name] || []).includes(option)
+                              ? "bg-gradient-to-r from-[#FF6B00] to-[#FFA200] text-white border-orange-500"
+                              : "bg-white text-gray-700 border-gray-300 hover:border-orange-500"
+                          } ${
+                            isViewMode
+                              ? "opacity-60 cursor-not-allowed"
+                              : "cursor-pointer"
+                          }`}
+                        >
+                          {option}
+                        </button>
+                        {field.allowDelete && onDeleteOption && !isViewMode && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteOption(field.name, option);
+                            }}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-10"
+                            title="Delete option"
+                          >
+                            <MdClose size={12} />
+                          </button>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -380,7 +395,7 @@ interface ManualMatchModalProps {
     fetchData: () => Promise<void>,
     onClose: () => void,
     setSelectedEvaluator: (id: string) => void,
-    setSelectedRestaurant: (id: string) => void
+    setSelectedRestaurant: (id: string) => void,
   ) => Promise<void>;
 }
 
@@ -513,7 +528,7 @@ function ManualMatchModal({
                     fetchData,
                     onClose,
                     setSelectedEvaluator,
-                    setSelectedRestaurant
+                    setSelectedRestaurant,
                   )
                 }
                 isDisabled={!selectedEvaluator || !selectedRestaurant}
@@ -557,7 +572,7 @@ interface EditAssignmentModalProps {
     onClose: () => void,
     setEditingRestaurant: (restaurant: any) => void,
     setEditEvaluator1: (id: string) => void,
-    setEditEvaluator2: (id: string) => void
+    setEditEvaluator2: (id: string) => void,
   ) => Promise<void>;
 }
 
@@ -630,7 +645,7 @@ function EditAssignmentModal({
                   >
                     {evaluators
                       .filter((e) =>
-                        e.specialties.includes(editingRestaurant?.category)
+                        e.specialties.includes(editingRestaurant?.category),
                       )
                       .map((evaluator) => (
                         <SelectItem
@@ -687,7 +702,7 @@ function EditAssignmentModal({
                       .filter(
                         (e) =>
                           e.specialties.includes(editingRestaurant?.category) &&
-                          e.id !== editEvaluator1
+                          e.id !== editEvaluator1,
                       )
                       .map((evaluator) => (
                         <SelectItem
@@ -749,7 +764,7 @@ function EditAssignmentModal({
                     onClose,
                     setEditingRestaurant,
                     setEditEvaluator1,
-                    setEditEvaluator2
+                    setEditEvaluator2,
                   )
                 }
                 isLoading={isLoading}
@@ -887,11 +902,19 @@ export default function AdminModal(props: AdminModalProps) {
 
   // States for dynamic dropdowns
   const [categories, setCategories] = useState<string[]>([]);
+  const [categoryMap, setCategoryMap] = useState<Record<string, string[]>>({}); // value -> keys[]
   const [halalStatuses, setHalalStatuses] = useState<string[]>([]);
+  const [halalStatusMap, setHalalStatusMap] = useState<
+    Record<string, string[]>
+  >({}); // value -> keys[]
 
-  // Default values for fail-safe
-  const defaultCategories = DEFAULT_CATEGORIES;
-  const defaultHalalStatuses = DEFAULT_HALAL_STATUSES;
+  // Delete Option State
+  const [deleteOptionState, setDeleteOptionState] = useState<{
+    isOpen: boolean;
+    type: "category" | "halalStatus" | null;
+    value: string;
+  }>({ isOpen: false, type: null, value: "" });
+  const [isDeletingOption, setIsDeletingOption] = useState(false);
 
   // Fetch dropdown data for restaurants
   useEffect(() => {
@@ -902,18 +925,31 @@ export default function AdminModal(props: AdminModalProps) {
     const unsubscribeCategory = onValue(categoryRef, (snapshot) => {
       if (snapshot.exists()) {
         const val = snapshot.val();
-        const list = Object.values(val) as string[];
-        // Filter unique and sort
-        setCategories(Array.from(new Set([...list])).sort());
+        // val is { "key": "Value", ... }
+        const map: Record<string, string[]> = {};
+        const list: string[] = [];
+
+        Object.entries(val).forEach(([key, value]) => {
+          const strValue = String(value);
+          list.push(strValue);
+          if (!map[strValue]) {
+            map[strValue] = [];
+          }
+          map[strValue].push(key);
+        });
+
+        setCategoryMap(map);
+        setCategories(Array.from(new Set(list)).sort());
       } else {
-        setCategories(defaultCategories);
+        setCategories([]);
+        setCategoryMap({});
       }
     });
 
     return () => {
       unsubscribeCategory();
     };
-  }, [type, defaultCategories]);
+  }, [type]);
 
   useEffect(() => {
     if (type !== "restaurant") return;
@@ -923,29 +959,43 @@ export default function AdminModal(props: AdminModalProps) {
     const unsubscribeHalal = onValue(halalRef, (snapshot) => {
       if (snapshot.exists()) {
         const val = snapshot.val();
-        const list = Object.values(val) as string[];
-        setHalalStatuses(Array.from(new Set([...list])).sort());
+        const map: Record<string, string[]> = {};
+        const list: string[] = [];
+
+        Object.entries(val).forEach(([key, value]) => {
+          const strValue = String(value);
+          list.push(strValue);
+          if (!map[strValue]) {
+            map[strValue] = [];
+          }
+          map[strValue].push(key);
+        });
+
+        setHalalStatusMap(map);
+        setHalalStatuses(Array.from(new Set(list)).sort());
       } else {
-        setHalalStatuses(defaultHalalStatuses);
+        setHalalStatuses([]);
+        setHalalStatusMap({});
       }
     });
 
     return () => {
       unsubscribeHalal();
     };
-  }, [type, defaultHalalStatuses]);
+  }, [type]);
 
   const evaluatorFields = useMemo(() => {
     return baseEvaluatorFields.map((field) => {
       if (field.name === "specialties") {
         return {
           ...field,
-          options: categories.length > 0 ? categories : defaultCategories,
+          options: categories,
+          allowDelete: true,
         };
       }
       return field;
     });
-  }, [categories, defaultCategories]);
+  }, [categories]);
 
   // Construct restaurant fields with dynamic options
   const restaurantFields = useMemo(() => {
@@ -953,19 +1003,55 @@ export default function AdminModal(props: AdminModalProps) {
       if (field.name === "category") {
         return {
           ...field,
-          options: categories.length > 0 ? categories : defaultCategories,
+          options: categories,
+          allowDelete: true,
         };
       }
       if (field.name === "halalStatus") {
         return {
           ...field,
-          options:
-            halalStatuses.length > 0 ? halalStatuses : defaultHalalStatuses,
+          options: halalStatuses,
+          allowDelete: true,
         };
       }
       return field;
     });
-  }, [categories, halalStatuses, defaultCategories, defaultHalalStatuses]);
+  }, [categories, halalStatuses]);
+
+  const handleOpenDeleteOption = (fieldName: string, option: string) => {
+    let type: "category" | "halalStatus" | null = null;
+    if (fieldName === "category" || fieldName === "specialties")
+      type = "category";
+    if (fieldName === "halalStatus") type = "halalStatus";
+
+    if (type) {
+      setDeleteOptionState({ isOpen: true, type, value: option });
+    }
+  };
+
+  const handleConfirmDeleteOption = async () => {
+    const { type, value } = deleteOptionState;
+    if (!type || !value) return;
+
+    setIsDeletingOption(true);
+    try {
+      const dbPath =
+        type === "category" ? "dropdown/category" : "dropdown/halalstatus";
+      const map = type === "category" ? categoryMap : halalStatusMap;
+      const keys = map[value] || [];
+
+      // Delete all instances of this value
+      await Promise.all(keys.map((key) => remove(ref(db, `${dbPath}/${key}`))));
+
+      // Close modal
+      setDeleteOptionState({ isOpen: false, type: null, value: "" });
+    } catch (error) {
+      console.error("Error deleting option:", error);
+      alert("Failed to delete option. Please try again.");
+    } finally {
+      setIsDeletingOption(false);
+    }
+  };
 
   // Handle save logic for restaurant to persist new dropdown items
   const handleRestaurantSave = async (data: any) => {
@@ -1016,39 +1102,63 @@ export default function AdminModal(props: AdminModalProps) {
 
   if (type === "evaluator") {
     return (
-      <EntityModal
-        isOpen={props.isOpen}
-        onClose={props.onClose}
-        onSave={props.onSave!}
-        entity={props.entity}
-        mode={props.mode!}
-        fields={evaluatorFields}
-        title={{
-          add: "ADD / EDIT EVALUATOR",
-          edit: "ADD / EDIT EVALUATOR",
-          view: "Detail Evaluator",
-        }}
-        isLoading={isLoading}
-      />
+      <>
+        <EntityModal
+          isOpen={props.isOpen}
+          onClose={props.onClose}
+          onSave={props.onSave!}
+          entity={props.entity}
+          mode={props.mode!}
+          fields={evaluatorFields}
+          title={{
+            add: "ADD / EDIT EVALUATOR",
+            edit: "ADD / EDIT EVALUATOR",
+            view: "Detail Evaluator",
+          }}
+          isLoading={isLoading}
+          onDeleteOption={handleOpenDeleteOption}
+        />
+        <ConfirmDeleteModal
+          isOpen={deleteOptionState.isOpen}
+          onClose={() =>
+            setDeleteOptionState({ ...deleteOptionState, isOpen: false })
+          }
+          entityName={`option "${deleteOptionState.value}"`}
+          onConfirm={handleConfirmDeleteOption}
+          isLoading={isDeletingOption}
+        />
+      </>
     );
   }
 
   if (type === "restaurant") {
     return (
-      <EntityModal
-        isOpen={props.isOpen}
-        onClose={props.onClose}
-        onSave={handleRestaurantSave}
-        entity={props.entity}
-        mode={props.mode!}
-        fields={restaurantFields}
-        title={{
-          add: "ADD / EDIT RESTAURANT",
-          edit: "ADD / EDIT RESTAURANT",
-          view: "Detail Restaurant",
-        }}
-        isLoading={isLoading}
-      />
+      <>
+        <EntityModal
+          isOpen={props.isOpen}
+          onClose={props.onClose}
+          onSave={handleRestaurantSave}
+          entity={props.entity}
+          mode={props.mode!}
+          fields={restaurantFields}
+          title={{
+            add: "ADD / EDIT RESTAURANT",
+            edit: "ADD / EDIT RESTAURANT",
+            view: "Detail Restaurant",
+          }}
+          isLoading={isLoading}
+          onDeleteOption={handleOpenDeleteOption}
+        />
+        <ConfirmDeleteModal
+          isOpen={deleteOptionState.isOpen}
+          onClose={() =>
+            setDeleteOptionState({ ...deleteOptionState, isOpen: false })
+          }
+          entityName={`option "${deleteOptionState.value}"`}
+          onConfirm={handleConfirmDeleteOption}
+          isLoading={isDeletingOption}
+        />
+      </>
     );
   }
 

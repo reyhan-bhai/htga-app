@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MdAdd, MdKeyboardArrowDown, MdSearch } from "react-icons/md";
+import { MdAdd, MdClose, MdKeyboardArrowDown, MdSearch } from "react-icons/md";
 
 interface AdminSearchableSelectProps {
   name: string;
@@ -12,6 +12,7 @@ interface AdminSearchableSelectProps {
   placeholder?: string;
   disabled?: boolean;
   required?: boolean;
+  onDeleteOption?: (option: string) => void;
 }
 
 export default function AdminSearchableSelect({
@@ -23,6 +24,7 @@ export default function AdminSearchableSelect({
   placeholder,
   disabled = false,
   required = false,
+  onDeleteOption,
 }: AdminSearchableSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -32,7 +34,7 @@ export default function AdminSearchableSelect({
   // Filter options based on search term
   const filteredOptions = useMemo(() => {
     return (options || []).filter((option) =>
-      option.toLowerCase().includes(searchTerm.toLowerCase())
+      option.toLowerCase().includes(searchTerm.toLowerCase()),
     );
   }, [options, searchTerm]);
 
@@ -149,21 +151,37 @@ export default function AdminSearchableSelect({
                   onClick={() => handleSelect(option)}
                 >
                   <span className="block truncate">{option}</span>
-                  {value === option && (
-                    <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-orange-600">
-                      <svg
-                        className="h-5 w-5"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                    {value === option && !onDeleteOption && (
+                      <span className="flex items-center text-orange-600 mr-2">
+                        <svg
+                          className="h-5 w-5"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </span>
+                    )}
+                    {onDeleteOption && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          onDeleteOption(option);
+                        }}
+                        className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors z-20"
+                        title="Delete option"
                       >
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </span>
-                  )}
+                        <MdClose size={18} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))
             ) : (
