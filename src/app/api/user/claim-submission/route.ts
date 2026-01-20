@@ -10,6 +10,7 @@ interface ClaimSubmissionPayload {
   assignmentId: string;
   evaluatorId: string;
   amountSpent: number;
+  currency: string;
   receiptPath: string;
 }
 
@@ -42,12 +43,14 @@ const buildAssignmentUpdates = (
   if (assignment.evaluator1Id === payload.evaluatorId) {
     updates.evaluator1Receipt = payload.receiptPath;
     updates.evaluator1AmountSpent = payload.amountSpent;
+    updates.evaluator1Currency = payload.currency;
     updates.evaluator1Status = "completed";
   }
 
   if (assignment.evaluator2Id === payload.evaluatorId) {
     updates.evaluator2Receipt = payload.receiptPath;
     updates.evaluator2AmountSpent = payload.amountSpent;
+    updates.evaluator2Currency = payload.currency;
     updates.evaluator2Status = "completed";
   }
 
@@ -58,6 +61,7 @@ const buildAssignmentUpdates = (
   if (jevaFirst?.evaluatorId === payload.evaluatorId) {
     updates["evaluators/JEVA_FIRST/receiptUrl"] = payload.receiptPath;
     updates["evaluators/JEVA_FIRST/amountSpent"] = payload.amountSpent;
+    updates["evaluators/JEVA_FIRST/currency"] = payload.currency;
     updates["evaluators/JEVA_FIRST/status"] = "completed";
     updates["evaluators/JEVA_FIRST/evaluatorStatus"] = "completed";
   }
@@ -65,6 +69,7 @@ const buildAssignmentUpdates = (
   if (jevaSecond?.evaluatorId === payload.evaluatorId) {
     updates["evaluators/JEVA_SECOND/receiptUrl"] = payload.receiptPath;
     updates["evaluators/JEVA_SECOND/amountSpent"] = payload.amountSpent;
+    updates["evaluators/JEVA_SECOND/currency"] = payload.currency;
     updates["evaluators/JEVA_SECOND/status"] = "completed";
     updates["evaluators/JEVA_SECOND/evaluatorStatus"] = "completed";
   }
@@ -78,12 +83,14 @@ export async function POST(request: Request): Promise<NextResponse> {
     const assignmentId = formData.get("assignmentId");
     const evaluatorId = formData.get("evaluatorId");
     const amountSpentValue = formData.get("amountSpent");
+    const currency = formData.get("currency");
     const receiptFile = formData.get("receipt");
 
     if (
       typeof assignmentId !== "string" ||
       typeof evaluatorId !== "string" ||
       typeof amountSpentValue !== "string" ||
+      typeof currency !== "string" ||
       !(receiptFile instanceof File)
     ) {
       return NextResponse.json(
@@ -133,6 +140,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       assignmentId,
       evaluatorId,
       amountSpent,
+      currency,
       receiptPath,
     });
 

@@ -35,6 +35,9 @@ export interface FieldConfig {
   options?: string[]; // For select and multiselect
   rows?: number; // For textarea
   allowDelete?: boolean; // New: Allow deleting options
+  allowAdd?: boolean; // New: Allow adding new options
+  rowGroup?: string; // Group ID for rendering in the same row
+  className?: string; // Custom width/styles
 }
 
 interface EntityModalProps<T> {
@@ -125,6 +128,150 @@ function EntityModal<T extends Record<string, any>>({
     });
   };
 
+  const fieldRows = useMemo(() => {
+    const rows: (FieldConfig | FieldConfig[])[] = [];
+    let currentGroup: FieldConfig[] = [];
+    let currentGroupId: string | null = null;
+
+    fields.forEach((field) => {
+      if (field.rowGroup) {
+        if (currentGroupId === field.rowGroup) {
+          currentGroup.push(field);
+        } else {
+          if (currentGroup.length > 0) {
+            rows.push(currentGroup);
+          }
+          currentGroup = [field];
+          currentGroupId = field.rowGroup;
+        }
+      } else {
+        if (currentGroup.length > 0) {
+          rows.push(currentGroup);
+          currentGroup = [];
+          currentGroupId = null;
+        }
+        rows.push(field);
+      }
+    });
+
+    if (currentGroup.length > 0) {
+      rows.push(currentGroup);
+    }
+
+    return rows;
+  }, [fields]);
+
+  const renderField = (field: FieldConfig) => {
+    const widthClass = field.className || "w-full";
+
+    if (field.type === "textarea") {
+      return (
+        <div key={field.name} className={widthClass}>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {field.label}
+          </label>
+          <textarea
+            name={field.name}
+            value={formData[field.name] || ""}
+            onChange={handleChange}
+            disabled={isViewMode}
+            placeholder={field.placeholder}
+            rows={field.rows || 3}
+            required={!isViewMode && field.required}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 outline-none disabled:bg-gray-100 disabled:text-gray-600"
+          />
+        </div>
+      );
+    }
+
+    if (field.type === "select") {
+      return (
+        <div key={field.name} className={widthClass}>
+          <AdminSearchableSelect
+            name={field.name}
+            label={field.label}
+            value={formData[field.name] || ""}
+            onChange={(e: any) => handleChange(e)}
+            options={field.options || []}
+            placeholder={field.placeholder}
+            disabled={isViewMode}
+            required={!isViewMode && field.required}
+            allowAdd={field.allowAdd !== false}
+            onDeleteOption={
+              field.allowDelete && onDeleteOption
+                ? (opt) => onDeleteOption(field.name, opt)
+                : undefined
+            }
+          />
+        </div>
+      );
+    }
+
+    if (field.type === "multiselect") {
+      return (
+        <div key={field.name} className={widthClass}>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            {field.label}
+          </label>
+          <div className="flex gap-2 flex-wrap">
+            {field.options?.map((option) => (
+              <div key={option} className="relative group">
+                <button
+                  type="button"
+                  onClick={() => handleMultiSelectToggle(field.name, option)}
+                  disabled={isViewMode}
+                  className={`px-4 py-2 rounded-md border transition ${
+                    (formData[field.name] || []).includes(option)
+                      ? "bg-gradient-to-r from-[#FF6B00] to-[#FFA200] text-white border-orange-500"
+                      : "bg-white text-gray-700 border-gray-300 hover:border-orange-500"
+                  } ${
+                    isViewMode
+                      ? "opacity-60 cursor-not-allowed"
+                      : "cursor-pointer"
+                  }`}
+                >
+                  {option}
+                </button>
+                {field.allowDelete && onDeleteOption && !isViewMode && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteOption(field.name, option);
+                    }}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-10"
+                    title="Delete option"
+                  >
+                    <MdClose size={12} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // Default: text, email, tel
+    return (
+      <div key={field.name} className={widthClass}>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {field.label}
+        </label>
+        <input
+          type={field.type}
+          name={field.name}
+          value={formData[field.name] || ""}
+          onChange={handleChange}
+          disabled={isViewMode}
+          placeholder={field.placeholder}
+          required={!isViewMode && field.required}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 outline-none disabled:bg-gray-100 disabled:text-gray-600"
+        />
+      </div>
+    );
+  };
+
   if (!isOpen) return null;
 
   const isViewMode = mode === "view";
@@ -166,114 +313,16 @@ function EntityModal<T extends Record<string, any>>({
           )}
 
           {/* Dynamic Fields */}
-          {fields.map((field) => {
-            if (field.type === "textarea") {
+          {fieldRows.map((field) => {
+            if (Array.isArray(field)) {
+              // Render field group
               return (
-                <div key={field.name}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {field.label}
-                  </label>
-                  <textarea
-                    name={field.name}
-                    value={formData[field.name] || ""}
-                    onChange={handleChange}
-                    disabled={isViewMode}
-                    placeholder={field.placeholder}
-                    rows={field.rows || 3}
-                    required={!isViewMode && field.required}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400  focus:ring-1 focus:ring-orange-500 focus:border-orange-500 outline-none disabled:bg-gray-100 disabled:text-gray-600"
-                  />
+                <div key={field[0].rowGroup} className="flex gap-4">
+                  {field.map((f) => renderField(f))}
                 </div>
               );
             }
-
-            if (field.type === "select") {
-              return (
-                <div key={field.name} className="mb-4">
-                  <AdminSearchableSelect
-                    name={field.name}
-                    label={field.label}
-                    value={formData[field.name] || ""}
-                    onChange={(e: any) => handleChange(e)}
-                    options={field.options || []}
-                    placeholder={field.placeholder}
-                    disabled={isViewMode}
-                    required={!isViewMode && field.required}
-                    onDeleteOption={
-                      field.allowDelete && onDeleteOption
-                        ? (opt) => onDeleteOption(field.name, opt)
-                        : undefined
-                    }
-                  />
-                </div>
-              );
-            }
-
-            if (field.type === "multiselect") {
-              return (
-                <div key={field.name}>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {field.label}
-                  </label>
-                  <div className="flex gap-2 flex-wrap">
-                    {field.options?.map((option) => (
-                      <div key={option} className="relative group">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleMultiSelectToggle(field.name, option)
-                          }
-                          disabled={isViewMode}
-                          className={`px-4 py-2 rounded-md border transition ${
-                            (formData[field.name] || []).includes(option)
-                              ? "bg-gradient-to-r from-[#FF6B00] to-[#FFA200] text-white border-orange-500"
-                              : "bg-white text-gray-700 border-gray-300 hover:border-orange-500"
-                          } ${
-                            isViewMode
-                              ? "opacity-60 cursor-not-allowed"
-                              : "cursor-pointer"
-                          }`}
-                        >
-                          {option}
-                        </button>
-                        {field.allowDelete && onDeleteOption && !isViewMode && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDeleteOption(field.name, option);
-                            }}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-10"
-                            title="Delete option"
-                          >
-                            <MdClose size={12} />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            }
-
-            // Default: text, email, tel
-            return (
-              <div key={field.name}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {field.label}
-                </label>
-                <input
-                  type={field.type}
-                  name={field.name}
-                  value={formData[field.name] || ""}
-                  onChange={handleChange}
-                  disabled={isViewMode}
-                  placeholder={field.placeholder}
-                  required={!isViewMode && field.required}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400  focus:ring-1 focus:ring-orange-500 focus:border-orange-500 outline-none disabled:bg-gray-100 disabled:text-gray-600"
-                />
-              </div>
-            );
+            return renderField(field);
           })}
 
           {/* Buttons */}
@@ -865,10 +914,22 @@ const baseRestaurantFields: FieldConfig[] = [
     placeholder: "e.g., 4.7",
   },
   {
+    name: "currency",
+    label: "Currency",
+    type: "select",
+    placeholder: "Select",
+    options: ["MYR", "USD", "SGD", "IDR"],
+    rowGroup: "budget",
+    className: "w-32 flex-none",
+    allowAdd: false,
+  },
+  {
     name: "budget",
     label: "Budget",
     type: "text",
     placeholder: "e.g., 50",
+    rowGroup: "budget",
+    className: "flex-1",
   },
   {
     name: "halalStatus",

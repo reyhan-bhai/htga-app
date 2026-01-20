@@ -10,7 +10,6 @@ import { useEffect, useMemo, useState } from "react";
 
 // Budget management specific columns
 const budgetColumns = [
-  
   { name: "Evaluator Name", uid: "evaluatorName" },
   { name: "Email", uid: "email" },
   { name: "Company/Organization", uid: "company" },
@@ -33,6 +32,7 @@ const calculateReimbursement = (
 interface ClaimInfo {
   receipt: string | null;
   amountSpent: number | null;
+  currency: string | null;
 }
 
 const getClaimInfo = (
@@ -61,9 +61,17 @@ const getClaimInfo = (
       ? null
       : Number.parseFloat(String(rawAmount));
 
+  const currency =
+    evaluatorData?.currency ||
+    assignment[
+      slot === "evaluator1" ? "evaluator1Currency" : "evaluator2Currency"
+    ] ||
+    null;
+
   return {
     receipt,
     amountSpent: Number.isNaN(amountSpent) ? null : amountSpent,
+    currency,
   };
 };
 
@@ -102,7 +110,9 @@ const getBudgetViewData = (
             assignment.evaluator1AssignedAt || assignment.assignedAt || "-",
           receipt: claimInfo.receipt,
           amountSpent: amountSpent,
+          claimCurrency: claimInfo.currency || "MYR",
           budget: budget,
+          budgetCurrency: establishment.currency || "MYR",
           reimbursement: calculateReimbursement(amountSpent, budget),
           evaluatorNumber: 1,
         });
@@ -131,7 +141,9 @@ const getBudgetViewData = (
             assignment.evaluator2AssignedAt || assignment.assignedAt || "-",
           receipt: claimInfo.receipt,
           amountSpent: amountSpent,
+          claimCurrency: claimInfo.currency || "MYR",
           budget: budget,
+          budgetCurrency: establishment.currency || "MYR",
           reimbursement: calculateReimbursement(amountSpent, budget),
           evaluatorNumber: 2,
         });
@@ -288,7 +300,9 @@ export default function BudgetPage() {
               return (
                 <div className="flex items-center gap-2">
                   <span className="text-black italic">
-                    {!cellValue ? "-" : ` ${cellValue.toFixed(2)}`}
+                    {!cellValue
+                      ? "-"
+                      : `${item.claimCurrency} ${cellValue.toFixed(2)}`}
                   </span>
                 </div>
               );
@@ -297,7 +311,7 @@ export default function BudgetPage() {
               return (
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-blue-600">
-                   {cellValue.toFixed(2)}
+                    {item.budgetCurrency} {cellValue.toFixed(2)}
                   </span>
                 </div>
               );
@@ -313,7 +327,7 @@ export default function BudgetPage() {
               return (
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-green-600">
-                   {reimbursementValue.toFixed(2)}
+                    {item.budgetCurrency} {reimbursementValue.toFixed(2)}
                   </span>
                 </div>
               );

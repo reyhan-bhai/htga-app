@@ -17,7 +17,7 @@ export async function GET(request: Request) {
       if (!establishment) {
         return NextResponse.json(
           { error: "Establishment not found" },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     let establishments: Establishment[] = establishmentsData
       ? Object.entries(establishmentsData)
           .filter(
-            ([id, data]: [string, any]) => id !== "dropdown" && data?.name
+            ([id, data]: [string, any]) => id !== "dropdown" && data?.name,
           )
           .map(([id, data]: [string, any]) => ({
             id,
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
     // Filter by category if provided
     if (category) {
       establishments = establishments.filter(
-        (e) => e.category.toLowerCase() === category.toLowerCase()
+        (e) => e.category.toLowerCase() === category.toLowerCase(),
       );
     }
 
@@ -68,6 +68,7 @@ export async function POST(request: Request) {
       contactInfo,
       rating,
       budget,
+      currency,
       halalStatus,
       remarks,
     } = body;
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
     if (!name || !category) {
       return NextResponse.json(
         { error: "Name and category are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -94,6 +95,7 @@ export async function POST(request: Request) {
     if (contactInfo) newEstablishment.contactInfo = contactInfo;
     if (rating) newEstablishment.rating = rating;
     if (budget) newEstablishment.budget = budget;
+    if (currency) newEstablishment.currency = currency;
     if (halalStatus) newEstablishment.halalStatus = halalStatus;
     if (remarks) newEstablishment.remarks = remarks;
 
@@ -104,7 +106,7 @@ export async function POST(request: Request) {
         message: "Establishment created successfully",
         establishment: { id: establishmentId, ...newEstablishment },
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error: any) {
     console.error("Error creating establishment:", error);
@@ -124,6 +126,7 @@ export async function PUT(request: Request) {
       contactInfo,
       rating,
       budget,
+      currency,
       halalStatus,
       remarks,
     } = body;
@@ -131,7 +134,7 @@ export async function PUT(request: Request) {
     if (!id) {
       return NextResponse.json(
         { error: "Establishment ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -140,7 +143,7 @@ export async function PUT(request: Request) {
     if (!snapshot.exists()) {
       return NextResponse.json(
         { error: "Establishment not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -154,6 +157,7 @@ export async function PUT(request: Request) {
     if (contactInfo) updates.contactInfo = contactInfo;
     if (rating) updates.rating = rating;
     if (budget) updates.budget = budget;
+    if (currency) updates.currency = currency;
     if (halalStatus) updates.halalStatus = halalStatus;
     if (remarks) updates.remarks = remarks;
 
@@ -180,7 +184,7 @@ export async function DELETE(request: Request) {
     if (!id) {
       return NextResponse.json(
         { error: "Establishment ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -189,7 +193,7 @@ export async function DELETE(request: Request) {
     if (!snapshot.exists()) {
       return NextResponse.json(
         { error: "Establishment not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -206,7 +210,7 @@ export async function DELETE(request: Request) {
           error:
             "Cannot delete establishment with existing assignments. Please delete assignments first.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 

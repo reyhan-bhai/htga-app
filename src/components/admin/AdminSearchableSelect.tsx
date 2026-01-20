@@ -13,6 +13,7 @@ interface AdminSearchableSelectProps {
   disabled?: boolean;
   required?: boolean;
   onDeleteOption?: (option: string) => void;
+  allowAdd?: boolean;
 }
 
 export default function AdminSearchableSelect({
@@ -25,6 +26,7 @@ export default function AdminSearchableSelect({
   disabled = false,
   required = false,
   onDeleteOption,
+  allowAdd = true,
 }: AdminSearchableSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -192,16 +194,18 @@ export default function AdminSearchableSelect({
           </div>
 
           {/* Sticky Add Button */}
-          <div className="border-t border-gray-100 p-2 bg-gray-50 flex-none z-10">
-            <button
-              type="button"
-              onClick={handleAddNew}
-              className="flex items-center justify-center w-full px-3 py-2 text-sm font-medium text-white bg-orange-500 rounded-md hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors shadow-sm"
-            >
-              <MdAdd className="mr-1 h-5 w-5" />
-              Add {searchTerm ? `"${searchTerm}"` : "New Item"}
-            </button>
-          </div>
+          {allowAdd && (
+            <div className="border-t border-gray-100 p-2 bg-gray-50 flex-none z-10">
+              <button
+                type="button"
+                onClick={handleAddNew}
+                className="flex items-center justify-center w-full px-3 py-2 text-sm font-medium text-white bg-orange-500 rounded-md hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors shadow-sm"
+              >
+                <MdAdd className="mr-1 h-5 w-5" />
+                Add {searchTerm ? `"${searchTerm}"` : "New Item"}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

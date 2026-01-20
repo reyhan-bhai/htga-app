@@ -150,10 +150,11 @@ function TableComponent({
           );
         case "budget":
           const budgetValue = cellValue ? String(cellValue).trim() : "";
+          const currency = user.budgetCurrency || user.currency || "Not Set";
           return budgetValue.length === 0 ? (
             <span className="text-gray-400 italic">No Budget</span>
           ) : (
-            budgetValue
+            `${currency} ${budgetValue}`
           );
         case "rating":
           const ratingValue = cellValue ? String(cellValue).trim() : "";
@@ -845,12 +846,16 @@ const renderRestaurantCell = (
     case "evaluator1_amount_spent":
     case "evaluator2_amount_spent":
       if (value !== null && value !== undefined && value !== "") {
+        const currencyKey =
+          columnKey === "evaluator1_amount_spent"
+            ? "evaluator1Currency"
+            : "evaluator2Currency";
+        const currency = item[currencyKey] || "";
+
         return (
           <div className="flex items-center gap-2">
-            {/* this will be fetched from firebase for the money currency */}
             <span className="text-xs text-black">
-              {" "}
-              {value}
+              {currency} {value}
             </span>
           </div>
         );

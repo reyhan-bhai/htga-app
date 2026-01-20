@@ -29,7 +29,7 @@ interface RestaurantsContextType {
 }
 
 const RestaurantsContext = createContext<RestaurantsContextType | undefined>(
-  undefined
+  undefined,
 );
 
 export const useRestaurants = () => {
@@ -78,6 +78,7 @@ export const RestaurantsProvider: React.FC<RestaurantsProviderProps> = ({
               contactInfo: restaurantData.contactInfo,
               rating: restaurantData.rating || "0",
               budget: restaurantData.budget || "0",
+              currency: restaurantData.currency,
               halalStatus: restaurantData.halalStatus,
               remarks: restaurantData.remarks,
             };

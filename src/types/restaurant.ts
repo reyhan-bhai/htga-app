@@ -21,6 +21,7 @@ export interface Establishment {
   contactInfo?: string;
   rating?: number; // Average rating from evaluators
   budget?: string;
+  currency?: string;
   halalStatus?: string;
   remarks?: string;
   createdAt: string;
@@ -36,12 +37,14 @@ export interface Assignment {
   evaluator1AssignedAt?: string;
   evaluator1Receipt?: string; // URL to receipt image
   evaluator1AmountSpent?: number; // Amount spent in RM
+  evaluator1Currency?: string;
   evaluator2Id: string;
   evaluator2Status: "pending" | "completed";
   evaluator2UniqueID?: string;
   evaluator2AssignedAt?: string;
   evaluator2Receipt?: string; // URL to receipt image
   evaluator2AmountSpent?: number; // Amount spent in RM
+  evaluator2Currency?: string;
   assignedAt: string;
   completedAt?: string;
   notes?: string;

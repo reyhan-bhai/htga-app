@@ -29,12 +29,13 @@ export default function DashboardPage() {
     useState<CategoryFilter>("All");
   const [selectedStatus, setSelectedStatus] = useState<StatusFilter>("All");
   const [notificationEnabled, setNotificationEnabled] = useState(false);
-  
+
   // Claim Modal State
   const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
   const [claimAssignment, setClaimAssignment] =
     useState<EvaluatorAssignment | null>(null);
   const [claimAmount, setClaimAmount] = useState("");
+  const [claimCurrency, setClaimCurrency] = useState("MYR");
   const [claimFile, setClaimFile] = useState<File | null>(null);
   const [claimPreviewUrl, setClaimPreviewUrl] = useState<string | null>(null);
   const [claimError, setClaimError] = useState<string | null>(null);
@@ -344,6 +345,7 @@ export default function DashboardPage() {
   const openClaimModal = (assignment: EvaluatorAssignment): void => {
     setClaimAssignment(assignment);
     setClaimAmount("");
+    setClaimCurrency("MYR");
     setClaimFile(null);
     setClaimError(null);
     setIsClaimModalOpen(true);
@@ -353,6 +355,7 @@ export default function DashboardPage() {
     setIsClaimModalOpen(false);
     setClaimAssignment(null);
     setClaimAmount("");
+    setClaimCurrency("MYR");
     setClaimFile(null);
     setClaimError(null);
   };
@@ -380,6 +383,7 @@ export default function DashboardPage() {
       formData.append("assignmentId", claimAssignment.id);
       formData.append("evaluatorId", user.id);
       formData.append("amountSpent", amount.toString());
+      formData.append("currency", claimCurrency);
       formData.append("receipt", claimFile);
 
       const response = await fetch("/api/user/claim-submission", {
@@ -424,18 +428,18 @@ export default function DashboardPage() {
   const handleRequestSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setRequestSubmitting(true);
-    
+
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
     setRequestSubmitting(false);
     setIsRequestModalOpen(false);
-    
+
     await Swal.fire({
-        icon: "success",
-        title: "Request Sent!",
-        text: "Thank you for your recommendation. We will review it shortly.",
-        confirmButtonColor: "#1B1B1B",
+      icon: "success",
+      title: "Request Sent!",
+      text: "Thank you for your recommendation. We will review it shortly.",
+      confirmButtonColor: "#1B1B1B",
     });
   };
 
@@ -726,25 +730,39 @@ export default function DashboardPage() {
           {/* Request Restaurant Hook */}
           <div className="mb-8">
             <div className="bg-[#1B1B1B] rounded-3xl p-5 shadow-lg shadow-gray-300/50 flex items-center justify-between relative overflow-hidden">
-               {/* Decorative background element */}
-               <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10 blur-xl"></div>
-               
-               <div className="relative z-10">
-                 <h4 className="text-white font-bold text-lg mb-1">Know a hidden gem?</h4>
-                 <p className="text-gray-400 text-xs mb-3 max-w-[200px]">Recommend a restaurant for us to evaluate and expand our list.</p>
-                 <button 
-                   onClick={() => setIsRequestModalOpen(true)}
-                   className="bg-[#FFA200] text-[#1B1B1B] text-xs font-bold px-4 py-2 rounded-xl hover:bg-[#ffb333] transition-colors flex items-center gap-1"
-                 >
-                   Recommend Place
-                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                   </svg>
-                 </button>
-               </div>
-               <div className="relative z-10 bg-white/10 p-3 rounded-2xl">
-                 <span className="text-2xl">🍽️</span>
-               </div>
+              {/* Decorative background element */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10 blur-xl"></div>
+
+              <div className="relative z-10">
+                <h4 className="text-white font-bold text-lg mb-1">
+                  Know a hidden gem?
+                </h4>
+                <p className="text-gray-400 text-xs mb-3 max-w-[200px]">
+                  Recommend a restaurant for us to evaluate and expand our list.
+                </p>
+                <button
+                  onClick={() => setIsRequestModalOpen(true)}
+                  className="bg-[#FFA200] text-[#1B1B1B] text-xs font-bold px-4 py-2 rounded-xl hover:bg-[#ffb333] transition-colors flex items-center gap-1"
+                >
+                  Recommend Place
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M14 5l7 7m0 0l-7 7m7-7H3"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <div className="relative z-10 bg-white/10 p-3 rounded-2xl">
+                <span className="text-2xl">🍽️</span>
+              </div>
             </div>
           </div>
 
@@ -753,75 +771,75 @@ export default function DashboardPage() {
             <h3 className="text-lg font-bold text-gray-900 mb-2">
               Your Assignments
             </h3>
-          {/* Filters */}
-          <div className="mb-6">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-                <div className="flex-1">
-                  <label
-                    htmlFor="status-filter"
-                    className="text-xs font-semibold uppercase tracking-wide text-gray-400"
-                  >
-                    Status
-                  </label>
-                  <div className="mt-2 relative">
-                    <select
-                      id="status-filter"
-                      value={selectedStatus}
-                      onChange={(event) =>
-                        setSelectedStatus(event.target.value as StatusFilter)
-                      }
-                      className="w-full appearance-none rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] transition focus:border-[#1B1B1B] focus:outline-none focus:ring-4 focus:ring-[#1B1B1B]/10"
+            {/* Filters */}
+            <div className="mb-6">
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+                  <div className="flex-1">
+                    <label
+                      htmlFor="status-filter"
+                      className="text-xs font-semibold uppercase tracking-wide text-gray-400"
                     >
-                      {(
-                        [
-                          "All",
-                          "Pending",
-                          "Submitted",
-                          "Completed",
-                        ] as StatusFilter[]
-                      ).map((status) => (
-                        <option key={status} value={status}>
-                          {status}
-                        </option>
-                      ))}
-                    </select>
-                    <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
-                      ▾
-                    </span>
+                      Status
+                    </label>
+                    <div className="mt-2 relative">
+                      <select
+                        id="status-filter"
+                        value={selectedStatus}
+                        onChange={(event) =>
+                          setSelectedStatus(event.target.value as StatusFilter)
+                        }
+                        className="w-full appearance-none rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] transition focus:border-[#1B1B1B] focus:outline-none focus:ring-4 focus:ring-[#1B1B1B]/10"
+                      >
+                        {(
+                          [
+                            "All",
+                            "Pending",
+                            "Submitted",
+                            "Completed",
+                          ] as StatusFilter[]
+                        ).map((status) => (
+                          <option key={status} value={status}>
+                            {status}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
+                        ▾
+                      </span>
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex-1">
-                  <label
-                    htmlFor="category-filter"
-                    className="text-xs font-semibold uppercase tracking-wide text-gray-400"
-                  >
-                    Specialty
-                  </label>
-                  <div className="mt-2 relative">
-                    <select
-                      id="category-filter"
-                      value={selectedCategory}
-                      onChange={(event) =>
-                        setSelectedCategory(event.target.value)
-                      }
-                      className="w-full appearance-none rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] transition focus:border-[#FFA200] focus:outline-none focus:ring-4 focus:ring-[#FFA200]/20"
+                  <div className="flex-1">
+                    <label
+                      htmlFor="category-filter"
+                      className="text-xs font-semibold uppercase tracking-wide text-gray-400"
                     >
-                      {categoryOptions.map((category) => (
-                        <option key={category} value={category}>
-                          {category}
-                        </option>
-                      ))}
-                    </select>
-                    <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
-                      ▾
-                    </span>
+                      Specialty
+                    </label>
+                    <div className="mt-2 relative">
+                      <select
+                        id="category-filter"
+                        value={selectedCategory}
+                        onChange={(event) =>
+                          setSelectedCategory(event.target.value)
+                        }
+                        className="w-full appearance-none rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] transition focus:border-[#FFA200] focus:outline-none focus:ring-4 focus:ring-[#FFA200]/20"
+                      >
+                        {categoryOptions.map((category) => (
+                          <option key={category} value={category}>
+                            {category}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
+                        ▾
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
             {loading ? (
               <div className="flex justify-center py-10">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FFA200]"></div>
@@ -1110,18 +1128,30 @@ export default function DashboardPage() {
                   htmlFor="claim-amount"
                   className="text-xs font-semibold uppercase tracking-wide text-gray-400"
                 >
-                  Amount Spent 
+                  Amount Spent
                 </label>
-                <input
-                  id="claim-amount"
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={claimAmount}
-                  onChange={(event) => setClaimAmount(event.target.value)}
-                  placeholder="e.g. 25.50"
-                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)]"
-                />
+                <div className="mt-2 flex gap-3">
+                  <select
+                    value={claimCurrency}
+                    onChange={(e) => setClaimCurrency(e.target.value)}
+                    className="w-24 rounded-2xl border border-gray-200 bg-white px-3 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] focus:border-[#FFA200] focus:outline-none"
+                  >
+                    <option value="MYR">MYR</option>
+                    <option value="USD">USD</option>
+                    <option value="SGD">SGD</option>
+                    <option value="IDR">IDR</option>
+                  </select>
+                  <input
+                    id="claim-amount"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={claimAmount}
+                    onChange={(event) => setClaimAmount(event.target.value)}
+                    placeholder="e.g. 25.50"
+                    className="w-full flex-1 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] focus:border-[#FFA200] focus:outline-none"
+                  />
+                </div>
               </div>
 
               {claimError && (
@@ -1174,7 +1204,10 @@ export default function DashboardPage() {
 
             <form onSubmit={handleRequestSubmit} className="space-y-4">
               <div>
-                <label htmlFor="req-name" className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                <label
+                  htmlFor="req-name"
+                  className="text-xs font-semibold uppercase tracking-wide text-gray-400"
+                >
                   Restaurant Name
                 </label>
                 <input
@@ -1187,7 +1220,10 @@ export default function DashboardPage() {
               </div>
 
               <div>
-                <label htmlFor="req-category" className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                <label
+                  htmlFor="req-category"
+                  className="text-xs font-semibold uppercase tracking-wide text-gray-400"
+                >
                   Category
                 </label>
                 <input
@@ -1200,7 +1236,10 @@ export default function DashboardPage() {
               </div>
 
               <div>
-                <label htmlFor="req-address" className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                <label
+                  htmlFor="req-address"
+                  className="text-xs font-semibold uppercase tracking-wide text-gray-400"
+                >
                   Address
                 </label>
                 <textarea
@@ -1213,7 +1252,10 @@ export default function DashboardPage() {
               </div>
 
               <div>
-                <label htmlFor="req-contact" className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                <label
+                  htmlFor="req-contact"
+                  className="text-xs font-semibold uppercase tracking-wide text-gray-400"
+                >
                   Contact (Optional)
                 </label>
                 <input
