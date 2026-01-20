@@ -2,13 +2,14 @@ import { sendEvaluatorCredentials } from "@/lib/emailService";
 import admin, { db } from "@/lib/firebase-admin";
 import { sendNDA } from "@/lib/nda-service";
 import type { Evaluator } from "@/types/restaurant";
-import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
+import { NextResponse } from "next/server";
 
 interface RegisterRequestBody {
   name: string;
   email: string;
   phone?: string;
+  city?: string;
   company?: string;
   position?: string;
   specialties?: string[] | string;
@@ -73,7 +74,7 @@ const ensureEmailAvailable = async (email: string): Promise<void> => {
 
   if (evaluatorsData) {
     const emailExists = Object.values(evaluatorsData).some(
-      (evaluator) => evaluator.email === email
+      (evaluator) => evaluator.email === email,
     );
 
     if (emailExists) {
@@ -116,19 +117,19 @@ const generateEvaluatorId = async (): Promise<string> => {
 export async function POST(request: Request): Promise<NextResponse> {
   try {
     const body = (await request.json()) as RegisterRequestBody;
-    const { name, email, phone, company, position, specialties } = body;
+    const { name, email, phone, city, company, position, specialties } = body;
 
     if (!name || !email) {
       return NextResponse.json(
         { error: "Name and email are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!EMAIL_REGEX.test(email)) {
       return NextResponse.json(
         { error: "Invalid email format" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -149,6 +150,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       name,
       email,
       phone,
+      city,
       position,
       company,
       specialties: normalizeSpecialties(specialties),
@@ -192,6 +194,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         name: evaluatorPayload.name,
         email: evaluatorPayload.email,
         phone: evaluatorPayload.phone,
+        city: evaluatorPayload.city,
         position: evaluatorPayload.position,
         company: evaluatorPayload.company,
         specialties: evaluatorPayload.specialties,
