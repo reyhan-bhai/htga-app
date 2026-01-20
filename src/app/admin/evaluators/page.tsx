@@ -13,6 +13,7 @@ import Swal from "sweetalert2";
 const evaluatorColumns = [
   { name: "ID", uid: "id" },
   { name: "Evaluator Name", uid: "name" },
+  { name: "City", uid: "city" }, // <--- ADD THIS LINE
   { name: "Specialties", uid: "specialties" },
   { name: "Email/Contact", uid: "email" },
   { name: "Phone Number", uid: "phone" },

@@ -804,6 +804,12 @@ const baseEvaluatorFields: FieldConfig[] = [
     placeholder: "+62xxx...",
   },
   {
+    name: "city",
+    label: "City",
+    type: "text",
+    placeholder: "e.g. Kuala Lumpur, Jakarta",
+  },
+  {
     name: "position",
     label: "Current Position",
     type: "text",
@@ -925,7 +931,6 @@ export default function AdminModal(props: AdminModalProps) {
     const unsubscribeCategory = onValue(categoryRef, (snapshot) => {
       if (snapshot.exists()) {
         const val = snapshot.val();
-        // val is { "key": "Value", ... }
         const map: Record<string, string[]> = {};
         const list: string[] = [];
 
@@ -1056,13 +1061,6 @@ export default function AdminModal(props: AdminModalProps) {
   // Handle save logic for restaurant to persist new dropdown items
   const handleRestaurantSave = async (data: any) => {
     const { category, halalStatus } = data;
-
-    // Save new Category if not exists in DB list
-    // Note: We check against state 'categories' which reflects DB (or defaults if DB empty)
-    // If DB is empty, user selects default "Bakery", we should save it to DB to start populating it?
-    // User requested: "Adding new data menu".
-    // If it's a new custom value typed by user, logic below handles it.
-    // If it's a default value but not in DB yet, logic below ALSO handles it (good for seeding).
 
     if (category && !categories.includes(category)) {
       try {

@@ -3,6 +3,7 @@ export interface Evaluator {
   name: string;
   email?: string;
   phone?: string;
+  city?: string;
   position?: string;
   company?: string;
   specialties: string[]; // ["Bakery", "FastFood", "Italy"]

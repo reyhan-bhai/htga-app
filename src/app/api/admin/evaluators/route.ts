@@ -57,7 +57,7 @@ async function sendCredentialsEmail(
   email: string,
   name: string,
   evaluatorId: string,
-  password: string
+  password: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     // Import the email service
@@ -100,7 +100,7 @@ export async function GET(request: Request) {
           // Search for evaluator by firebaseUid
           const foundEntry = Object.entries(allEvaluators).find(
             ([, data]: [string, any]) =>
-              data.firebaseUid === id || data.uid === id
+              data.firebaseUid === id || data.uid === id,
           );
 
           if (foundEntry) {
@@ -112,7 +112,7 @@ export async function GET(request: Request) {
       if (!evaluator) {
         return NextResponse.json(
           { error: "Evaluator not found" },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
@@ -157,6 +157,7 @@ export async function POST(request: Request) {
       name,
       email,
       phone,
+      city,
       position,
       company,
       specialties,
@@ -167,7 +168,7 @@ export async function POST(request: Request) {
     if (!name || !email) {
       return NextResponse.json(
         { error: "Name and email are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -176,7 +177,7 @@ export async function POST(request: Request) {
     if (!emailRegex.test(email)) {
       return NextResponse.json(
         { error: "Invalid email format" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -185,12 +186,12 @@ export async function POST(request: Request) {
     const evaluatorsData = existingEvaluators.val();
     if (evaluatorsData) {
       const emailExists = Object.values(evaluatorsData).some(
-        (evaluator: any) => evaluator.email === email
+        (evaluator: any) => evaluator.email === email,
       );
       if (emailExists) {
         return NextResponse.json(
           { error: "An evaluator with this email already exists" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -235,6 +236,7 @@ export async function POST(request: Request) {
     // Only add optional fields if they have values
     if (phone) newEvaluator.phone = phone;
     if (position) newEvaluator.position = position;
+    if (city) newEvaluator.position = position;
     if (company) newEvaluator.company = company;
     if (maxAssignments !== undefined && maxAssignments !== null) {
       newEvaluator.maxAssignments = maxAssignments;
@@ -247,7 +249,7 @@ export async function POST(request: Request) {
       email,
       name,
       evaluatorId,
-      generatedPassword
+      generatedPassword,
     );
 
     // Send NDA automatically ONLY if email was sent successfully
@@ -270,7 +272,7 @@ export async function POST(request: Request) {
       }
     } else {
       console.warn(
-        `⚠️ Skipping NDA sending for ${email} because credential email failed.`
+        `⚠️ Skipping NDA sending for ${email} because credential email failed.`,
       );
     }
 
@@ -291,7 +293,7 @@ export async function POST(request: Request) {
             password: generatedPassword, // Include password since email failed
           },
         },
-        { status: 201 }
+        { status: 201 },
       );
     }
 
@@ -301,7 +303,7 @@ export async function POST(request: Request) {
           "Evaluator created successfully. Credentials have been sent to their email.",
         evaluator: { id: evaluatorId, ...evaluatorWithoutPassword },
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error: any) {
     console.error("Error creating evaluator:", error);
@@ -318,6 +320,7 @@ export async function PUT(request: Request) {
       name,
       email,
       phone,
+      city, 
       position,
       company,
       specialties,
@@ -328,7 +331,7 @@ export async function PUT(request: Request) {
     if (!id) {
       return NextResponse.json(
         { error: "Evaluator ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -337,7 +340,7 @@ export async function PUT(request: Request) {
     if (!snapshot.exists()) {
       return NextResponse.json(
         { error: "Evaluator not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -354,7 +357,7 @@ export async function PUT(request: Request) {
       if (!emailRegex.test(email)) {
         return NextResponse.json(
           { error: "Invalid email format" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -365,12 +368,12 @@ export async function PUT(request: Request) {
         if (evaluatorsData) {
           const emailExists = Object.entries(evaluatorsData).some(
             ([evalId, evaluator]: [string, any]) =>
-              evalId !== id && evaluator.email === email
+              evalId !== id && evaluator.email === email,
           );
           if (emailExists) {
             return NextResponse.json(
               { error: "An evaluator with this email already exists" },
-              { status: 400 }
+              { status: 400 },
             );
           }
         }
@@ -378,6 +381,7 @@ export async function PUT(request: Request) {
       updates.email = email;
     }
     if (phone !== undefined && phone !== null) updates.phone = phone;
+    if (city !== undefined && city !== null) updates.city = city;
     if (position !== undefined && position !== null)
       updates.position = position;
     if (company !== undefined && company !== null) updates.company = company;
@@ -435,7 +439,7 @@ export async function PUT(request: Request) {
         updatedEmail,
         updatedName,
         id,
-        newPassword
+        newPassword,
       );
       emailSent = emailResult.success;
     }
@@ -473,7 +477,7 @@ export async function DELETE(request: Request) {
     if (!id) {
       return NextResponse.json(
         { error: "Evaluator ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -482,7 +486,7 @@ export async function DELETE(request: Request) {
     if (!snapshot.exists()) {
       return NextResponse.json(
         { error: "Evaluator not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -507,7 +511,7 @@ export async function DELETE(request: Request) {
           error:
             "Cannot delete evaluator with existing assignments. Please reassign or delete assignments first.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -520,7 +524,7 @@ export async function DELETE(request: Request) {
           error:
             "Evaluator does not have a Firebase UID. Cannot delete from authentication.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -536,7 +540,7 @@ export async function DELETE(request: Request) {
             "Failed to delete evaluator from authentication. Please try again or contact support.",
           details: authError.message,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
