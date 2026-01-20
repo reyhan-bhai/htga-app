@@ -253,7 +253,7 @@ export default function RegisterPage() {
         className="mx-4"
       >
         <ModalContent>
-          {(onClose) => (
+          {() => (
             <>
               <ModalHeader className="flex flex-col gap-1 items-center text-center pt-8">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-2">
