@@ -110,9 +110,9 @@ const getBudgetViewData = (
             assignment.evaluator1AssignedAt || assignment.assignedAt || "-",
           receipt: claimInfo.receipt,
           amountSpent: amountSpent,
-          claimCurrency: claimInfo.currency || "MYR",
+          claimCurrency: claimInfo.currency || "Not Set",
           budget: budget,
-          budgetCurrency: establishment.currency || "MYR",
+          budgetCurrency: establishment.currency || "Not Set",
           reimbursement: calculateReimbursement(amountSpent, budget),
           evaluatorNumber: 1,
         });
@@ -141,9 +141,9 @@ const getBudgetViewData = (
             assignment.evaluator2AssignedAt || assignment.assignedAt || "-",
           receipt: claimInfo.receipt,
           amountSpent: amountSpent,
-          claimCurrency: claimInfo.currency || "MYR",
+          claimCurrency: claimInfo.currency || "Not Set",
           budget: budget,
-          budgetCurrency: establishment.currency || "MYR",
+          budgetCurrency: establishment.currency || "Not Set",
           reimbursement: calculateReimbursement(amountSpent, budget),
           evaluatorNumber: 2,
         });
