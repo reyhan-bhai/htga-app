@@ -22,6 +22,8 @@ interface AdminTableProps {
 
   // Assignment Props
   selectedView?: string;
+  requestViewData?: any[];
+  reportViewData?: any[];
   evaluatorViewData?: any[];
   restaurantViewData?: any[];
   evaluators?: any[];
@@ -55,6 +57,13 @@ interface AdminTableProps {
   emptyMessage?: {
     title: string;
     description: string;
+  };
+  // Custom empty messages per view (for assignment type)
+  emptyMessages?: {
+    evaluator?: { title: string; description: string };
+    restaurant?: { title: string; description: string };
+    request?: { title: string; description: string };
+    report?: { title: string; description: string };
   };
   hideActions?: boolean;
 }
@@ -265,6 +274,8 @@ export default function AdminTable({
   isLoading,
   // Assignment
   selectedView,
+  requestViewData = [],
+  reportViewData = [],
   evaluatorViewData = [],
   restaurantViewData = [],
   evaluators = [],
@@ -285,8 +296,37 @@ export default function AdminTable({
   handleDeleteItem,
   columns = [],
   renderCell,
+  emptyMessages,
 }: AdminTableProps) {
   const [previewImage, setPreviewImage] = React.useState<string | null>(null);
+  const isRequestTab = selectedView === "request";
+  const isReportTab = selectedView === "report";
+
+  const assignmentView = isRequestTab
+    ? "request"
+    : isReportTab
+      ? "report"
+      : selectedView === "restaurant"
+        ? "restaurant"
+        : "evaluator";
+
+  const activeAssignmentData =
+    assignmentView === "request"
+      ? requestViewData
+      : assignmentView === "report"
+        ? reportViewData
+        : assignmentView === "restaurant"
+          ? restaurantViewData
+          : evaluatorViewData;
+
+  const activeEmptyMessage =
+    assignmentView === "request"
+      ? emptyMessages?.request
+      : assignmentView === "report"
+        ? emptyMessages?.report
+        : assignmentView === "restaurant"
+          ? emptyMessages?.restaurant
+          : emptyMessages?.evaluator;
 
   const handlePreviewImage = (imageUrl: string) => {
     setPreviewImage(imageUrl);
@@ -312,15 +352,18 @@ export default function AdminTable({
         return (
           <div className="bg-white rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
-              {selectedView === "evaluator" ? (
+              {assignmentView === "evaluator" ||
+              assignmentView === "request" ? (
                 <TableComponent
                   columns={columns}
-                  data={evaluatorViewData}
+                  data={activeAssignmentData}
                   onView={handleViewDetails}
                   onEdit={(item) =>
                     handleEdit?.(
                       item,
-                      selectedView,
+                      assignmentView === "request"
+                        ? "evaluator"
+                        : assignmentView,
                       assignments,
                       setEditingRestaurant!,
                       setEditEvaluator1!,
@@ -336,25 +379,29 @@ export default function AdminTable({
                       onSendCompletionReminder: handleSendCompletionReminder!,
                     })
                   }
-                  emptyMessage={{
-                    title:
-                      evaluators.length === 0
-                        ? "No evaluators yet"
-                        : "No assignments yet",
-                    description:
-                      evaluators.length === 0
-                        ? "Add evaluators first in the Evaluators page."
-                        : "Click 'Match Evaluator' to start assigning evaluators to restaurants.",
-                  }}
+                  emptyMessage={
+                    activeEmptyMessage || {
+                      title:
+                        evaluators.length === 0
+                          ? "No evaluators yet"
+                          : "No assignments yet",
+                      description:
+                        evaluators.length === 0
+                          ? "Add evaluators first in the Evaluators page."
+                          : "Click 'Match Evaluator' to start assigning evaluators to restaurants.",
+                    }
+                  }
                 />
               ) : (
                 <TableComponent
                   columns={columns}
-                  data={restaurantViewData}
+                  data={activeAssignmentData}
                   onEdit={(item) =>
                     handleEdit?.(
                       item,
-                      selectedView!,
+                      assignmentView === "report"
+                        ? "restaurant"
+                        : assignmentView,
                       assignments,
                       setEditingRestaurant!,
                       setEditEvaluator1!,
@@ -368,10 +415,12 @@ export default function AdminTable({
                       onPreviewImage: handlePreviewImage,
                     })
                   }
-                  emptyMessage={{
-                    title: "No restaurants found",
-                    description: "Add restaurants in the Restaurants page.",
-                  }}
+                  emptyMessage={
+                    activeEmptyMessage || {
+                      title: "No restaurants found",
+                      description: "Add restaurants in the Restaurants page.",
+                    }
+                  }
                 />
               )}
             </div>

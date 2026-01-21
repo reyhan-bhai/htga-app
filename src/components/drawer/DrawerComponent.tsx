@@ -8,6 +8,7 @@ import {
   MdAccountBalanceWallet,
   MdAssignment,
   MdClose,
+  MdFeedback,
   MdLogout,
   MdPeople,
   MdRestaurant,
@@ -136,6 +137,7 @@ export default function DrawerComponent({
                 Evaluator Management
               </Link>
             </li>
+
             <li>
               <Link
                 href="/admin/budget"
@@ -144,6 +146,16 @@ export default function DrawerComponent({
               >
                 <MdAccountBalanceWallet size={24} />
                 Budget Management
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/admin/feedback"
+                className={navItemClass("/admin/feedback")}
+                onClick={onClose}
+              >
+                <MdFeedback size={24} />
+                Feedback
               </Link>
             </li>
           </ul>

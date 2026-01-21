@@ -23,6 +23,16 @@ import {
 interface AdminViewControlProps {
   type: "assignment" | "evaluator" | "restaurant" | "budget";
 
+  // Optional custom tabs (for assignment-like views)
+  tabOptions?: {
+    key: string;
+    label: string;
+    shortLabel?: string;
+    icon?: React.ReactNode;
+  }[];
+  searchPlaceholders?: Record<string, string>;
+  showAssignmentStats?: boolean;
+
   // Common
   activeFiltersCount?: number;
   clearFilters?: () => void;
@@ -88,6 +98,9 @@ export default function AdminViewControl({
   type,
   activeFiltersCount = 0,
   clearFilters,
+  tabOptions,
+  searchPlaceholders,
+  showAssignmentStats = true,
   selectedDateRange,
   setSelectedDateRange,
   selectedView,
@@ -121,6 +134,34 @@ export default function AdminViewControl({
   handleAddEvaluator,
   handleAddRestaurant,
 }: AdminViewControlProps) {
+  const defaultTabOptions = [
+    {
+      key: "evaluator",
+      label: "By Evaluator",
+      shortLabel: "Evaluator",
+      icon: (
+        <MdPeople
+          size={16}
+          className="w-[14px] h-[14px] sm:w-[18px] sm:h-[18px]"
+        />
+      ),
+    },
+    {
+      key: "restaurant",
+      label: "By Restaurant",
+      shortLabel: "Restaurant",
+      icon: (
+        <MdRestaurant
+          size={16}
+          className="w-[14px] h-[14px] sm:w-[18px] sm:h-[18px]"
+        />
+      ),
+    },
+  ];
+
+  const resolvedTabs =
+    tabOptions && tabOptions.length > 0 ? tabOptions : defaultTabOptions;
+
   switch (type) {
     case "assignment":
       return (
@@ -141,32 +182,20 @@ export default function AdminViewControl({
                   "group-data-[selected=true]:text-white text-gray-600 text-xs sm:text-base",
               }}
             >
-              <Tab
-                key="evaluator"
-                title={
-                  <div className="flex items-center gap-1 sm:gap-2 justify-center">
-                    <MdPeople
-                      size={16}
-                      className="w-[14px] h-[14px] sm:w-[18px] sm:h-[18px]"
-                    />
-                    <span className="hidden sm:inline">By Evaluator</span>
-                    <span className="sm:hidden">Evaluator</span>
-                  </div>
-                }
-              />
-              <Tab
-                key="restaurant"
-                title={
-                  <div className="flex items-center gap-1 sm:gap-2 justify-center">
-                    <MdRestaurant
-                      size={16}
-                      className="w-[14px] h-[14px] sm:w-[18px] sm:h-[18px]"
-                    />
-                    <span className="hidden sm:inline">By Restaurant</span>
-                    <span className="sm:hidden">Restaurant</span>
-                  </div>
-                }
-              />
+              {resolvedTabs.map((tab) => (
+                <Tab
+                  key={tab.key}
+                  title={
+                    <div className="flex items-center gap-1 sm:gap-2 justify-center">
+                      {tab.icon}
+                      <span className="hidden sm:inline">{tab.label}</span>
+                      <span className="sm:hidden">
+                        {tab.shortLabel || tab.label}
+                      </span>
+                    </div>
+                  }
+                />
+              ))}
             </Tabs>
           </div>
 
@@ -176,9 +205,10 @@ export default function AdminViewControl({
               {/* Search Input */}
               <Input
                 placeholder={
-                  selectedView === "evaluator"
+                  searchPlaceholders?.[selectedView || ""] ||
+                  (selectedView === "evaluator"
                     ? "Search by name, email, ID, phone, or specialty..."
-                    : "Search by name, category, date, or evaluator..."
+                    : "Search by name, category, date, or evaluator...")
                 }
                 value={searchQuery || ""}
                 onValueChange={(value) => {
@@ -262,7 +292,7 @@ export default function AdminViewControl({
                                     key={status}
                                     size="sm"
                                     isSelected={selectedNDAStatus?.includes(
-                                      status
+                                      status,
                                     )}
                                     onValueChange={() => {
                                       if (
@@ -272,7 +302,7 @@ export default function AdminViewControl({
                                         const newStatus =
                                           selectedNDAStatus.includes(status)
                                             ? selectedNDAStatus.filter(
-                                                (s) => s !== status
+                                                (s) => s !== status,
                                               )
                                             : [...selectedNDAStatus, status];
                                         setSelectedNDAStatus(newStatus);
@@ -284,7 +314,7 @@ export default function AdminViewControl({
                                   >
                                     {status}
                                   </Checkbox>
-                                )
+                                ),
                               )}
                             </div>
                           </div>
@@ -304,7 +334,7 @@ export default function AdminViewControl({
                                       key={specialty}
                                       size="sm"
                                       isSelected={selectedSpecialties?.includes(
-                                        specialty
+                                        specialty,
                                       )}
                                       onValueChange={() => {
                                         if (toggleSpecialty) {
@@ -410,7 +440,7 @@ export default function AdminViewControl({
                                 if (setSelectedMatchStatus) {
                                   const nextKey = key as string;
                                   setSelectedMatchStatus(
-                                    nextKey === "all" ? [] : [nextKey]
+                                    nextKey === "all" ? [] : [nextKey],
                                   );
                                 }
                               }}
@@ -443,7 +473,7 @@ export default function AdminViewControl({
                                       key={category}
                                       size="sm"
                                       isSelected={selectedCategories?.includes(
-                                        category
+                                        category,
                                       )}
                                       onValueChange={() => {
                                         if (toggleCategory) {
@@ -477,7 +507,7 @@ export default function AdminViewControl({
                                     key={`eva1-${progress}`}
                                     size="sm"
                                     isSelected={selectedEvaOneProgress?.includes(
-                                      progress
+                                      progress,
                                     )}
                                     onValueChange={() => {
                                       if (toggleEvaOneProgress) {
@@ -490,7 +520,7 @@ export default function AdminViewControl({
                                   >
                                     {progress}
                                   </Checkbox>
-                                )
+                                ),
                               )}
                             </div>
                           </div>
@@ -509,7 +539,7 @@ export default function AdminViewControl({
                                     key={`eva2-${progress}`}
                                     size="sm"
                                     isSelected={selectedEvaTwoProgress?.includes(
-                                      progress
+                                      progress,
                                     )}
                                     onValueChange={() => {
                                       if (toggleEvaTwoProgress) {
@@ -522,7 +552,7 @@ export default function AdminViewControl({
                                   >
                                     {progress}
                                   </Checkbox>
-                                )
+                                ),
                               )}
                             </div>
                           </div>
@@ -563,85 +593,87 @@ export default function AdminViewControl({
             </div>
 
             {/* Summary Stats */}
-            {(evaluatorViewData.length > 0 ||
-              restaurantViewData.length > 0) && (
-              <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm">
-                {selectedView === "evaluator" ? (
-                  <>
-                    <div className="flex items-center gap-1 sm:gap-2">
-                      <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
-                      <span className="text-gray-600 whitespace-nowrap">
-                        <span className="hidden sm:inline">NDA Signed: </span>
-                        <span className="sm:hidden">Signed: </span>
-                        {
-                          evaluatorViewData.filter(
-                            (e) => e.nda_status === "Signed"
-                          ).length
-                        }
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 sm:gap-2">
-                      <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
-                      <span className="text-gray-600 whitespace-nowrap">
-                        Pending:{" "}
-                        {
-                          evaluatorViewData.filter(
-                            (e) => e.nda_status === "Pending"
-                          ).length
-                        }
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 sm:gap-2">
-                      <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
-                      <span className="text-gray-600 whitespace-nowrap">
-                        <span className="hidden sm:inline">Not Sent: </span>
-                        <span className="sm:hidden">Unsent: </span>
-                        {
-                          evaluatorViewData.filter(
-                            (e) => e.nda_status === "Not Sent"
-                          ).length
-                        }
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-1 sm:gap-2">
-                      <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
-                      <span className="text-gray-600 whitespace-nowrap">
-                        Matched:{" "}
-                        {
-                          restaurantViewData.filter((r) => r.matched === "Yes")
-                            .length
-                        }
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 sm:gap-2">
-                      <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
-                      <span className="text-gray-600 whitespace-nowrap">
-                        Partial:{" "}
-                        {
-                          restaurantViewData.filter(
-                            (r) => r.matched === "Partial"
-                          ).length
-                        }
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 sm:gap-2">
-                      <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
-                      <span className="text-gray-600 whitespace-nowrap">
-                        <span className="hidden sm:inline">Unassigned: </span>
-                        <span className="sm:hidden">None: </span>
-                        {
-                          restaurantViewData.filter((r) => r.matched === "No")
-                            .length
-                        }
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+            {showAssignmentStats &&
+              (evaluatorViewData.length > 0 ||
+                restaurantViewData.length > 0) && (
+                <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm">
+                  {selectedView === "evaluator" ? (
+                    <>
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
+                        <span className="text-gray-600 whitespace-nowrap">
+                          <span className="hidden sm:inline">NDA Signed: </span>
+                          <span className="sm:hidden">Signed: </span>
+                          {
+                            evaluatorViewData.filter(
+                              (e) => e.nda_status === "Signed",
+                            ).length
+                          }
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
+                        <span className="text-gray-600 whitespace-nowrap">
+                          Pending:{" "}
+                          {
+                            evaluatorViewData.filter(
+                              (e) => e.nda_status === "Pending",
+                            ).length
+                          }
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
+                        <span className="text-gray-600 whitespace-nowrap">
+                          <span className="hidden sm:inline">Not Sent: </span>
+                          <span className="sm:hidden">Unsent: </span>
+                          {
+                            evaluatorViewData.filter(
+                              (e) => e.nda_status === "Not Sent",
+                            ).length
+                          }
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
+                        <span className="text-gray-600 whitespace-nowrap">
+                          Matched:{" "}
+                          {
+                            restaurantViewData.filter(
+                              (r) => r.matched === "Yes",
+                            ).length
+                          }
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
+                        <span className="text-gray-600 whitespace-nowrap">
+                          Partial:{" "}
+                          {
+                            restaurantViewData.filter(
+                              (r) => r.matched === "Partial",
+                            ).length
+                          }
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
+                        <span className="text-gray-600 whitespace-nowrap">
+                          <span className="hidden sm:inline">Unassigned: </span>
+                          <span className="sm:hidden">None: </span>
+                          {
+                            restaurantViewData.filter((r) => r.matched === "No")
+                              .length
+                          }
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
           </div>
         </div>
       );
@@ -720,7 +752,7 @@ export default function AdminViewControl({
                                 key={specialty}
                                 size="sm"
                                 isSelected={selectedSpecialties?.includes(
-                                  specialty
+                                  specialty,
                                 )}
                                 onValueChange={() =>
                                   toggleSpecialty?.(specialty)
@@ -881,7 +913,7 @@ export default function AdminViewControl({
                                 key={category}
                                 size="sm"
                                 isSelected={selectedCategories?.includes(
-                                  category
+                                  category,
                                 )}
                                 onValueChange={() => toggleCategory?.(category)}
                                 classNames={{

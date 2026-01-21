@@ -9,6 +9,7 @@ interface AdminHeaderProps {
   type: "assignment" | "evaluator" | "restaurant" | "budget";
   title?: string;
   subtitle?: string;
+  showAssignmentActions?: boolean;
   // Assignment specific props
   assignments?: any[];
   establishments?: any[];
@@ -21,6 +22,7 @@ export default function AdminHeader({
   type,
   title,
   subtitle,
+  showAssignmentActions = true,
   assignments,
   establishments,
   setIsLoading,
@@ -50,33 +52,35 @@ export default function AdminHeader({
           </h2>
 
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-            <Button
-              className="bg-[#A67C37] text-white font-semibold rounded-lg text-sm sm:text-base"
-              startContent={<MdShuffle size={18} />}
-              onPress={() =>
-                handleMatchEvaluator(
-                  setIsLoading!,
-                  assignments!,
-                  establishments!,
-                  fetchData!
-                )
-              }
-              size="sm"
-            >
-              <span className="hidden sm:inline">Match Evaluator</span>
-              <span className="sm:hidden">Match</span>
-            </Button>
-            <Button
-              className="bg-white border-2 border-[#A67C37] text-[#A67C37] font-semibold rounded-lg text-sm sm:text-base"
-              startContent={<MdLink size={18} />}
-              onPress={() => handleManualMatch(setIsManualMatchOpen!)}
-              size="sm"
-            >
-              <span className="hidden sm:inline">Manual Match</span>
-              <span className="sm:hidden">Manual</span>
-            </Button>
-          </div>
+          {showAssignmentActions && (
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+              <Button
+                className="bg-[#A67C37] text-white font-semibold rounded-lg text-sm sm:text-base"
+                startContent={<MdShuffle size={18} />}
+                onPress={() =>
+                  handleMatchEvaluator(
+                    setIsLoading!,
+                    assignments!,
+                    establishments!,
+                    fetchData!,
+                  )
+                }
+                size="sm"
+              >
+                <span className="hidden sm:inline">Match Evaluator</span>
+                <span className="sm:hidden">Match</span>
+              </Button>
+              <Button
+                className="bg-white border-2 border-[#A67C37] text-[#A67C37] font-semibold rounded-lg text-sm sm:text-base"
+                startContent={<MdLink size={18} />}
+                onPress={() => handleManualMatch(setIsManualMatchOpen!)}
+                size="sm"
+              >
+                <span className="hidden sm:inline">Manual Match</span>
+                <span className="sm:hidden">Manual</span>
+              </Button>
+            </div>
+          )}
         </div>
       );
     case "evaluator":
