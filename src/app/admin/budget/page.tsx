@@ -310,7 +310,7 @@ export default function BudgetPage() {
             case "budget":
               return (
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-blue-600">
+                  <span className="font-medium text-blue-600 whitespace-nowrap">
                     {item.budgetCurrency} {cellValue.toFixed(2)}
                   </span>
                 </div>

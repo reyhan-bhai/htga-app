@@ -872,7 +872,13 @@ export default function DashboardPage() {
                       </span>
                       <h4 className="text-lg font-bold text-gray-900 leading-tight">
                         {assignment.establishment.name}
-                      </h4>
+                      </h4>{" "}
+                      <p className="text-xs text-gray-400 mt-1">
+                        ID:{" "}
+                        <span className="font-mono text-xs text-gray-500 break-words">
+                          {assignment.id}
+                        </span>{" "}
+                      </p>
                     </div>
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-bold ${
@@ -1131,16 +1137,41 @@ export default function DashboardPage() {
                   Amount Spent
                 </label>
                 <div className="mt-2 flex gap-3">
-                  <select
-                    value={claimCurrency}
-                    onChange={(e) => setClaimCurrency(e.target.value)}
-                    className="w-24 rounded-2xl border border-gray-200 bg-white px-3 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] focus:border-[#FFA200] focus:outline-none"
-                  >
-                    <option value="MYR">MYR</option>
-                    <option value="USD">USD</option>
-                    <option value="SGD">SGD</option>
-                    <option value="IDR">IDR</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={claimCurrency}
+                      onChange={(e) => setClaimCurrency(e.target.value)}
+                      className="appearance-none rounded-2xl border border-gray-200 bg-white px-4 py-3 pr-10 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] focus:border-[#FFA200] focus:outline-none"
+                    >
+                      <option
+                        value="MYR"
+                        className="text-sm font-semibold text-gray-800"
+                      >
+                        MYR
+                      </option>
+                      <option
+                        value="USD"
+                        className="text-sm font-semibold text-gray-800"
+                      >
+                        USD
+                      </option>
+                      <option
+                        value="SGD"
+                        className="text-sm font-semibold text-gray-800"
+                      >
+                        SGD
+                      </option>
+                      <option
+                        value="IDR"
+                        className="text-sm font-semibold text-gray-800"
+                      >
+                        IDR
+                      </option>
+                    </select>
+                    <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
+                      ▾
+                    </span>
+                  </div>
                   <input
                     id="claim-amount"
                     type="number"
