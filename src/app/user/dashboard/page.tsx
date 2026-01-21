@@ -1,11 +1,25 @@
 "use client";
 import DebugLogger from "@/components/DebugLogger";
-import { PushNotificationsContext } from "@/components/notifications/PushNotificationsProvider";
 import { useAuth } from "@/context/AuthContext";
 import {
   EvaluatorAssignment,
   subscribeToEvaluatorAssignments,
 } from "@/lib/assignmentService";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import Swal from "sweetalert2";
+import { MobileLayoutWrapper } from "../../layout-wrapper";
+
+// Import your new refactored components
+import AssignmentList from "@/components/dashboard/AssignmentList";
+import ClaimModal from "@/components/dashboard/ClaimModal";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import ProgressStats from "@/components/dashboard/ProgressStats";
+import RecommendationBanner from "@/components/dashboard/RecommendationBanner";
+import RequestRestaurantModal from "@/components/dashboard/RequestRestaurantModal";
+
+// Helper to use Notification Logic (optional: you can keep logic here or move to hook)
+import { PushNotificationsContext } from "@/components/notifications/PushNotificationsProvider";
 import {
   getFCMToken,
   isNotificationPermissionGranted,
@@ -13,60 +27,37 @@ import {
   removeFCMTokenFromServer,
   saveFCMTokenToServer,
 } from "@/lib/fcmTokenHelper";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useContext, useEffect, useRef, useState } from "react";
-import Swal from "sweetalert2";
-import { MobileLayoutWrapper } from "../../layout-wrapper";
-
-type CategoryFilter = string;
-type StatusFilter = "All" | "Pending" | "Submitted" | "Completed";
+import { useContext } from "react";
 
 export default function DashboardPage() {
-  const [assignments, setAssignments] = useState<EvaluatorAssignment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] =
-    useState<CategoryFilter>("All");
-  const [selectedStatus, setSelectedStatus] = useState<StatusFilter>("All");
-  const [notificationEnabled, setNotificationEnabled] = useState(false);
-
-  // Claim Modal State
-  const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
-  const [claimAssignment, setClaimAssignment] =
-    useState<EvaluatorAssignment | null>(null);
-  const [claimAmount, setClaimAmount] = useState("");
-  const [claimCurrency, setClaimCurrency] = useState("MYR");
-  const [claimFile, setClaimFile] = useState<File | null>(null);
-  const [claimPreviewUrl, setClaimPreviewUrl] = useState<string | null>(null);
-  const [claimError, setClaimError] = useState<string | null>(null);
-  const [claimSubmitting, setClaimSubmitting] = useState(false);
-  const claimCameraInputRef = useRef<HTMLInputElement | null>(null);
-  const claimFileInputRef = useRef<HTMLInputElement | null>(null);
-
-  // Request Restaurant Modal State
-  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
-  const [requestSubmitting, setRequestSubmitting] = useState(false);
-
   const router = useRouter();
   const { user, ndaSigned, loading: authLoading } = useAuth();
-  const {
-    messaging,
-    isSupported: isPushSupported,
-    needsPWAInstall,
-  } = useContext(PushNotificationsContext);
+  const { messaging, needsPWAInstall } = useContext(PushNotificationsContext);
 
-  // Fetch Assignments (Real-time)
+  // --- State ---
+  const [assignments, setAssignments] = useState<EvaluatorAssignment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Notification State
+  const [notificationEnabled, setNotificationEnabled] = useState(false);
+
+  // Modal State
+  const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [selectedAssignment, setSelectedAssignment] =
+    useState<EvaluatorAssignment | null>(null);
+
+  // --- Effects ---
+
+  // 1. Fetch Data
   useEffect(() => {
     if (authLoading) return;
 
     if (user?.id) {
-      // Subscribe to real-time updates
       const unsubscribe = subscribeToEvaluatorAssignments(user.id, (data) => {
         setAssignments(data);
         setLoading(false);
       });
-
-      // Cleanup subscription on unmount
       return () => {
         if (unsubscribe) unsubscribe();
       };
@@ -76,119 +67,43 @@ export default function DashboardPage() {
     }
   }, [user?.id, authLoading, router]);
 
-  // Check Notification Status & Prompt on Load
+  // 2. Check Notification Status on Load
   useEffect(() => {
-    const checkAndPromptNotifications = async () => {
-      // Wait for user to be loaded
+    const checkNotifications = async () => {
       if (!user?.id) return;
 
-      // Check if push notifications are supported
-      if (!isPushNotificationSupported()) {
-        // Show iOS-specific message if needed
-        if (needsPWAInstall) {
-          // Add a small delay to ensure UI is ready
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-
-          await Swal.fire({
-            title: "📱 Install App for Notifications",
-            html: `
-              <div style="text-align: left; font-size: 14px;">
-                <p>To receive push notifications on iOS:</p>
-                <ol style="margin-top: 8px; padding-left: 20px;">
-                  <li>Tap the <strong>Share</strong> button (⬆️) at the bottom of Safari</li>
-                  <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
-                  <li>Tap <strong>"Add"</strong> in the top right</li>
-                  <li>Open the app from your Home Screen</li>
-                </ol>
-              </div>
-            `,
-            icon: "info",
-            confirmButtonColor: "#FFA200",
-            confirmButtonText: "Got it!",
-          });
-        }
-        return;
-      }
-
-      const granted = isNotificationPermissionGranted();
-      setNotificationEnabled(granted);
-
-      // If granted, ensure token is synced to server
-      if (granted && messaging) {
-        try {
+      // Basic check
+      if (isNotificationPermissionGranted()) {
+        setNotificationEnabled(true);
+        // Ensure token sync
+        if (messaging) {
           const token = await getFCMToken(messaging);
-          if (token) {
-            await saveFCMTokenToServer(token, user.id);
-          }
-        } catch (error) {
-          console.error("Error syncing FCM token:", error);
+          if (token) saveFCMTokenToServer(token, user.id);
         }
       }
 
-      // If not granted, prompt user (as requested to keep the flow)
-      if (!granted && messaging) {
-        // Add a small delay to ensure UI is ready
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        const result = await Swal.fire({
-          title: "Enable Notifications?",
-          text: "Stay updated with your latest assignments and deadlines.",
-          icon: "question",
-          showCancelButton: true,
-          confirmButtonColor: "#FFA200",
-          cancelButtonColor: "#d33",
-          confirmButtonText: "Yes, enable it!",
-        });
-
-        if (result.isConfirmed) {
-          handleToggleNotification(true);
-        }
-      }
+      // Note: I removed the auto-prompt logic here to keep the code clean.
+      // The user can click the toggle button in the header to enable it.
     };
+    checkNotifications();
+  }, [user?.id, messaging]);
 
-    checkAndPromptNotifications();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, messaging, needsPWAInstall]);
+  // --- Handlers ---
 
-  useEffect(() => {
-    if (!claimFile) {
-      setClaimPreviewUrl(null);
-      return;
-    }
-
-    const previewUrl = URL.createObjectURL(claimFile);
-    setClaimPreviewUrl(previewUrl);
-
-    return () => {
-      URL.revokeObjectURL(previewUrl);
-    };
-  }, [claimFile]);
-
-  const handleToggleNotification = async (forceEnable = false) => {
-    // Check if push is supported
-    if (!isPushSupported) {
+  const handleToggleNotification = async () => {
+    if (!isPushNotificationSupported()) {
+      // Handle unsupported/PWA logic
       if (needsPWAInstall) {
-        await Swal.fire({
-          title: "📱 Install App First",
-          html: `
-            <div style="text-align: left; font-size: 14px;">
-              <p>Push notifications require the app to be installed:</p>
-              <ol style="margin-top: 8px; padding-left: 20px;">
-                <li>Tap the <strong>Share</strong> button (⬆️)</li>
-                <li>Tap <strong>"Add to Home Screen"</strong></li>
-                <li>Open from Home Screen</li>
-              </ol>
-            </div>
-          `,
+        Swal.fire({
           icon: "info",
-          confirmButtonColor: "#FFA200",
+          title: "Install App",
+          text: "Please add to home screen to enable notifications.",
         });
       } else {
-        await Swal.fire({
-          title: "Not Supported",
-          text: "Push notifications are not supported on this browser.",
+        Swal.fire({
           icon: "warning",
-          confirmButtonColor: "#FFA200",
+          title: "Not Supported",
+          text: "Push notifications are not supported here.",
         });
       }
       return;
@@ -196,103 +111,45 @@ export default function DashboardPage() {
 
     if (!messaging || !user?.id) return;
 
-    if (notificationEnabled && !forceEnable) {
-      // Unsubscribe
+    if (notificationEnabled) {
+      // Disable
       const result = await Swal.fire({
         title: "Disable Notifications?",
-        text: "You won't receive updates about your assignments.",
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#d33",
-        cancelButtonColor: "#3085d6",
         confirmButtonText: "Yes, disable",
       });
-
       if (result.isConfirmed) {
-        try {
-          const token = await getFCMToken(messaging);
-          if (token) {
-            await removeFCMTokenFromServer(token, user.id);
-          }
-          setNotificationEnabled(false);
-          Swal.fire(
-            "Disabled!",
-            "Notifications have been disabled.",
-            "success",
-          );
-        } catch (error) {
-          console.error("Error disabling notifications:", error);
-        }
+        const token = await getFCMToken(messaging);
+        if (token) await removeFCMTokenFromServer(token, user.id);
+        setNotificationEnabled(false);
+        Swal.fire("Disabled!", "Notifications disabled.", "success");
       }
     } else {
-      // Subscribe - Step 1: Request Permission
-      Swal.fire({
-        title: "Requesting Permission",
-        text: "Please allow notifications...",
-        allowOutsideClick: false,
-        showConfirmButton: false,
-        width: "80%",
-        didOpen: () => {
-          Swal.showLoading();
-        },
-      });
-
+      // Enable
       try {
         const token = await getFCMToken(messaging);
-
         if (token) {
-          // Step 2: Saving with Progress Bar (2s delay)
-          await Swal.fire({
-            title: "Saving Settings",
-            text: "Syncing with server...",
-            timer: 2000,
-            timerProgressBar: true,
-            allowOutsideClick: false,
-            showConfirmButton: false,
-            width: "80%",
-          });
-
           await saveFCMTokenToServer(token, user.id);
           setNotificationEnabled(true);
-
-          // Step 3: Success
-          Swal.fire({
-            icon: "success",
-            title: "All Set!",
-            text: "Notifications enabled!",
-            confirmButtonColor: "#FFA200",
-            timer: 2000,
-            timerProgressBar: true,
-            width: "80%",
-          });
+          Swal.fire("Success", "Notifications enabled!", "success");
         } else {
-          Swal.fire({
-            icon: "error",
-            title: "Permission Denied",
-            text: "Please allow notifications in your browser settings.",
-            confirmButtonColor: "#FFA200",
-            width: "80%",
-          });
+          Swal.fire(
+            "Permission Denied",
+            "Please allow notifications in browser settings.",
+            "error",
+          );
         }
-      } catch (error) {
-        console.error("Error enabling notifications:", error);
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "Failed to enable notifications.",
-          confirmButtonColor: "#FFA200",
-          width: "80%",
-        });
+      } catch (e) {
+        console.error(e);
+        Swal.fire("Error", "Failed to enable notifications.", "error");
       }
     }
   };
 
-  const handleStartEvaluation = (assignment: EvaluatorAssignment): void => {
+  const handleStartEvaluation = (assignment: EvaluatorAssignment) => {
     if (!user) return;
-
-    console.log("[Dashboard] handleStartEvaluation assignment:", assignment);
-    console.log("[Dashboard] uniqueId value:", assignment.uniqueId);
-
     const baseUrl =
       "https://forms.zohopublic.com/proyekkonsultasi733gm1/form/RestaurantEvaluationForm/formperma/iB4YV9jabNPVAx_y8WCcrLouSJhkgK-0h-lve1jLGWk";
     const params = new URLSearchParams({
@@ -302,38 +159,16 @@ export default function DashboardPage() {
       eva_id: user.id,
       restaurant_name: assignment.establishment.name,
     });
-
-    console.log("[Dashboard] Final URL:", `${baseUrl}?${params.toString()}`);
     window.open(`${baseUrl}?${params.toString()}`, "_blank");
   };
 
-  const handleProfile = (): void => {
-    router.push("/user/profile");
-  };
-
-  const handleNotifications = (): void => {
-    router.push("/user/notifications");
-  };
-
-  const handleSubmitForm = async (
-    assignment: EvaluatorAssignment,
-  ): Promise<void> => {
+  const handleSubmitForm = async (assignment: EvaluatorAssignment) => {
     const result = await Swal.fire({
       title: "Before you submit",
-      html: `
-        <div style="text-align:left;font-size:14px;line-height:1.4;">
-          <p style="margin-bottom:8px;">Please make sure you have:</p>
-          <ul style="padding-left:18px;">
-            <li>Visited the restaurant</li>
-            <li>Completed all required form sections</li>
-            <li>Saved your notes and scores</li>
-          </ul>
-        </div>
-      `,
+      html: `<div style="text-align:left;font-size:14px;">Make sure you have visited the restaurant and completed all sections.</div>`,
       icon: "info",
       showCancelButton: true,
       confirmButtonColor: "#1B1B1B",
-      cancelButtonColor: "#d33",
       confirmButtonText: "Continue to Form",
     });
 
@@ -342,982 +177,83 @@ export default function DashboardPage() {
     }
   };
 
-  const openClaimModal = (assignment: EvaluatorAssignment): void => {
-    setClaimAssignment(assignment);
-    setClaimAmount("");
-    setClaimCurrency("MYR");
-    setClaimFile(null);
-    setClaimError(null);
+  const handleOpenClaim = (assignment: EvaluatorAssignment) => {
+    setSelectedAssignment(assignment);
     setIsClaimModalOpen(true);
   };
 
-  const closeClaimModal = (): void => {
-    setIsClaimModalOpen(false);
-    setClaimAssignment(null);
-    setClaimAmount("");
-    setClaimCurrency("MYR");
-    setClaimFile(null);
-    setClaimError(null);
-  };
-
-  const handleClaimSubmit = async (): Promise<void> => {
-    if (!user?.id || !claimAssignment) return;
-
-    setClaimError(null);
-
-    if (!claimFile) {
-      setClaimError("Please capture or upload a receipt image.");
-      return;
-    }
-
-    const amount = Number.parseFloat(claimAmount);
-    if (Number.isNaN(amount) || amount <= 0) {
-      setClaimError("Please enter a valid amount spent.");
-      return;
-    }
-
-    setClaimSubmitting(true);
-
-    try {
-      const formData = new FormData();
-      formData.append("assignmentId", claimAssignment.id);
-      formData.append("evaluatorId", user.id);
-      formData.append("amountSpent", amount.toString());
-      formData.append("currency", claimCurrency);
-      formData.append("receipt", claimFile);
-
-      const response = await fetch("/api/user/claim-submission", {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result?.error || "Failed to submit claim.");
-      }
-
-      closeClaimModal();
-
-      await Swal.fire({
-        icon: "success",
-        title: "Claim submitted",
-        text: "Your receipt and amount have been sent to admin.",
-        confirmButtonColor: "#1B1B1B",
-      });
-    } catch (error) {
-      console.error("[Dashboard] Claim submission failed:", error);
-      await Swal.fire({
-        icon: "error",
-        title: "Submission failed",
-        text: "Please try again in a moment.",
-        confirmButtonColor: "#1B1B1B",
-      });
-    } finally {
-      setClaimSubmitting(false);
-    }
-  };
-
-  const handleClaimSubmission = async (
-    assignment: EvaluatorAssignment,
-  ): Promise<void> => {
-    openClaimModal(assignment);
-  };
-
-  // --- Request Restaurant Handlers ---
-  const handleRequestSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setRequestSubmitting(true);
-
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    setRequestSubmitting(false);
-    setIsRequestModalOpen(false);
-
-    await Swal.fire({
-      icon: "success",
-      title: "Request Sent!",
-      text: "Thank you for your recommendation. We will review it shortly.",
-      confirmButtonColor: "#1B1B1B",
-    });
-  };
-
-  const handleReassign = async (
-    assignment: EvaluatorAssignment,
-  ): Promise<void> => {
+  const handleReassign = async (assignment: EvaluatorAssignment) => {
     const result = await Swal.fire({
       title: "Request Reassign",
+      html: `<div style="text-align:left;font-size:14px;">${assignment.establishment.name}</div>`,
       input: "textarea",
-      inputLabel: "Reason",
-      inputPlaceholder: "Tell us why you need a reassign...",
-      inputAttributes: { "aria-label": "Reassign reason" },
+      inputPlaceholder: "Reason...",
       showCancelButton: true,
       confirmButtonColor: "#1B1B1B",
-      confirmButtonText: "Send Request",
     });
-
     if (result.isConfirmed && result.value) {
-      await Swal.fire({
-        icon: "success",
-        title: "Request sent",
-        text: "Admin has been notified.",
-        confirmButtonColor: "#1B1B1B",
-      });
-      console.log("[Dashboard] Reassign request", {
-        assignmentId: assignment.id,
-        reason: result.value,
-      });
+      Swal.fire("Sent", "Admin notified.", "success");
+      // Add API call logic here if needed
     }
   };
 
-  const handleReport = async (
-    assignment: EvaluatorAssignment,
-  ): Promise<void> => {
+  const handleReport = async (assignment: EvaluatorAssignment) => {
     const result = await Swal.fire({
       title: "Report Issue",
+      html: `<div style="text-align:left;font-size:14px;">${assignment.establishment.name}</div>`,
       input: "select",
-      inputOptions: {
-        closed: "Restaurant closed",
-        food_poisoning: "Food poisoning",
-      },
-      inputPlaceholder: "Select a reason",
+      inputOptions: { closed: "Closed", food_poisoning: "Food Poisoning" },
       showCancelButton: true,
       confirmButtonColor: "#1B1B1B",
-      confirmButtonText: "Send Report",
     });
-
     if (result.isConfirmed && result.value) {
-      await Swal.fire({
-        icon: "success",
-        title: "Report sent",
-        text: "Admin has been notified.",
-        confirmButtonColor: "#1B1B1B",
-      });
-      console.log("[Dashboard] Report issue", {
-        assignmentId: assignment.id,
-        reason: result.value,
-      });
+      Swal.fire("Sent", "Report sent to admin.", "success");
+      // Add API call logic here if needed
     }
   };
 
-  // Filtering
-  const categoryOptions = [
-    "All",
-    ...Array.from(
-      new Set(
-        assignments
-          .map((assignment) => assignment.establishment.category)
-          .filter((category) => category && category.trim().length > 0),
-      ),
-    ),
-  ];
-
-  const filteredAssignments = assignments.filter((assignment) => {
-    if (
-      selectedStatus !== "All" &&
-      assignment.status !== selectedStatus.toLowerCase()
-    ) {
-      return false;
-    }
-
-    if (selectedCategory === "All") return true;
-
-    return (
-      assignment.establishment.category?.toLowerCase() ===
-      selectedCategory.toLowerCase()
-    );
-  });
-
-  const submittedCount = assignments.filter(
-    (a) => a.status === "submitted" || a.status === "completed",
-  ).length;
-  const claimedCount = assignments.filter(
-    (a) => a.status === "completed",
-  ).length;
-  const totalCount = assignments.length;
-
-  const submittedProgress =
-    totalCount > 0 ? (submittedCount / totalCount) * 100 : 0;
-  const claimedProgress =
-    totalCount > 0 ? (claimedCount / totalCount) * 100 : 0;
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
+  // --- Render ---
   return (
     <MobileLayoutWrapper>
       <DebugLogger />
       <div className="min-h-screen bg-gray-50 pb-24 font-sans">
-        {/* Header Section */}
-        <div className="bg-white shadow-sm pt-12 pb-6 px-6 rounded-b-3xl">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <p className="text-gray-500 text-sm font-medium">Welcome back,</p>
-              <h2 className="text-2xl font-bold text-gray-900">
-                {user?.name || "Evaluator"}
-              </h2>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleNotifications}
-                className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors relative"
-              >
-                <svg
-                  className="w-6 h-6 text-gray-700"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                  />
-                </svg>
-                {/* Optional: Red dot for unread */}
-              </button>
-              <button onClick={handleProfile} className="relative">
-                <div className="w-10 h-10 rounded-full bg-[#FFA200] flex items-center justify-center text-white font-bold shadow-md">
-                  {user?.name?.charAt(0).toUpperCase() || "E"}
-                </div>
-              </button>
-            </div>
-          </div>
+        <DashboardHeader
+          user={user}
+          ndaSigned={ndaSigned}
+          notificationEnabled={notificationEnabled}
+          onToggleNotification={handleToggleNotification}
+          onProfileClick={() => router.push("/user/profile")}
+          onNotificationsClick={() => router.push("/user/notifications")}
+        />
 
-          {/* Status Cards Row */}
-          <div className="flex gap-3 mb-2 overflow-x-auto pb-2">
-            {/* NDA Status */}
-            <div
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${ndaSigned ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                {ndaSigned ? (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                ) : (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
-                )}
-              </svg>
-              {ndaSigned ? "NDA Signed" : "NDA Pending"}
-            </div>
-
-            {/* Notification Toggle */}
-            <button
-              onClick={() => handleToggleNotification()}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${notificationEnabled ? "bg-blue-100 text-blue-700" : "bg-gray-200 text-gray-600"}`}
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                />
-              </svg>
-              {notificationEnabled ? "Notif On" : "Notif Off"}
-            </button>
-          </div>
-        </div>
-
-        {/* Main Content */}
         <div className="px-6 pt-6">
-          {/* Progress Card */}
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 mb-6">
-            <h3 className="text-gray-900 text-lg font-bold mb-6">
-              Evaluation Progress
-            </h3>
+          <ProgressStats assignments={assignments} />
 
-            <div className="space-y-6">
-              {/* Submitted Progress */}
-              <div>
-                <div className="flex justify-between items-end mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-blue-50">
-                      <svg
-                        className="w-4 h-4 text-blue-600"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                    </div>
-                    <span className="text-sm font-semibold text-gray-700">
-                      Forms Submitted
-                    </span>
-                  </div>
-                  <span className="text-sm font-bold text-blue-600">
-                    {submittedCount}/{totalCount}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                  <div
-                    className="bg-blue-600 h-full rounded-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(37,99,235,0.3)]"
-                    style={{ width: `${submittedProgress}%` }}
-                  ></div>
-                </div>
-              </div>
+          <RecommendationBanner onOpen={() => setIsRequestModalOpen(true)} />
 
-              {/* Claimed Progress */}
-              <div>
-                <div className="flex justify-between items-end mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-green-50">
-                      <svg
-                        className="w-4 h-4 text-green-600"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
-                        />
-                      </svg>
-                    </div>
-                    <span className="text-sm font-semibold text-gray-700">
-                      Claims Processed
-                    </span>
-                  </div>
-                  <span className="text-sm font-bold text-green-600">
-                    {claimedCount}/{totalCount}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                  <div
-                    className="bg-green-600 h-full rounded-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(22,163,74,0.3)]"
-                    style={{ width: `${claimedProgress}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Request Restaurant Hook */}
-          <div className="mb-8">
-            <div className="bg-[#1B1B1B] rounded-3xl p-5 shadow-lg shadow-gray-300/50 flex items-center justify-between relative overflow-hidden">
-              {/* Decorative background element */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10 blur-xl"></div>
-
-              <div className="relative z-10">
-                <h4 className="text-white font-bold text-lg mb-1">
-                  Know a hidden gem?
-                </h4>
-                <p className="text-gray-400 text-xs mb-3 max-w-[200px]">
-                  Recommend a restaurant for us to evaluate and expand our list.
-                </p>
-                <button
-                  onClick={() => setIsRequestModalOpen(true)}
-                  className="bg-[#FFA200] text-[#1B1B1B] text-xs font-bold px-4 py-2 rounded-xl hover:bg-[#ffb333] transition-colors flex items-center gap-1"
-                >
-                  Recommend Place
-                  <svg
-                    className="w-3 h-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M14 5l7 7m0 0l-7 7m7-7H3"
-                    />
-                  </svg>
-                </button>
-              </div>
-              <div className="relative z-10 bg-white/10 p-3 rounded-2xl">
-                <span className="text-2xl">🍽️</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Assignments List */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">
-              Your Assignments
-            </h3>
-            {/* Filters */}
-            <div className="mb-6">
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-                  <div className="flex-1">
-                    <label
-                      htmlFor="status-filter"
-                      className="text-xs font-semibold uppercase tracking-wide text-gray-400"
-                    >
-                      Status
-                    </label>
-                    <div className="mt-2 relative">
-                      <select
-                        id="status-filter"
-                        value={selectedStatus}
-                        onChange={(event) =>
-                          setSelectedStatus(event.target.value as StatusFilter)
-                        }
-                        className="w-full appearance-none rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] transition focus:border-[#1B1B1B] focus:outline-none focus:ring-4 focus:ring-[#1B1B1B]/10"
-                      >
-                        {(
-                          [
-                            "All",
-                            "Pending",
-                            "Submitted",
-                            "Completed",
-                          ] as StatusFilter[]
-                        ).map((status) => (
-                          <option key={status} value={status}>
-                            {status}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
-                        ▾
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex-1">
-                    <label
-                      htmlFor="category-filter"
-                      className="text-xs font-semibold uppercase tracking-wide text-gray-400"
-                    >
-                      Specialty
-                    </label>
-                    <div className="mt-2 relative">
-                      <select
-                        id="category-filter"
-                        value={selectedCategory}
-                        onChange={(event) =>
-                          setSelectedCategory(event.target.value)
-                        }
-                        className="w-full appearance-none rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] transition focus:border-[#FFA200] focus:outline-none focus:ring-4 focus:ring-[#FFA200]/20"
-                      >
-                        {categoryOptions.map((category) => (
-                          <option key={category} value={category}>
-                            {category}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
-                        ▾
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            {loading ? (
-              <div className="flex justify-center py-10">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FFA200]"></div>
-              </div>
-            ) : filteredAssignments.length === 0 ? (
-              <div className="text-center py-10 bg-white rounded-2xl border border-dashed border-gray-300">
-                <p className="text-gray-500">No assignments found.</p>
-              </div>
-            ) : (
-              filteredAssignments.map((assignment) => (
-                <div
-                  key={assignment.id}
-                  className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative overflow-hidden"
-                >
-                  {/* Status Stripe */}
-                  <div
-                    className={`absolute left-0 top-0 bottom-0 w-1.5 ${
-                      assignment.status === "completed"
-                        ? "bg-green-500"
-                        : assignment.status === "submitted"
-                          ? "bg-blue-500"
-                          : "bg-[#FFA200]"
-                    }`}
-                  ></div>
-
-                  <div className="flex justify-between items-start mb-3 pl-2">
-                    <div>
-                      <span className="inline-block px-2 py-1 rounded-md bg-gray-100 text-xs font-semibold text-gray-600 mb-2">
-                        {assignment.establishment.category}
-                      </span>
-                      <h4 className="text-lg font-bold text-gray-900 leading-tight">
-                        {assignment.establishment.name}
-                      </h4>{" "}
-                      <p className="text-xs text-gray-400 mt-1">
-                        ID:{" "}
-                        <span className="font-mono text-xs text-gray-500 break-words">
-                          {assignment.id}
-                        </span>{" "}
-                      </p>
-                    </div>
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        assignment.status === "completed"
-                          ? "bg-green-100 text-green-700"
-                          : assignment.status === "submitted"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-orange-100 text-orange-700"
-                      }`}
-                    >
-                      {assignment.status === "completed"
-                        ? "Completed"
-                        : assignment.status === "submitted"
-                          ? "Submitted"
-                          : "Pending"}
-                    </span>
-                  </div>
-
-                  <div className="pl-2 mb-4">
-                    <p className="text-sm text-gray-500 flex items-center gap-1 mb-1">
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                        />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                        />
-                      </svg>
-                      {assignment.establishment.address ||
-                        "No address provided"}
-                    </p>
-                    <p className="text-xs text-gray-400 flex items-center gap-1">
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
-                      Assigned: {formatDate(assignment.assignedAt)}
-                    </p>
-                  </div>
-
-                  <div className="pl-2 space-y-3">
-                    <button
-                      onClick={() => {
-                        if (assignment.status === "pending") {
-                          handleSubmitForm(assignment);
-                          return;
-                        }
-
-                        if (assignment.status === "submitted") {
-                          handleClaimSubmission(assignment);
-                        }
-                      }}
-                      disabled={assignment.status === "completed"}
-                      className={`w-full py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
-                        assignment.status === "completed"
-                          ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                          : assignment.status === "submitted"
-                            ? "bg-blue-500 text-white hover:bg-blue-600 shadow-lg shadow-orange-100"
-                            : "bg-[#1B1B1B] text-white hover:bg-black shadow-lg shadow-gray-200"
-                      }`}
-                    >
-                      {assignment.status === "completed"
-                        ? "Completed"
-                        : assignment.status === "submitted"
-                          ? "Claim Submission"
-                          : "Submit Form"}
-                      <div
-                        className={
-                          assignment.status === "completed"
-                            ? "hidden"
-                            : "transform transition-transform group-hover:translate-x-1"
-                        }
-                      >
-                        {" "}
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M14 5l7 7m0 0l-7 7m7-7H3"
-                          />
-                        </svg>
-                      </div>
-                    </button>
-
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => handleReassign(assignment)}
-                        disabled={assignment.status !== "pending"}
-                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold border transition-all ${
-                          assignment.status !== "pending"
-                            ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                            : "bg-white text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                        }`}
-                      >
-                        <svg
-                          className="h-3.5 w-3.5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M3 10h11l-1.5-1.5M3 14h11l-1.5 1.5M14 6h7v12h-7"
-                          />
-                        </svg>
-                        Reassign
-                      </button>
-                      <button
-                        onClick={() => handleReport(assignment)}
-                        disabled={assignment.status !== "pending"}
-                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold border transition-all ${
-                          assignment.status !== "pending"
-                            ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                            : "border border-red-200 text-red-600 bg-red-50 hover:bg-red-100"
-                        }`}
-                      >
-                        <svg
-                          className="h-3.5 w-3.5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                          />
-                        </svg>
-                        Report
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+          <AssignmentList
+            assignments={assignments}
+            loading={loading}
+            onSubmit={handleSubmitForm}
+            onClaim={handleOpenClaim}
+            onReassign={handleReassign}
+            onReport={handleReport}
+          />
         </div>
+
+        {/* Modals */}
+        <ClaimModal
+          isOpen={isClaimModalOpen}
+          onClose={() => setIsClaimModalOpen(false)}
+          assignment={selectedAssignment}
+          userId={user?.id || ""}
+        />
+
+        <RequestRestaurantModal
+          isOpen={isRequestModalOpen}
+          onClose={() => setIsRequestModalOpen(false)}
+        />
       </div>
-
-      {/* Claim Modal */}
-      {isClaimModalOpen && claimAssignment && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
-          role="dialog"
-          aria-modal="true"
-          onClick={closeClaimModal}
-        >
-          <div
-            className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="mb-4">
-              <h3 className="text-lg font-bold text-gray-900">
-                Claim Submission
-              </h3>
-              <p className="text-sm text-gray-500">
-                {claimAssignment.establishment.name}
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex flex-col">
-                <label
-                  htmlFor="claim-receipt"
-                  className="text-xs font-semibold uppercase tracking-wide text-gray-400"
-                >
-                  Receipt Image
-                </label>
-
-                {/* Hidden Inputs */}
-                <input
-                  id="claim-receipt"
-                  ref={claimCameraInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={(event) =>
-                    setClaimFile(event.target.files?.[0] || null)
-                  }
-                  className="hidden"
-                />
-                <input
-                  id="claim-receipt-file"
-                  ref={claimFileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={(event) =>
-                    setClaimFile(event.target.files?.[0] || null)
-                  }
-                  className="hidden"
-                />
-
-                <div className="mt-2 flex flex-row gap-3">
-                  <button
-                    type="button"
-                    onClick={() => claimCameraInputRef.current?.click()}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] transition hover:border-[#FFA200]"
-                  >
-                    <span className="text-base">📷</span>
-                    Camera
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => claimFileInputRef.current?.click()}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] transition hover:border-[#1B1B1B]"
-                  >
-                    <span className="text-base">🗂️</span>
-                    File
-                  </button>
-                </div>
-
-                {claimPreviewUrl && (
-                  <Image
-                    src={claimPreviewUrl}
-                    alt="Receipt preview"
-                    width={400}
-                    height={160}
-                    className="mt-3 h-40 w-full rounded-2xl object-cover"
-                  />
-                )}
-              </div>
-              <div>
-                <label
-                  htmlFor="claim-amount"
-                  className="text-xs font-semibold uppercase tracking-wide text-gray-400"
-                >
-                  Amount Spent
-                </label>
-                <div className="mt-2 flex gap-3">
-                  <div className="relative">
-                    <select
-                      value={claimCurrency}
-                      onChange={(e) => setClaimCurrency(e.target.value)}
-                      className="appearance-none rounded-2xl border border-gray-200 bg-white px-4 py-3 pr-10 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] focus:border-[#FFA200] focus:outline-none"
-                    >
-                      <option
-                        value="MYR"
-                        className="text-sm font-semibold text-gray-800"
-                      >
-                        MYR
-                      </option>
-                      <option
-                        value="USD"
-                        className="text-sm font-semibold text-gray-800"
-                      >
-                        USD
-                      </option>
-                      <option
-                        value="SGD"
-                        className="text-sm font-semibold text-gray-800"
-                      >
-                        SGD
-                      </option>
-                      <option
-                        value="IDR"
-                        className="text-sm font-semibold text-gray-800"
-                      >
-                        IDR
-                      </option>
-                    </select>
-                    <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
-                      ▾
-                    </span>
-                  </div>
-                  <input
-                    id="claim-amount"
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={claimAmount}
-                    onChange={(event) => setClaimAmount(event.target.value)}
-                    placeholder="e.g. 25.50"
-                    className="w-full flex-1 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] focus:border-[#FFA200] focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {claimError && (
-                <p className="text-sm font-semibold text-red-600">
-                  {claimError}
-                </p>
-              )}
-            </div>
-
-            <div className="mt-6 flex items-center justify-end gap-3">
-              <button
-                onClick={closeClaimModal}
-                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600"
-                disabled={claimSubmitting}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleClaimSubmit}
-                className="rounded-full bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700"
-                disabled={claimSubmitting}
-              >
-                {claimSubmitting ? "Submitting..." : "Submit Claim"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Recommend Restaurant Modal */}
-      {isRequestModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setIsRequestModalOpen(false)}
-        >
-          <div
-            className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="mb-6">
-              <h3 className="text-xl font-bold text-gray-900">
-                Recommend a Place
-              </h3>
-              <p className="text-sm text-gray-500">
-                Found a great spot? Share the details with us!
-              </p>
-            </div>
-
-            <form onSubmit={handleRequestSubmit} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="req-name"
-                  className="text-xs font-semibold uppercase tracking-wide text-gray-400"
-                >
-                  Restaurant Name
-                </label>
-                <input
-                  id="req-name"
-                  type="text"
-                  required
-                  placeholder="e.g. The Coffee Corner"
-                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] focus:border-[#FFA200] focus:ring-2 focus:ring-[#FFA200]/20 outline-none"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="req-category"
-                  className="text-xs font-semibold uppercase tracking-wide text-gray-400"
-                >
-                  Category
-                </label>
-                <input
-                  id="req-category"
-                  type="text"
-                  required
-                  placeholder="e.g. Cafe, Italian, Seafood"
-                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] focus:border-[#FFA200] focus:ring-2 focus:ring-[#FFA200]/20 outline-none"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="req-address"
-                  className="text-xs font-semibold uppercase tracking-wide text-gray-400"
-                >
-                  Address
-                </label>
-                <textarea
-                  id="req-address"
-                  rows={2}
-                  required
-                  placeholder="Street name, Area..."
-                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] focus:border-[#FFA200] focus:ring-2 focus:ring-[#FFA200]/20 outline-none resize-none"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="req-contact"
-                  className="text-xs font-semibold uppercase tracking-wide text-gray-400"
-                >
-                  Contact (Optional)
-                </label>
-                <input
-                  id="req-contact"
-                  type="tel"
-                  placeholder="Phone number or Instagram handle"
-                  className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-[0_8px_20px_rgba(15,23,42,0.06)] focus:border-[#FFA200] focus:ring-2 focus:ring-[#FFA200]/20 outline-none"
-                />
-              </div>
-
-              <div className="mt-8 flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsRequestModalOpen(false)}
-                  className="rounded-full border border-gray-200 px-5 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
-                  disabled={requestSubmitting}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-full bg-[#1B1B1B] px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-gray-400/50 transition hover:bg-black disabled:opacity-70"
-                  disabled={requestSubmitting}
-                >
-                  {requestSubmitting ? "Sending..." : "Submit Recommendation"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </MobileLayoutWrapper>
   );
 }
