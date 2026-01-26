@@ -3,6 +3,20 @@ import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
+const getNextRequestId = async (
+  counterPath: string,
+  prefix: string,
+): Promise<string> => {
+  const counterRef = db.ref(counterPath);
+  const result = await counterRef.transaction((current) => (current || 0) + 1);
+  if (!result.committed) {
+    throw new Error("Failed to generate request ID.");
+  }
+  const nextValue = result.snapshot.val() as number;
+  const padded = String(nextValue).padStart(2, "0");
+  return `${prefix}-${padded}`;
+};
+
 interface ReassignRequestPayload {
   evaluatorId: string;
   evaluatorName: string;
@@ -24,8 +38,13 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    const requestRef = db.ref("reassignRequests").push();
+    const requestId = await getNextRequestId(
+      "counters/reassignRequests",
+      "RASN",
+    );
+    const requestRef = db.ref(`reassignRequests/${requestId}`);
     await requestRef.set({
+      id: requestId,
       date: new Date().toISOString(),
       evaluator_id: evaluatorId,
       evaluator_name: evaluatorName,
@@ -36,7 +55,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       createdAt: admin.database.ServerValue.TIMESTAMP,
     });
 
-    return NextResponse.json({ success: true, id: requestRef.key });
+    return NextResponse.json({ success: true, id: requestId });
   } catch (error) {
     console.error("[ReassignRequests] Error:", error);
     return NextResponse.json(

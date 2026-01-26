@@ -3,6 +3,20 @@ import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
+const getNextRequestId = async (
+  counterPath: string,
+  prefix: string,
+): Promise<string> => {
+  const counterRef = db.ref(counterPath);
+  const result = await counterRef.transaction((current) => (current || 0) + 1);
+  if (!result.committed) {
+    throw new Error("Failed to generate request ID.");
+  }
+  const nextValue = result.snapshot.val() as number;
+  const padded = String(nextValue).padStart(2, "0");
+  return `${prefix}-${padded}`;
+};
+
 interface RestaurantRequestPayload {
   evaluatorId: string;
   submitterName: string;
@@ -25,8 +39,13 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    const requestRef = db.ref("restaurantRequests").push();
+    const requestId = await getNextRequestId(
+      "counters/restaurantRequests",
+      "RQST",
+    );
+    const requestRef = db.ref(`restaurantRequests/${requestId}`);
     await requestRef.set({
+      id: requestId,
       date: new Date().toISOString(),
       evaluator_id: evaluatorId,
       submitter_name: submitterName,
@@ -38,7 +57,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       createdAt: admin.database.ServerValue.TIMESTAMP,
     });
 
-    return NextResponse.json({ success: true, id: requestRef.key });
+    return NextResponse.json({ success: true, id: requestId });
   } catch (error) {
     console.error("[RestaurantRequests] Error:", error);
     return NextResponse.json(
