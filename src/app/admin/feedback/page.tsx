@@ -5,22 +5,19 @@ import AdminTable from "@/components/admin/AdminTable";
 import AdminViewControl from "@/components/admin/AdminViewControl";
 import { db } from "@/lib/firebase";
 import { Pagination } from "@nextui-org/react";
-import { useEffect, useMemo, useState, type Key, type ReactNode } from "react";
 import { onValue, ref } from "firebase/database";
+import { useEffect, useMemo, useState, type Key, type ReactNode } from "react";
 import {
   MdAssignment,
   MdReportProblem,
   MdRestaurantMenu,
 } from "react-icons/md";
 
-// --- COLUMN DEFINITIONS ---
-
-// Kolom untuk Tab "Requests" (Rekomendasi Tempat Baru)
 export const requestColumns = [
-  { name: "ID", uid: "id" },
+  { name: "Request ID", uid: "id" },
   { name: "Date", uid: "date" },
   { name: "Evaluator ID", uid: "evaluator_id" },
-  { name: "Submitter", uid: "submitter_name" },
+  { name: "Submitter Name", uid: "submitter_name" },
   { name: "Restaurant Name", uid: "restaurant_name" },
   { name: "Category", uid: "category" },
   { name: "Address", uid: "address" },
@@ -31,11 +28,12 @@ export const requestColumns = [
 
 // Kolom untuk Tab "Reports" (Laporan Masalah)
 export const reportColumns = [
-  { name: "ID", uid: "id" },
+  { name: "Report ID", uid: "id" },
   { name: "Date", uid: "date" },
   { name: "Evaluator ID", uid: "evaluator_id" },
   { name: "Assign ID", uid: "assign_id" },
   { name: "Reporter", uid: "reporter_name" },
+  { name: "Restaurant Name", uid: "restaurant_name" },
   { name: "Issue Type", uid: "issue_type" }, // Closed, Food Poisoning, etc
   { name: "Description", uid: "description" },
   { name: "Status", uid: "status" }, // Open, Resolved, Ignored
@@ -44,7 +42,7 @@ export const reportColumns = [
 
 // Kolom untuk Tab "Re-assign Request"
 export const reassignColumns = [
-  { name: "ID", uid: "id" },
+  { name: "Re-assign ID", uid: "id" },
   { name: "Date", uid: "date" },
   { name: "Evaluator ID", uid: "evaluator_id" },
   { name: "Assign ID", uid: "assign_id" },
@@ -386,8 +384,8 @@ export default function FeedbackPage() {
         toggleEvaOneProgress={() => {}}
         toggleEvaTwoProgress={() => {}}
         activeFiltersCount={searchQuery ? 1 : 0}
-  evaluatorViewData={requestData}
-  restaurantViewData={reportData}
+        evaluatorViewData={requestData}
+        restaurantViewData={reportData}
         clearFilters={() => setSearchQuery("")}
         rowsPerPage={rowsPerPage}
         setRowsPerPage={setRowsPerPage}
