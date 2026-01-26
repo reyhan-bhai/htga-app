@@ -4,7 +4,7 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import AdminTable from "@/components/admin/AdminTable";
 import AdminViewControl from "@/components/admin/AdminViewControl";
 import { Pagination } from "@nextui-org/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type Key, type ReactNode } from "react";
 import { MdAssignment, MdReportProblem } from "react-icons/md";
 
 // --- COLUMN DEFINITIONS ---
@@ -178,6 +178,112 @@ export default function FeedbackPage() {
     console.log("Resolve/Approve:", item);
   };
 
+  const renderFeedbackCell = (item: any, columnKey: Key): ReactNode => {
+    const cellValue = item[columnKey as keyof typeof item];
+
+    switch (columnKey) {
+      case "id":
+        return cellValue || "—";
+
+      case "submitter_name":
+        return cellValue || "—";
+
+      case "restaurant_name":
+        return cellValue || "—";
+
+      case "category":
+        return cellValue || "—";
+
+      case "address":
+        return cellValue || "—";
+
+      case "date_submitted":
+      case "date_reported":
+        if (!cellValue) {
+          return <span className="text-gray-400 italic">-</span>;
+        }
+        return new Date(String(cellValue)).toLocaleDateString();
+
+      case "reporter_name":
+        return cellValue || "—";
+
+      case "assignment_ref":
+        return cellValue || "—";
+
+      case "issue_type":
+        return cellValue || "—";
+
+      case "description":
+        return cellValue || "—";
+
+      case "status": {
+        const status = String(cellValue || "");
+        if (!status) {
+          return <span className="text-gray-400 italic">-</span>;
+        }
+
+        const statusConfig: Record<
+          string,
+          { bg: string; text: string; border: string }
+        > = {
+          Pending: {
+            bg: "bg-amber-50",
+            text: "text-amber-700",
+            border: "border-amber-200",
+          },
+          Approved: {
+            bg: "bg-green-50",
+            text: "text-green-700",
+            border: "border-green-200",
+          },
+          Rejected: {
+            bg: "bg-red-50",
+            text: "text-red-700",
+            border: "border-red-200",
+          },
+          Open: {
+            bg: "bg-amber-50",
+            text: "text-amber-700",
+            border: "border-amber-200",
+          },
+          Resolved: {
+            bg: "bg-green-50",
+            text: "text-green-700",
+            border: "border-green-200",
+          },
+          Ignored: {
+            bg: "bg-gray-100",
+            text: "text-gray-600",
+            border: "border-gray-200",
+          },
+        };
+
+        const config = statusConfig[status] || {
+          bg: "bg-gray-100",
+          text: "text-gray-600",
+          border: "border-gray-200",
+        };
+
+        return (
+          <span
+            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${config.bg} ${config.text} ${config.border}`}
+          >
+            {status}
+          </span>
+        );
+      }
+
+      case "actions":
+        return undefined;
+
+      default:
+        if (typeof cellValue === "object" && cellValue !== null) {
+          return <span className="text-gray-400 italic">—</span>;
+        }
+        return String(cellValue || "—");
+    }
+  };
+
   return (
     <div className="text-black flex flex-col gap-4 lg:gap-6 p-4 sm:p-6">
       {/* Header Section */}
@@ -272,6 +378,7 @@ export default function FeedbackPage() {
         handleSendNDAEmail={() => {}}
         handleSendNDAReminder={() => {}}
         handleSendCompletionReminder={() => {}}
+        renderCell={renderFeedbackCell}
         emptyMessages={{
           request: {
             title: "No Requests Found",

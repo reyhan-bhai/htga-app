@@ -145,7 +145,7 @@ export default function EvaluatorsPage() {
         `/api/admin/evaluators?id=${evaluatorToDelete.id}`,
         {
           method: "DELETE",
-        }
+        },
       );
 
       if (!response.ok) {
@@ -213,7 +213,7 @@ export default function EvaluatorsPage() {
       results = results.filter((evaluator) => {
         if (Array.isArray(evaluator.specialties)) {
           return evaluator.specialties.some((specialty: string) =>
-            selectedSpecialties.includes(specialty)
+            selectedSpecialties.includes(specialty),
           );
         } else if (typeof evaluator.specialties === "string") {
           return selectedSpecialties.includes(evaluator.specialties);
@@ -237,14 +237,14 @@ export default function EvaluatorsPage() {
 
         // Check if query matches any of the basic fields
         const basicFieldMatch = searchFields.some((field) =>
-          field.toLowerCase().includes(query)
+          field.toLowerCase().includes(query),
         );
 
         // Check if query matches specialties
         let specialtyMatch = false;
         if (Array.isArray(evaluator.specialties)) {
           specialtyMatch = evaluator.specialties.some((specialty: string) =>
-            specialty.toLowerCase().includes(query)
+            specialty.toLowerCase().includes(query),
           );
         } else if (typeof evaluator.specialties === "string") {
           specialtyMatch = (evaluator.specialties as string)
@@ -265,7 +265,7 @@ export default function EvaluatorsPage() {
   // Get paginated evaluators
   const paginatedEvaluators = filteredEvaluators.slice(
     (page - 1) * rowsPerPage,
-    page * rowsPerPage
+    page * rowsPerPage,
   );
 
   // Reset page to 1 when filters change
@@ -282,8 +282,68 @@ export default function EvaluatorsPage() {
     setSelectedSpecialties((prev) =>
       prev.includes(specialty)
         ? prev.filter((s) => s !== specialty)
-        : [...prev, specialty]
+        : [...prev, specialty],
     );
+  };
+
+  const renderEvaluatorCell = (
+    item: any,
+    columnKey: React.Key,
+  ): React.ReactNode => {
+    const cellValue = item[columnKey as keyof typeof item];
+
+    switch (columnKey) {
+      case "id":
+        return cellValue || "—";
+
+      case "name":
+        return cellValue || "—";
+
+      case "city":
+        return cellValue || "—";
+
+      case "specialties": {
+        const rawValue = item.specialties;
+
+        if (Array.isArray(rawValue)) {
+          return rawValue.length > 0 ? rawValue.join(", ") : "—";
+        }
+
+        if (typeof rawValue === "string") {
+          return rawValue.trim() || "—";
+        }
+
+        if (rawValue && typeof rawValue === "object") {
+          const values = Object.values(rawValue).filter(
+            (value) => typeof value === "string",
+          );
+          return values.length > 0 ? values.join(", ") : "—";
+        }
+
+        return "—";
+      }
+
+      case "email":
+        return cellValue || "—";
+
+      case "phone":
+        return cellValue || "—";
+
+      case "position":
+        return cellValue || "—";
+
+      case "company":
+        return cellValue || "—";
+
+      case "actions":
+        return undefined;
+
+      default:
+        if (typeof cellValue === "object" && cellValue !== null) {
+          return <span className="text-gray-400 italic">—</span>;
+        }
+        return String(cellValue || "—");
+    }
   };
 
   return (
@@ -312,6 +372,7 @@ export default function EvaluatorsPage() {
         handleEditItem={handleEditEvaluator}
         handleViewItem={handleViewEvaluator}
         handleDeleteItem={handleDeleteEvaluator}
+        renderCell={renderEvaluatorCell}
       />
       <div className="flex justify-center items-center mt-4">
         <div className="block md:hidden">

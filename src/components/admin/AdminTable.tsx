@@ -372,12 +372,16 @@ export default function AdminTable({
                     )
                   }
                   hideActions={true}
-                  renderCell={(item, columnKey) =>
-                    renderEvaluatorCell(item, columnKey, {
-                      onSendNDAEmail: handleSendNDAEmail!,
-                      onSendNDAReminder: handleSendNDAReminder!,
-                      onSendCompletionReminder: handleSendCompletionReminder!,
-                    })
+                  renderCell={
+                    renderCell
+                      ? (item, columnKey) => renderCell(item, columnKey)
+                      : (item, columnKey) =>
+                          renderEvaluatorCell(item, columnKey, {
+                            onSendNDAEmail: handleSendNDAEmail!,
+                            onSendNDAReminder: handleSendNDAReminder!,
+                            onSendCompletionReminder:
+                              handleSendCompletionReminder!,
+                          })
                   }
                   emptyMessage={
                     activeEmptyMessage || {
@@ -410,10 +414,13 @@ export default function AdminTable({
                     )
                   }
                   // onView={handleViewDetails} There is no detail button in assignment so we comment this
-                  renderCell={(item, columnKey) =>
-                    renderRestaurantCell(item, columnKey, {
-                      onPreviewImage: handlePreviewImage,
-                    })
+                  renderCell={
+                    renderCell
+                      ? (item, columnKey) => renderCell(item, columnKey)
+                      : (item, columnKey) =>
+                          renderRestaurantCell(item, columnKey, {
+                            onPreviewImage: handlePreviewImage,
+                          })
                   }
                   emptyMessage={
                     activeEmptyMessage || {
@@ -436,8 +443,11 @@ export default function AdminTable({
               onEdit={handleEditItem}
               onView={handleViewItem}
               onDelete={handleDeleteItem}
-              renderCell={(item, columnKey) =>
-                renderEvaluatorListCell(item, columnKey)
+              renderCell={
+                renderCell
+                  ? (item, columnKey) => renderCell(item, columnKey)
+                  : (item, columnKey) =>
+                      renderEvaluatorListCell(item, columnKey)
               }
             />
           </div>
@@ -452,6 +462,7 @@ export default function AdminTable({
               onEdit={handleEditItem}
               onView={handleViewItem}
               onDelete={handleDeleteItem}
+              renderCell={renderCell}
             />
           </div>
         );

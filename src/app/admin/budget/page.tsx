@@ -262,6 +262,18 @@ export default function BudgetPage() {
           const cellValue = item[columnKey as keyof typeof item];
 
           switch (columnKey) {
+            case "evaluatorName":
+              return cellValue || "-";
+
+            case "email":
+              return cellValue || "-";
+
+            case "company":
+              return cellValue || "-";
+
+            case "restaurantName":
+              return cellValue || "-";
+
             case "dateAssigned":
               if (!cellValue || cellValue === "-") {
                 return (

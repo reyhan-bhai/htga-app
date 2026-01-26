@@ -16,9 +16,11 @@ import {
   handleSendNDAReminder,
   handleViewDetails,
 } from "@/lib/assignedPageUtils";
+import Image from "next/image";
 
 import { Pagination } from "@nextui-org/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type Key, type ReactNode } from "react";
+import { MdNotificationsActive } from "react-icons/md";
 
 // Columns for Evaluator View
 export const byEvaluatorColumns = [
@@ -85,6 +87,7 @@ export default function AssignedPage() {
     start: string;
     end: string;
   }>({ start: "", end: "" });
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isManualMatchOpen, setIsManualMatchOpen] = useState(false);
   const [selectedEvaluator, setSelectedEvaluator] = useState<string>("");
   const [selectedRestaurant, setSelectedRestaurant] = useState<string>("");
@@ -98,7 +101,7 @@ export default function AssignedPage() {
   const restaurantViewData = getRestaurantViewData(
     establishments,
     assignments,
-    evaluators
+    evaluators,
   );
 
   // Extract unique specialties from evaluators
@@ -168,7 +171,7 @@ export default function AssignedPage() {
     // Filter by NDA Status
     if (selectedNDAStatus.length > 0) {
       results = results.filter((item) =>
-        selectedNDAStatus.includes(item.nda_status)
+        selectedNDAStatus.includes(item.nda_status),
       );
     }
 
@@ -178,14 +181,14 @@ export default function AssignedPage() {
         const specialties = item.specialties || [];
         if (Array.isArray(specialties)) {
           return specialties.some((spec: string) =>
-            selectedSpecialties.includes(spec)
+            selectedSpecialties.includes(spec),
           );
         }
         // Handle case where specialties might be an object (Firebase structure)
         if (typeof specialties === "object" && specialties !== null) {
           const specialtyValues = Object.values(specialties);
           return specialtyValues.some((spec: any) =>
-            selectedSpecialties.includes(String(spec))
+            selectedSpecialties.includes(String(spec)),
           );
         }
         return selectedSpecialties.includes(String(specialties || ""));
@@ -240,7 +243,7 @@ export default function AssignedPage() {
           if (typeof field === "object" && field !== null) {
             console.warn(
               `  ⚠️ WARNING: Field ${fieldIndex} is an object:`,
-              field
+              field,
             );
             console.warn(`  Object keys:`, Object.keys(field));
           }
@@ -266,7 +269,7 @@ export default function AssignedPage() {
           "Item category:",
           item.category,
           "Type:",
-          typeof item.category
+          typeof item.category,
         );
         return selectedCategories.includes(item.category);
       });
@@ -284,7 +287,7 @@ export default function AssignedPage() {
           "Item matched:",
           item.matched,
           "Type:",
-          typeof item.matched
+          typeof item.matched,
         );
         return selectedMatchStatus.includes(item.matched);
       });
@@ -295,14 +298,14 @@ export default function AssignedPage() {
     if (selectedEvaOneProgress.length > 0) {
       console.log(
         "Applying evaluator 1 progress filter:",
-        selectedEvaOneProgress
+        selectedEvaOneProgress,
       );
       results = results.filter((item) => {
         console.log(
           "Item evaluator1_progress:",
           item.evaluator1_progress,
           "Type:",
-          typeof item.evaluator1_progress
+          typeof item.evaluator1_progress,
         );
         return selectedEvaOneProgress.includes(item.evaluator1_progress);
       });
@@ -313,14 +316,14 @@ export default function AssignedPage() {
     if (selectedEvaTwoProgress.length > 0) {
       console.log(
         "Applying evaluator 2 progress filter:",
-        selectedEvaTwoProgress
+        selectedEvaTwoProgress,
       );
       results = results.filter((item) => {
         console.log(
           "Item evaluator2_progress:",
           item.evaluator2_progress,
           "Type:",
-          typeof item.evaluator2_progress
+          typeof item.evaluator2_progress,
         );
         return selectedEvaTwoProgress.includes(item.evaluator2_progress);
       });
@@ -397,7 +400,7 @@ export default function AssignedPage() {
   const totalPages = Math.ceil(currentFilteredData.length / rowsPerPage);
   const paginatedData = currentFilteredData.slice(
     (page - 1) * rowsPerPage,
-    page * rowsPerPage
+    page * rowsPerPage,
   );
 
   // Reset page when filters change
@@ -426,7 +429,7 @@ export default function AssignedPage() {
     setSelectedSpecialties((prev) =>
       prev.includes(specialty)
         ? prev.filter((s) => s !== specialty)
-        : [...prev, specialty]
+        : [...prev, specialty],
     );
   };
 
@@ -434,7 +437,7 @@ export default function AssignedPage() {
     setSelectedCategories((prev) =>
       prev.includes(category)
         ? prev.filter((c) => c !== category)
-        : [...prev, category]
+        : [...prev, category],
     );
   };
 
@@ -442,7 +445,7 @@ export default function AssignedPage() {
     setSelectedEvaOneProgress((prev) =>
       prev.includes(status)
         ? prev.filter((s) => s !== status)
-        : [...prev, status]
+        : [...prev, status],
     );
   };
 
@@ -450,7 +453,7 @@ export default function AssignedPage() {
     setSelectedEvaTwoProgress((prev) =>
       prev.includes(status)
         ? prev.filter((s) => s !== status)
-        : [...prev, status]
+        : [...prev, status],
     );
   };
 
@@ -464,6 +467,395 @@ export default function AssignedPage() {
     setSelectedEvaOneProgress([]);
     setSelectedEvaTwoProgress([]);
     setSelectedDateRange({ start: "", end: "" });
+  };
+
+  const renderEvaluatorViewCell = (item: any, columnKey: Key): ReactNode => {
+    const value = item[columnKey as string];
+
+    switch (columnKey) {
+      case "eva_id":
+        return value || "—";
+
+      case "name":
+        return value || "—";
+
+      case "email":
+        return value || "—";
+
+      case "phone":
+        return value || "—";
+
+      case "specialty":
+        return value || "—";
+
+      case "nda_status": {
+        const getNDAStatusConfig = (status: string) => {
+          switch (status) {
+            case "Signed":
+              return {
+                text: "✓ Signed",
+                bgColor: "bg-green-50",
+                textColor: "text-green-700",
+                borderColor: "border-green-200",
+              };
+            case "Pending":
+              return {
+                text: "⏳ Pending",
+                bgColor: "bg-amber-50",
+                textColor: "text-amber-700",
+                borderColor: "border-amber-200",
+              };
+            default:
+              return {
+                text: "❌ Not Sent",
+                bgColor: "bg-red-50",
+                textColor: "text-red-700",
+                borderColor: "border-red-200",
+              };
+          }
+        };
+
+        const statusConfig = getNDAStatusConfig(value);
+
+        return (
+          <div
+            className={`px-3 py-1 rounded-full text-xs font-medium border ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}`}
+          >
+            {statusConfig.text}
+          </div>
+        );
+      }
+
+      case "nda_reminder": {
+        const isSigned = item.nda_status === "Signed";
+
+        return (
+          <div className="flex items-center justify-center">
+            <button
+              onClick={() => !isSigned && handleSendNDAReminder(item)}
+              disabled={isSigned}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 flex items-center gap-1.5 ${
+                isSigned
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
+                  : "bg-white text-amber-600 border border-amber-200 hover:bg-amber-50 hover:border-amber-300 shadow-sm"
+              }`}
+              title={isSigned ? "NDA already signed" : "Send NDA Reminder"}
+            >
+              <span className="text-lg">
+                <MdNotificationsActive />
+              </span>
+              <span className="hidden sm:inline">Remind</span>
+            </button>
+          </div>
+        );
+      }
+
+      case "restaurant_completed": {
+        const total = item.total_restaurant;
+        const completed = item.restaurant_completed;
+        const percentage =
+          total > 0 ? Math.round((completed / total) * 100) : 0;
+
+        const getProgressConfig = () => {
+          if (completed === total && total > 0) {
+            return {
+              bgColor: "bg-green-100",
+              progressColor: "bg-green-500",
+              textColor: "text-green-700",
+              icon: "✅",
+              status: "Complete",
+            };
+          }
+          if (completed > 0) {
+            return {
+              bgColor: "bg-amber-100",
+              progressColor: "bg-amber-500",
+              textColor: "text-amber-700",
+              icon: "🔄",
+              status: "In Progress",
+            };
+          }
+          return {
+            bgColor: "bg-gray-100",
+            progressColor: "bg-gray-400",
+            textColor: "text-gray-600",
+            icon: "⏸️",
+            status: "Not Started",
+          };
+        };
+
+        const progressConfig = getProgressConfig();
+        const needsReminder = completed < total && total > 0;
+
+        return (
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="flex flex-col gap-1 min-w-0">
+              <div className="flex items-center gap-1 sm:gap-2">
+                <span
+                  className={`text-xs font-medium ${progressConfig.textColor}`}
+                >
+                  <span className="hidden sm:inline">
+                    {progressConfig.icon}{" "}
+                  </span>
+                  {completed}/{total}
+                </span>
+                <span className="text-xs text-gray-500 hidden sm:inline">
+                  ({percentage}%)
+                </span>
+              </div>
+              <div
+                className={`w-12 sm:w-16 h-1.5 rounded-full ${progressConfig.bgColor}`}
+              >
+                <div
+                  className={`h-full rounded-full transition-all duration-300 ${progressConfig.progressColor}`}
+                  style={{ width: `${percentage}%` }}
+                ></div>
+              </div>
+              <span
+                className={`text-xs ${progressConfig.textColor} hidden sm:block`}
+              >
+                {progressConfig.status}
+              </span>
+            </div>
+            {needsReminder && (
+              <button
+                onClick={() => handleSendCompletionReminder(item)}
+                className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors flex items-center justify-center text-xs"
+                title="Send Completion Reminder"
+              >
+                <MdNotificationsActive />
+              </button>
+            )}
+          </div>
+        );
+      }
+
+      case "total_reminder_sent": {
+        const reminderCount = item.total_reminder_sent || 0;
+        return (
+          <div className="flex items-center justify-center">
+            <div
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${
+                reminderCount > 0
+                  ? "bg-blue-50 border-blue-200 text-blue-700"
+                  : "bg-gray-50 border-gray-200 text-gray-400"
+              }`}
+            >
+              <span className="font-semibold text-sm">{reminderCount}</span>
+            </div>
+          </div>
+        );
+      }
+
+      default:
+        if (typeof value === "object" && value !== null) {
+          return <span className="text-gray-400 italic">—</span>;
+        }
+        return String(value || "—");
+    }
+  };
+
+  const renderRestaurantViewCell = (item: any, columnKey: Key): ReactNode => {
+    if (columnKey === "actions") {
+      return undefined;
+    }
+
+    const value = item[columnKey as string];
+
+    switch (columnKey) {
+      case "name":
+        return value || "—";
+
+      case "category":
+        return value || "—";
+
+      case "matched": {
+        const getMatchConfig = (status: string) => {
+          switch (status) {
+            case "Yes":
+              return {
+                icon: "✅",
+                text: "Fully Matched",
+                bgColor: "bg-green-50",
+                textColor: "text-green-700",
+                borderColor: "border-green-200",
+              };
+            case "Partial":
+              return {
+                icon: "⚠️",
+                text: "Partially Matched",
+                bgColor: "bg-amber-50",
+                textColor: "text-amber-700",
+                borderColor: "border-amber-200",
+              };
+            default:
+              return {
+                icon: "❌",
+                text: "Not Matched",
+                bgColor: "bg-red-50",
+                textColor: "text-red-700",
+                borderColor: "border-red-200",
+              };
+          }
+        };
+
+        const matchConfig = getMatchConfig(value);
+        return (
+          <div
+            className={`px-3 py-1 rounded-full text-xs font-medium border inline-flex items-center gap-1 ${matchConfig.bgColor} ${matchConfig.textColor} ${matchConfig.borderColor}`}
+          >
+            <span>{matchConfig.icon}</span>
+            <span>{matchConfig.text}</span>
+          </div>
+        );
+      }
+
+      case "evaluator1_assigned_date":
+      case "evaluator2_assigned_date":
+      case "date_assigned":
+        if (!value || value === "-") {
+          return (
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400 text-xs italic">Not assigned</span>
+            </div>
+          );
+        }
+        return (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-700">{value}</span>
+          </div>
+        );
+
+      case "evaluator_1":
+      case "evaluator_2":
+        if (value === "-") {
+          return (
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400 text-xs">Not assigned</span>
+              <div className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
+                Available
+              </div>
+            </div>
+          );
+        }
+        return (
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-gray-700">{value}</span>
+            <div
+              className="w-2 h-2 bg-blue-500 rounded-full"
+              title="Assigned"
+            ></div>
+          </div>
+        );
+
+      case "completed_eva_1":
+      case "completed_eva_2": {
+        if (value === "-") {
+          return (
+            <div className="flex items-center gap-1">
+              <span className="text-gray-400 text-xs">—</span>
+              <span className="text-xs text-gray-400">N/A</span>
+            </div>
+          );
+        }
+
+        const getCompletionConfig = (status: string) => {
+          if (status === "Yes") {
+            return {
+              icon: "✅",
+              text: "Completed",
+              bgColor: "bg-green-50",
+              textColor: "text-green-700",
+              borderColor: "border-green-200",
+            };
+          }
+          return {
+            icon: "🔄",
+            text: "In Progress",
+            bgColor: "bg-amber-50",
+            textColor: "text-amber-700",
+            borderColor: "border-amber-200",
+          };
+        };
+
+        const completionConfig = getCompletionConfig(value);
+        return (
+          <div
+            className={`px-2 py-1 rounded-full text-xs font-medium border inline-flex items-center gap-1 ${completionConfig.bgColor} ${completionConfig.textColor} ${completionConfig.borderColor}`}
+          >
+            <span>{completionConfig.icon}</span>
+            <span>{completionConfig.text}</span>
+          </div>
+        );
+      }
+
+      case "evaluator1_receipt":
+      case "evaluator2_receipt":
+        if (value) {
+          return (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPreviewImage(value)}
+                className="rounded-xl border border-gray-200 p-1 shadow-sm transition hover:border-[#A67C37]"
+              >
+                <Image
+                  src={value}
+                  alt="Receipt thumbnail"
+                  width={64}
+                  height={64}
+                  className="h-16 w-16 rounded-lg object-cover"
+                />
+              </button>
+            </div>
+          );
+        }
+        return (
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400 italic text-xs">No image yet</span>
+          </div>
+        );
+
+      case "evaluator1_amount_spent":
+      case "evaluator2_amount_spent":
+        if (value !== null && value !== undefined && value !== "") {
+          const currencyKey =
+            columnKey === "evaluator1_amount_spent"
+              ? "evaluator1Currency"
+              : "evaluator2Currency";
+          const currency = item[currencyKey] || "";
+
+          return (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-black">
+                {currency} {value}
+              </span>
+            </div>
+          );
+        }
+        return (
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400 italic text-xs">-</span>
+          </div>
+        );
+
+      case "actions":
+        return undefined;
+
+      default:
+        if (typeof value === "object" && value !== null) {
+          return <span className="text-gray-400 italic">—</span>;
+        }
+        return String(value || "—");
+    }
+  };
+
+  const renderAssignmentCell = (item: any, columnKey: Key): ReactNode => {
+    if (selectedView === "restaurant") {
+      return renderRestaurantViewCell(item, columnKey);
+    }
+
+    return renderEvaluatorViewCell(item, columnKey);
   };
 
   return (
@@ -558,6 +950,7 @@ export default function AssignedPage() {
         handleSendNDAEmail={handleSendNDAEmail}
         handleSendNDAReminder={handleSendNDAReminder}
         handleSendCompletionReminder={handleSendCompletionReminder}
+        renderCell={renderAssignmentCell}
       />
 
       {/* Pagination */}
@@ -633,6 +1026,38 @@ export default function AssignedPage() {
         fetchData={fetchData}
         handleSaveEdit={handleSaveEdit}
       />
+
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div
+            className="max-h-[85vh] w-full max-w-3xl rounded-3xl bg-white p-4 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex justify-end">
+              <button
+                onClick={() => setPreviewImage(null)}
+                className="rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-gray-600"
+              >
+                Close
+              </button>
+            </div>
+            <div className="mt-3 flex justify-center">
+              <Image
+                src={previewImage}
+                alt="Receipt preview"
+                width={900}
+                height={700}
+                className="max-h-[70vh] w-auto rounded-2xl object-contain"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

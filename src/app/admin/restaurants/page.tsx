@@ -130,7 +130,7 @@ export default function RestaurantsPage() {
         `/api/admin/establishments?id=${restaurantToDelete.id}`,
         {
           method: "DELETE",
-        }
+        },
       );
 
       if (!response.ok) {
@@ -199,7 +199,7 @@ export default function RestaurantsPage() {
           restaurant.remarks || "",
         ];
         return searchFields.some((field) =>
-          field.toLowerCase().includes(query)
+          field.toLowerCase().includes(query),
         );
       });
     }
@@ -207,7 +207,7 @@ export default function RestaurantsPage() {
     // Filter by categories
     if (selectedCategories.length > 0) {
       results = results.filter((restaurant) =>
-        selectedCategories.includes(restaurant.category)
+        selectedCategories.includes(restaurant.category),
       );
     }
 
@@ -232,7 +232,7 @@ export default function RestaurantsPage() {
   // Get paginated restaurants
   const paginatedRestaurants = filteredRestaurants.slice(
     (page - 1) * rowsPerPage,
-    page * rowsPerPage
+    page * rowsPerPage,
   );
 
   // Reset page to 1 when filters or search change
@@ -249,8 +249,87 @@ export default function RestaurantsPage() {
     setSelectedCategories((prev) =>
       prev.includes(category)
         ? prev.filter((c) => c !== category)
-        : [...prev, category]
+        : [...prev, category],
     );
+  };
+
+  const renderRestaurantCell = (
+    item: any,
+    columnKey: React.Key,
+  ): React.ReactNode => {
+    const cellValue = item[columnKey as keyof typeof item];
+
+    switch (columnKey) {
+      case "name":
+        return cellValue || "—";
+
+      case "category":
+        return cellValue || "—";
+
+      case "address":
+        return cellValue || "—";
+
+      case "contactInfo": {
+        const contactValue = cellValue ? String(cellValue).trim() : "";
+        return contactValue.length === 0 ? (
+          <span className="text-gray-400 italic">No Contact</span>
+        ) : (
+          contactValue
+        );
+      }
+
+      case "rating": {
+        const ratingValue = cellValue ? String(cellValue).trim() : "";
+        return ratingValue.length === 0 ? (
+          <span className="text-gray-400 italic">No Rating</span>
+        ) : (
+          ratingValue
+        );
+      }
+
+      case "budget": {
+        const budgetValue = cellValue ? String(cellValue).trim() : "";
+        const currency = item.budgetCurrency || item.currency || "Not Set";
+        return budgetValue.length === 0 ? (
+          <span className="text-gray-400 italic">No Budget</span>
+        ) : (
+          `${currency} ${budgetValue}`
+        );
+      }
+
+      case "halalStatus": {
+        const halalValue = cellValue ? String(cellValue).trim() : "";
+        return halalValue.length === 0 ? (
+          <span className="text-gray-400 italic">No Halal Status</span>
+        ) : (
+          halalValue
+        );
+      }
+
+      case "remarks": {
+        const trimmedValue = cellValue ? String(cellValue).trim() : "";
+        return trimmedValue.length === 0 ? (
+          <span className="text-gray-400 italic">No remarks</span>
+        ) : (
+          <a
+            href={trimmedValue}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 underline hover:text-blue-700"
+          >
+            Link
+          </a>
+        );
+      }
+      case "actions":
+        return undefined;
+
+      default:
+        if (typeof cellValue === "object" && cellValue !== null) {
+          return <span className="text-gray-400 italic">—</span>;
+        }
+        return String(cellValue || "—");
+    }
   };
 
   return (
@@ -284,6 +363,7 @@ export default function RestaurantsPage() {
         handleEditItem={handleEditRestaurant}
         handleViewItem={handleViewRestaurant}
         handleDeleteItem={handleDeleteRestaurant}
+        renderCell={renderRestaurantCell}
       />
       <div className="flex justify-center items-center mt-4">
         <div className="block md:hidden">
