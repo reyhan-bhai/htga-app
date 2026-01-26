@@ -3,8 +3,10 @@
 import AdminHeader from "@/components/admin/AdminHeader";
 import AdminTable from "@/components/admin/AdminTable";
 import AdminViewControl from "@/components/admin/AdminViewControl";
+import { db } from "@/lib/firebase";
 import { Pagination } from "@nextui-org/react";
 import { useEffect, useMemo, useState, type Key, type ReactNode } from "react";
+import { onValue, ref } from "firebase/database";
 import {
   MdAssignment,
   MdReportProblem,
@@ -52,153 +54,87 @@ export const reassignColumns = [
   { name: "Actions", uid: "actions" },
 ];
 
-// --- DUMMY DATA (Untuk Tampilan UI) ---
-
-const mockRequests = [
-  {
-    id: "REQ-001",
-    date: "2023-10-25",
-    evaluator_id: "JEVA-301",
-    assign_id: "ASSIGN-1001",
-    submitter_name: "John Doe",
-    restaurant_name: "Kopi Kenangan Senopati",
-    category: "Coffee Shop",
-    address: "Jl. Senopati No. 10",
-    notes: "Prefers quiet ambiance",
-    status: "Pending",
-  },
-  {
-    id: "REQ-002",
-    date: "2023-10-24",
-    evaluator_id: "JEVA-304",
-    assign_id: "ASSIGN-1002",
-    submitter_name: "Jane Smith",
-    restaurant_name: "Sate Khas Senayan",
-    category: "Indonesian",
-    address: "Mall Grand Indonesia",
-    notes: "Family-friendly request",
-    status: "Approved",
-  },
-  {
-    id: "REQ-003",
-    date: "2023-10-28",
-    evaluator_id: "JEVA-310",
-    assign_id: "ASSIGN-1003",
-    submitter_name: "Ahmad Rizki",
-    restaurant_name: "Bebek Goreng Pak Ndut",
-    category: "Indonesian",
-    address: "Jl. Raya Bogor No. 45",
-    notes: "Needs weekend slot",
-    status: "Pending",
-  },
-  {
-    id: "REQ-004",
-    date: "2023-10-30",
-    evaluator_id: "JEVA-298",
-    assign_id: "ASSIGN-1004",
-    submitter_name: "Siti Nurhaliza",
-    restaurant_name: "Warung Padang Sederhana",
-    category: "Padang",
-    address: "Jl. Sudirman No. 120",
-    notes: "Halal menu focus",
-    status: "Rejected",
-  },
-  {
-    id: "REQ-005",
-    date: "2023-11-01",
-    evaluator_id: "JEVA-325",
-    assign_id: "ASSIGN-1005",
-    submitter_name: "Budi Santoso",
-    restaurant_name: "Pizza Hut Kemang",
-    category: "Western",
-    address: "Jl. Kemang Raya No. 8",
-    notes: "Requested late afternoon",
-    status: "Approved",
-  },
-];
-
-const mockReports = [
-  {
-    id: "RPT-991",
-    date: "2023-10-26",
-    evaluator_id: "JEVA-203",
-    assign_id: "ASSIGN-1023",
-    reporter_name: "Michael B",
-    issue_type: "Restaurant Closed",
-    description: "Tempatnya sudah berganti jadi toko baju.",
-    status: "Open",
-  },
-  {
-    id: "RPT-992",
-    date: "2023-10-20",
-    evaluator_id: "JEVA-177",
-    assign_id: "ASSIGN-1100",
-    reporter_name: "Sarah C",
-    issue_type: "Food Poisoning",
-    description: "Saya merasa mual 2 jam setelah makan.",
-    status: "Resolved",
-  },
-  {
-    id: "RPT-993",
-    date: "2023-11-02",
-    evaluator_id: "JEVA-189",
-    assign_id: "ASSIGN-1154",
-    reporter_name: "Andi K",
-    issue_type: "Bad Service",
-    description: "Staff tidak responsif selama visitasi.",
-    status: "Open",
-  },
-  {
-    id: "RPT-994",
-    date: "2023-11-05",
-    evaluator_id: "JEVA-203",
-    assign_id: "ASSIGN-1201",
-    reporter_name: "Lia P",
-    issue_type: "Restaurant Closed",
-    description: "Restoran tutup permanen sesuai info tetangga.",
-    status: "Ignored",
-  },
-];
-
-const mockReassignRequests = [
-  {
-    id: "RR-101",
-    date: "2023-11-10",
-    evaluator_id: "JEVA-203",
-    assign_id: "ASSIGN-1201",
-    evaluator_name: "Lia P",
-    restaurant_name: "Warung Padang Sederhana",
-    reason: "Evaluator unavailable for revisit",
-  },
-  {
-    id: "RR-102",
-    date: "2023-11-12",
-    evaluator_id: "JEVA-177",
-    assign_id: "ASSIGN-1154",
-    evaluator_name: "Andi K",
-    restaurant_name: "Pizza Hut Kemang",
-    reason: "Restaurant rescheduled",
-  },
-  {
-    id: "RR-103",
-    date: "2023-11-15",
-    evaluator_id: "JEVA-189",
-    assign_id: "ASSIGN-1100",
-    evaluator_name: "Sarah C",
-    restaurant_name: "Sate Khas Senayan",
-    reason: "Conflict with assigned schedule",
-  },
-];
-
 export default function FeedbackPage() {
   // State
   const [selectedView, setSelectedView] = useState<string>("request"); // 'request' | 'report' | 'reassign'
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [requestData, setRequestData] = useState<any[]>([]);
+  const [reportData, setReportData] = useState<any[]>([]);
+  const [reassignData, setReassignData] = useState<any[]>([]);
 
-  // Dummy loading state
-  const [isLoading, setIsLoading] = useState(false);
+  useEffect(() => {
+    let isMounted = true;
+    let readyCount = 0;
+
+    const markReady = () => {
+      readyCount += 1;
+      if (readyCount >= 3 && isMounted) {
+        setIsLoading(false);
+      }
+    };
+
+    const requestsRef = ref(db, "restaurantRequests");
+    const reportsRef = ref(db, "reportRequests");
+    const reassignRef = ref(db, "reassignRequests");
+
+    const requestUnsub = onValue(requestsRef, (snapshot) => {
+      if (!isMounted) return;
+      if (!snapshot.exists()) {
+        setRequestData([]);
+        markReady();
+        return;
+      }
+      const data = snapshot.val();
+      const mapped = Object.entries(data).map(([id, value]) => ({
+        id,
+        ...(value as Record<string, unknown>),
+      }));
+      setRequestData(mapped);
+      markReady();
+    });
+
+    const reportUnsub = onValue(reportsRef, (snapshot) => {
+      if (!isMounted) return;
+      if (!snapshot.exists()) {
+        setReportData([]);
+        markReady();
+        return;
+      }
+      const data = snapshot.val();
+      const mapped = Object.entries(data).map(([id, value]) => ({
+        id,
+        ...(value as Record<string, unknown>),
+      }));
+      setReportData(mapped);
+      markReady();
+    });
+
+    const reassignUnsub = onValue(reassignRef, (snapshot) => {
+      if (!isMounted) return;
+      if (!snapshot.exists()) {
+        setReassignData([]);
+        markReady();
+        return;
+      }
+      const data = snapshot.val();
+      const mapped = Object.entries(data).map(([id, value]) => ({
+        id,
+        ...(value as Record<string, unknown>),
+      }));
+      setReassignData(mapped);
+      markReady();
+    });
+
+    return () => {
+      isMounted = false;
+      requestUnsub();
+      reportUnsub();
+      reassignUnsub();
+    };
+  }, []);
 
   // --- FILTER LOGIC (Sederhana untuk Mock Data) ---
 
@@ -206,10 +142,10 @@ export default function FeedbackPage() {
     // 1. Pilih data source berdasarkan tab
     let data: Record<string, unknown>[] =
       selectedView === "request"
-        ? mockRequests
+        ? requestData
         : selectedView === "report"
-          ? mockReports
-          : mockReassignRequests;
+          ? reportData
+          : reassignData;
 
     // 2. Filter Search
     if (searchQuery.trim().length > 0) {
@@ -225,7 +161,7 @@ export default function FeedbackPage() {
     // if (selectedStatus.length > 0) ...
 
     return data;
-  }, [selectedView, searchQuery]);
+  }, [selectedView, searchQuery, requestData, reportData, reassignData]);
   // Pagination Logic
   const totalPages = Math.ceil(filteredData.length / rowsPerPage);
   const paginatedData = filteredData.slice(
@@ -450,8 +386,8 @@ export default function FeedbackPage() {
         toggleEvaOneProgress={() => {}}
         toggleEvaTwoProgress={() => {}}
         activeFiltersCount={searchQuery ? 1 : 0}
-        evaluatorViewData={mockRequests}
-        restaurantViewData={mockReports}
+  evaluatorViewData={requestData}
+  restaurantViewData={reportData}
         clearFilters={() => setSearchQuery("")}
         rowsPerPage={rowsPerPage}
         setRowsPerPage={setRowsPerPage}

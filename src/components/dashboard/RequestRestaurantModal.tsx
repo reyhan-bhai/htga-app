@@ -6,6 +6,7 @@ import Swal from "sweetalert2";
 interface RequestRestaurantModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSubmit: (data: RequestRestaurantFormState) => Promise<void>;
 }
 
 interface RequestRestaurantFormState {
@@ -25,6 +26,7 @@ const initialFormState: RequestRestaurantFormState = {
 export default function RequestRestaurantModal({
   isOpen,
   onClose,
+  onSubmit,
 }: RequestRestaurantModalProps) {
   const [formState, setFormState] =
     useState<RequestRestaurantFormState>(initialFormState);
@@ -59,6 +61,7 @@ export default function RequestRestaurantModal({
     setIsSubmitting(true);
 
     try {
+      await onSubmit(formState);
       await Swal.fire({
         icon: "success",
         title: "Recommendation sent",

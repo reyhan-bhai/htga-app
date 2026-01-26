@@ -182,6 +182,37 @@ export default function DashboardPage() {
     setIsClaimModalOpen(true);
   };
 
+  const handleRestaurantRequestSubmit = async (data: {
+    name: string;
+    location: string;
+    cuisine: string;
+    notes: string;
+  }) => {
+    if (!user) {
+      throw new Error("User not available");
+    }
+
+    const response = await fetch("/api/user/restaurant-requests", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        evaluatorId: user.id,
+        submitterName: user.name || user.email || "Evaluator",
+        restaurantName: data.name,
+        category: data.cuisine || "-",
+        address: data.location,
+        notes: data.notes || "-",
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to submit request");
+    }
+  };
+
   const handleReassign = async (assignment: EvaluatorAssignment) => {
     const result = await Swal.fire({
       title: "Request Reassign",
@@ -192,8 +223,33 @@ export default function DashboardPage() {
       confirmButtonColor: "#1B1B1B",
     });
     if (result.isConfirmed && result.value) {
-      Swal.fire("Sent", "Admin notified.", "success");
-      // Add API call logic here if needed
+      if (!user) return;
+
+      try {
+        const response = await fetch("/api/user/reassign-requests", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            evaluatorId: user.id,
+            evaluatorName: user.name || user.email || "Evaluator",
+            assignId: assignment.id,
+            restaurantName: assignment.establishment.name,
+            reason: result.value,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to submit reassign request");
+        }
+
+        Swal.fire("Sent", "Admin notified.", "success");
+      } catch (error) {
+        console.error(error);
+        Swal.fire("Error", "Failed to send reassign request.", "error");
+      }
     }
   };
 
@@ -207,8 +263,47 @@ export default function DashboardPage() {
       confirmButtonColor: "#1B1B1B",
     });
     if (result.isConfirmed && result.value) {
-      Swal.fire("Sent", "Report sent to admin.", "success");
-      // Add API call logic here if needed
+      const detailsResult = await Swal.fire({
+        title: "Add details (optional)",
+        input: "textarea",
+        inputPlaceholder: "Describe the issue...",
+        showCancelButton: true,
+        confirmButtonColor: "#1B1B1B",
+      });
+
+      if (!detailsResult.isConfirmed) return;
+
+      if (!user) return;
+
+      try {
+        const response = await fetch("/api/user/report-requests", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            evaluatorId: user.id,
+            reporterName: user.name || user.email || "Evaluator",
+            assignId: assignment.id,
+            restaurantName: assignment.establishment.name,
+            issueType:
+              result.value === "closed"
+                ? "Restaurant Closed"
+                : "Food Poisoning",
+            description: detailsResult.value || "Reported by evaluator",
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to submit report");
+        }
+
+        Swal.fire("Sent", "Report sent to admin.", "success");
+      } catch (error) {
+        console.error(error);
+        Swal.fire("Error", "Failed to send report.", "error");
+      }
     }
   };
 
@@ -252,6 +347,7 @@ export default function DashboardPage() {
         <RequestRestaurantModal
           isOpen={isRequestModalOpen}
           onClose={() => setIsRequestModalOpen(false)}
+          onSubmit={handleRestaurantRequestSubmit}
         />
       </div>
     </MobileLayoutWrapper>
