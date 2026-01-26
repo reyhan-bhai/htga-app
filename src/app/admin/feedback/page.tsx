@@ -5,18 +5,24 @@ import AdminTable from "@/components/admin/AdminTable";
 import AdminViewControl from "@/components/admin/AdminViewControl";
 import { Pagination } from "@nextui-org/react";
 import { useEffect, useMemo, useState, type Key, type ReactNode } from "react";
-import { MdAssignment, MdReportProblem } from "react-icons/md";
+import {
+  MdAssignment,
+  MdReportProblem,
+  MdRestaurantMenu,
+} from "react-icons/md";
 
 // --- COLUMN DEFINITIONS ---
 
 // Kolom untuk Tab "Requests" (Rekomendasi Tempat Baru)
 export const requestColumns = [
   { name: "ID", uid: "id" },
+  { name: "Date", uid: "date" },
+  { name: "Evaluator ID", uid: "evaluator_id" },
   { name: "Submitter", uid: "submitter_name" },
   { name: "Restaurant Name", uid: "restaurant_name" },
   { name: "Category", uid: "category" },
   { name: "Address", uid: "address" },
-  { name: "Date Submitted", uid: "date_submitted" },
+  { name: "Notes", uid: "notes" },
   { name: "Status", uid: "status" }, // Pending, Approved, Rejected
   { name: "Actions", uid: "actions" },
 ];
@@ -24,12 +30,25 @@ export const requestColumns = [
 // Kolom untuk Tab "Reports" (Laporan Masalah)
 export const reportColumns = [
   { name: "ID", uid: "id" },
+  { name: "Date", uid: "date" },
+  { name: "Evaluator ID", uid: "evaluator_id" },
+  { name: "Assign ID", uid: "assign_id" },
   { name: "Reporter", uid: "reporter_name" },
-  { name: "Assignment Ref", uid: "assignment_ref" }, // ID Assignment terkait
   { name: "Issue Type", uid: "issue_type" }, // Closed, Food Poisoning, etc
   { name: "Description", uid: "description" },
-  { name: "Date Reported", uid: "date_reported" },
   { name: "Status", uid: "status" }, // Open, Resolved, Ignored
+  { name: "Actions", uid: "actions" },
+];
+
+// Kolom untuk Tab "Re-assign Request"
+export const reassignColumns = [
+  { name: "ID", uid: "id" },
+  { name: "Date", uid: "date" },
+  { name: "Evaluator ID", uid: "evaluator_id" },
+  { name: "Assign ID", uid: "assign_id" },
+  { name: "Evaluator Name", uid: "evaluator_name" },
+  { name: "Restaurant Name", uid: "restaurant_name" },
+  { name: "Reason", uid: "reason" },
   { name: "Actions", uid: "actions" },
 ];
 
@@ -38,47 +57,62 @@ export const reportColumns = [
 const mockRequests = [
   {
     id: "REQ-001",
+    date: "2023-10-25",
+    evaluator_id: "JEVA-301",
+    assign_id: "ASSIGN-1001",
     submitter_name: "John Doe",
     restaurant_name: "Kopi Kenangan Senopati",
     category: "Coffee Shop",
     address: "Jl. Senopati No. 10",
-    date_submitted: "2023-10-25",
+    notes: "Prefers quiet ambiance",
     status: "Pending",
   },
   {
     id: "REQ-002",
+    date: "2023-10-24",
+    evaluator_id: "JEVA-304",
+    assign_id: "ASSIGN-1002",
     submitter_name: "Jane Smith",
     restaurant_name: "Sate Khas Senayan",
     category: "Indonesian",
     address: "Mall Grand Indonesia",
-    date_submitted: "2023-10-24",
+    notes: "Family-friendly request",
     status: "Approved",
   },
   {
     id: "REQ-003",
+    date: "2023-10-28",
+    evaluator_id: "JEVA-310",
+    assign_id: "ASSIGN-1003",
     submitter_name: "Ahmad Rizki",
     restaurant_name: "Bebek Goreng Pak Ndut",
     category: "Indonesian",
     address: "Jl. Raya Bogor No. 45",
-    date_submitted: "2023-10-28",
+    notes: "Needs weekend slot",
     status: "Pending",
   },
   {
     id: "REQ-004",
+    date: "2023-10-30",
+    evaluator_id: "JEVA-298",
+    assign_id: "ASSIGN-1004",
     submitter_name: "Siti Nurhaliza",
     restaurant_name: "Warung Padang Sederhana",
     category: "Padang",
     address: "Jl. Sudirman No. 120",
-    date_submitted: "2023-10-30",
+    notes: "Halal menu focus",
     status: "Rejected",
   },
   {
     id: "REQ-005",
+    date: "2023-11-01",
+    evaluator_id: "JEVA-325",
+    assign_id: "ASSIGN-1005",
     submitter_name: "Budi Santoso",
     restaurant_name: "Pizza Hut Kemang",
     category: "Western",
     address: "Jl. Kemang Raya No. 8",
-    date_submitted: "2023-11-01",
+    notes: "Requested late afternoon",
     status: "Approved",
   },
 ];
@@ -86,45 +120,79 @@ const mockRequests = [
 const mockReports = [
   {
     id: "RPT-991",
+    date: "2023-10-26",
+    evaluator_id: "JEVA-203",
+    assign_id: "ASSIGN-1023",
     reporter_name: "Michael B",
-    assignment_ref: "ASSIGN-1023",
     issue_type: "Restaurant Closed",
     description: "Tempatnya sudah berganti jadi toko baju.",
-    date_reported: "2023-10-26",
     status: "Open",
   },
   {
     id: "RPT-992",
+    date: "2023-10-20",
+    evaluator_id: "JEVA-177",
+    assign_id: "ASSIGN-1100",
     reporter_name: "Sarah C",
-    assignment_ref: "ASSIGN-1100",
     issue_type: "Food Poisoning",
     description: "Saya merasa mual 2 jam setelah makan.",
-    date_reported: "2023-10-20",
     status: "Resolved",
   },
   {
     id: "RPT-993",
+    date: "2023-11-02",
+    evaluator_id: "JEVA-189",
+    assign_id: "ASSIGN-1154",
     reporter_name: "Andi K",
-    assignment_ref: "ASSIGN-1154",
     issue_type: "Bad Service",
     description: "Staff tidak responsif selama visitasi.",
-    date_reported: "2023-11-02",
     status: "Open",
   },
   {
     id: "RPT-994",
+    date: "2023-11-05",
+    evaluator_id: "JEVA-203",
+    assign_id: "ASSIGN-1201",
     reporter_name: "Lia P",
-    assignment_ref: "ASSIGN-1201",
     issue_type: "Restaurant Closed",
     description: "Restoran tutup permanen sesuai info tetangga.",
-    date_reported: "2023-11-05",
     status: "Ignored",
+  },
+];
+
+const mockReassignRequests = [
+  {
+    id: "RR-101",
+    date: "2023-11-10",
+    evaluator_id: "JEVA-203",
+    assign_id: "ASSIGN-1201",
+    evaluator_name: "Lia P",
+    restaurant_name: "Warung Padang Sederhana",
+    reason: "Evaluator unavailable for revisit",
+  },
+  {
+    id: "RR-102",
+    date: "2023-11-12",
+    evaluator_id: "JEVA-177",
+    assign_id: "ASSIGN-1154",
+    evaluator_name: "Andi K",
+    restaurant_name: "Pizza Hut Kemang",
+    reason: "Restaurant rescheduled",
+  },
+  {
+    id: "RR-103",
+    date: "2023-11-15",
+    evaluator_id: "JEVA-189",
+    assign_id: "ASSIGN-1100",
+    evaluator_name: "Sarah C",
+    restaurant_name: "Sate Khas Senayan",
+    reason: "Conflict with assigned schedule",
   },
 ];
 
 export default function FeedbackPage() {
   // State
-  const [selectedView, setSelectedView] = useState<string>("request"); // 'request' or 'report'
+  const [selectedView, setSelectedView] = useState<string>("request"); // 'request' | 'report' | 'reassign'
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
@@ -137,7 +205,11 @@ export default function FeedbackPage() {
   const filteredData = useMemo(() => {
     // 1. Pilih data source berdasarkan tab
     let data: Record<string, unknown>[] =
-      selectedView === "request" ? mockRequests : mockReports;
+      selectedView === "request"
+        ? mockRequests
+        : selectedView === "report"
+          ? mockReports
+          : mockReassignRequests;
 
     // 2. Filter Search
     if (searchQuery.trim().length > 0) {
@@ -163,6 +235,7 @@ export default function FeedbackPage() {
 
   const requestViewData = selectedView === "request" ? paginatedData : [];
   const reportViewData = selectedView === "report" ? paginatedData : [];
+  const reassignViewData = selectedView === "reassign" ? paginatedData : [];
 
   useEffect(() => {
     setPage(1);
@@ -197,8 +270,10 @@ export default function FeedbackPage() {
       case "address":
         return cellValue || "—";
 
-      case "date_submitted":
-      case "date_reported":
+      case "notes":
+        return cellValue || "—";
+
+      case "date":
         if (!cellValue) {
           return <span className="text-gray-400 italic">-</span>;
         }
@@ -207,13 +282,22 @@ export default function FeedbackPage() {
       case "reporter_name":
         return cellValue || "—";
 
-      case "assignment_ref":
-        return cellValue || "—";
-
       case "issue_type":
         return cellValue || "—";
 
       case "description":
+        return cellValue || "—";
+
+      case "evaluator_id":
+        return cellValue || "—";
+
+      case "assign_id":
+        return cellValue || "—";
+
+      case "evaluator_name":
+        return cellValue || "—";
+
+      case "reason":
         return cellValue || "—";
 
       case "status": {
@@ -302,10 +386,10 @@ export default function FeedbackPage() {
         tabOptions={[
           {
             key: "request",
-            label: "Request",
+            label: "Restaurant Request",
             shortLabel: "Request",
             icon: (
-              <MdAssignment
+              <MdRestaurantMenu
                 size={16}
                 className="w-[14px] h-[14px] sm:w-[18px] sm:h-[18px]"
               />
@@ -322,10 +406,23 @@ export default function FeedbackPage() {
               />
             ),
           },
+          {
+            key: "reassign",
+            label: "Re-assign Request",
+            shortLabel: "Re-assign",
+            icon: (
+              <MdAssignment
+                size={16}
+                className="w-[14px] h-[14px] sm:w-[18px] sm:h-[18px]"
+              />
+            ),
+          },
         ]}
         searchPlaceholders={{
           request: "Search by submitter, restaurant, category, or status...",
           report: "Search by reporter, assignment, issue type, or status...",
+          reassign:
+            "Search by JEVA ID, assign ID, evaluator, restaurant, or reason...",
         }}
         showAssignmentStats={false}
         selectedView={selectedView}
@@ -363,9 +460,16 @@ export default function FeedbackPage() {
         type="assignment"
         selectedView={selectedView}
         isLoading={isLoading}
-        columns={selectedView === "request" ? requestColumns : reportColumns}
+        columns={
+          selectedView === "request"
+            ? requestColumns
+            : selectedView === "report"
+              ? reportColumns
+              : reassignColumns
+        }
         requestViewData={requestViewData}
         reportViewData={reportViewData}
+        evaluatorViewData={reassignViewData}
         evaluators={[]}
         establishments={[]}
         assignments={[]}

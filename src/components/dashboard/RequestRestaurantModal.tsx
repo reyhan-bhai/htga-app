@@ -123,7 +123,7 @@ export default function RequestRestaurantModal({
               htmlFor="restaurant-location"
               className="text-xs font-semibold uppercase tracking-wide text-gray-400"
             >
-              Location
+              Address
             </label>
             <input
               id="restaurant-location"
@@ -139,7 +139,7 @@ export default function RequestRestaurantModal({
               htmlFor="restaurant-cuisine"
               className="text-xs font-semibold uppercase tracking-wide text-gray-400"
             >
-              Cuisine (optional)
+              Category
             </label>
             <input
               id="restaurant-cuisine"
