@@ -10,6 +10,8 @@ import { useEffect, useMemo, useState } from "react";
 
 // Budget management specific columns
 const budgetColumns = [
+  { name: "JEVA ID", uid: "jevaId" },
+  { name: "Assign ID", uid: "assignId" },
   { name: "Evaluator Name", uid: "evaluatorName" },
   { name: "Email", uid: "email" },
   { name: "Company/Organization", uid: "company" },
@@ -102,6 +104,8 @@ const getBudgetViewData = (
           id: `${assignment.id}-eval1`,
           assignmentId: assignment.id,
           evaluatorId: assignment.evaluator1Id,
+          assignId: assignment.id,
+          jevaId: assignment.evaluator1Id,
           evaluatorName: evaluator1.name || "Unknown",
           email: evaluator1.email || "-",
           company: evaluator1.company || "-",
@@ -133,6 +137,8 @@ const getBudgetViewData = (
           id: `${assignment.id}-eval2`,
           assignmentId: assignment.id,
           evaluatorId: assignment.evaluator2Id,
+          assignId: assignment.id,
+          jevaId: assignment.evaluator2Id,
           evaluatorName: evaluator2.name || "Unknown",
           email: evaluator2.email || "-",
           company: evaluator2.company || "-",
@@ -262,6 +268,12 @@ export default function BudgetPage() {
           const cellValue = item[columnKey as keyof typeof item];
 
           switch (columnKey) {
+            case "jevaId":
+              return cellValue || "-";
+
+            case "assignId":
+              return cellValue || "-";
+
             case "evaluatorName":
               return cellValue || "-";
 
