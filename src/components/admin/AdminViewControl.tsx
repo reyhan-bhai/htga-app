@@ -40,6 +40,14 @@ interface AdminViewControlProps {
   // Budget Only
   selectedDateRange?: { start: string; end: string };
   setSelectedDateRange?: (range: { start: string; end: string }) => void;
+  amountSpentRange?: { min: string; max: string };
+  setAmountSpentRange?: (range: { min: string; max: string }) => void;
+  budgetValueRange?: { min: string; max: string };
+  setBudgetValueRange?: (range: { min: string; max: string }) => void;
+  reimbursementRange?: { min: string; max: string };
+  setReimbursementRange?: (range: { min: string; max: string }) => void;
+  receiptStatus?: "all" | "uploaded" | "missing";
+  setReceiptStatus?: (status: "all" | "uploaded" | "missing") => void;
 
   // Assignment Only
   selectedView?: string;
@@ -106,6 +114,14 @@ export default function AdminViewControl({
   showAssignmentStats = true,
   selectedDateRange,
   setSelectedDateRange,
+  amountSpentRange,
+  setAmountSpentRange,
+  budgetValueRange,
+  setBudgetValueRange,
+  reimbursementRange,
+  setReimbursementRange,
+  receiptStatus = "all",
+  setReceiptStatus,
   selectedView,
   setSelectedView,
   statusFilterOptions,
@@ -1186,7 +1202,7 @@ export default function AdminViewControl({
             <div className="flex flex-row gap-2 sm:gap-3 w-full sm:w-auto items-center">
               {/* Search Input */}
               <Input
-                placeholder="Search by evaluator name, email, company, or restaurant..."
+                placeholder="Search by JEVA ID, assign ID, evaluator, email, company, or restaurant..."
                 value={searchQuery || ""}
                 onValueChange={(value) => {
                   if (setSearchQuery) {
@@ -1246,21 +1262,21 @@ export default function AdminViewControl({
                   {/* Scrollable Content */}
                   <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-3">
                     <div className="space-y-4">
-                      {/* Date Range Filter */}
+                      {/* Amount Spent Filter */}
                       <div className="flex flex-col gap-2">
                         <span className="font-medium text-sm text-gray-700">
-                          Assignment Date Range
+                          Amount Spent Range
                         </span>
-                        <div className="flex flex-col gap-2">
+                        <div className="grid grid-cols-2 gap-2">
                           <Input
-                            type="date"
-                            label="Start Date"
-                            value={selectedDateRange?.start || ""}
+                            type="number"
+                            label="Min"
+                            value={amountSpentRange?.min ?? ""}
                             onValueChange={(value) => {
-                              if (setSelectedDateRange) {
-                                setSelectedDateRange({
-                                  start: value,
-                                  end: selectedDateRange?.end || "",
+                              if (setAmountSpentRange) {
+                                setAmountSpentRange({
+                                  min: value,
+                                  max: amountSpentRange?.max ?? "",
                                 });
                               }
                             }}
@@ -1273,14 +1289,14 @@ export default function AdminViewControl({
                             }}
                           />
                           <Input
-                            type="date"
-                            label="End Date"
-                            value={selectedDateRange?.end || ""}
+                            type="number"
+                            label="Max"
+                            value={amountSpentRange?.max ?? ""}
                             onValueChange={(value) => {
-                              if (setSelectedDateRange) {
-                                setSelectedDateRange({
-                                  start: selectedDateRange?.start || "",
-                                  end: value,
+                              if (setAmountSpentRange) {
+                                setAmountSpentRange({
+                                  min: amountSpentRange?.min ?? "",
+                                  max: value,
                                 });
                               }
                             }}
@@ -1293,6 +1309,159 @@ export default function AdminViewControl({
                             }}
                           />
                         </div>
+                      </div>
+
+                      <Divider className="bg-gray-200" />
+
+                      {/* Budget Filter */}
+                      <div className="flex flex-col gap-2">
+                        <span className="font-medium text-sm text-gray-700">
+                          Budget Range
+                        </span>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input
+                            type="number"
+                            label="Min"
+                            value={budgetValueRange?.min ?? ""}
+                            onValueChange={(value) => {
+                              if (setBudgetValueRange) {
+                                setBudgetValueRange({
+                                  min: value,
+                                  max: budgetValueRange?.max ?? "",
+                                });
+                              }
+                            }}
+                            size="sm"
+                            variant="bordered"
+                            classNames={{
+                              inputWrapper:
+                                "bg-white border-gray-300 rounded-md",
+                              input: "text-black text-sm",
+                            }}
+                          />
+                          <Input
+                            type="number"
+                            label="Max"
+                            value={budgetValueRange?.max ?? ""}
+                            onValueChange={(value) => {
+                              if (setBudgetValueRange) {
+                                setBudgetValueRange({
+                                  min: budgetValueRange?.min ?? "",
+                                  max: value,
+                                });
+                              }
+                            }}
+                            size="sm"
+                            variant="bordered"
+                            classNames={{
+                              inputWrapper:
+                                "bg-white border-gray-300 rounded-md",
+                              input: "text-black text-sm",
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <Divider className="bg-gray-200" />
+
+                      {/* Reimbursement Filter */}
+                      <div className="flex flex-col gap-2">
+                        <span className="font-medium text-sm text-gray-700">
+                          Reimbursement Range
+                        </span>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input
+                            type="number"
+                            label="Min"
+                            value={reimbursementRange?.min ?? ""}
+                            onValueChange={(value) => {
+                              if (setReimbursementRange) {
+                                setReimbursementRange({
+                                  min: value,
+                                  max: reimbursementRange?.max ?? "",
+                                });
+                              }
+                            }}
+                            size="sm"
+                            variant="bordered"
+                            classNames={{
+                              inputWrapper:
+                                "bg-white border-gray-300 rounded-md",
+                              input: "text-black text-sm",
+                            }}
+                          />
+                          <Input
+                            type="number"
+                            label="Max"
+                            value={reimbursementRange?.max ?? ""}
+                            onValueChange={(value) => {
+                              if (setReimbursementRange) {
+                                setReimbursementRange({
+                                  min: reimbursementRange?.min ?? "",
+                                  max: value,
+                                });
+                              }
+                            }}
+                            size="sm"
+                            variant="bordered"
+                            classNames={{
+                              inputWrapper:
+                                "bg-white border-gray-300 rounded-md",
+                              input: "text-black text-sm",
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <Divider className="bg-gray-200" />
+
+                      {/* Receipt Upload Filter */}
+                      <div className="flex flex-col gap-2">
+                        <span className="font-medium text-sm text-gray-700">
+                          Image Uploaded
+                        </span>
+                        <Select
+                          selectedKeys={[receiptStatus]}
+                          onSelectionChange={(keys) => {
+                            const value = Array.from(keys)[0];
+                            if (value && setReceiptStatus) {
+                              setReceiptStatus(
+                                value as "all" | "uploaded" | "missing",
+                              );
+                            }
+                          }}
+                          size="sm"
+                          variant="bordered"
+                          classNames={{
+                            trigger:
+                              "bg-white border-gray-300 rounded-md h-9 text-black",
+                            value: "text-black text-sm",
+                            listboxWrapper: "text-gray-500",
+                            popoverContent: "text-gray-500",
+                          }}
+                        >
+                          <SelectItem
+                            key="all"
+                            value="all"
+                            className="text-gray-600"
+                          >
+                            All
+                          </SelectItem>
+                          <SelectItem
+                            key="uploaded"
+                            value="uploaded"
+                            className="text-gray-600"
+                          >
+                            Uploaded
+                          </SelectItem>
+                          <SelectItem
+                            key="missing"
+                            value="missing"
+                            className="text-gray-600"
+                          >
+                            Missing
+                          </SelectItem>
+                        </Select>
                       </div>
 
                       <Divider className="bg-gray-200" />

@@ -170,10 +170,21 @@ export default function BudgetPage() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [selectedDateRange, setSelectedDateRange] = useState<{
-    start: string;
-    end: string;
-  }>({ start: "", end: "" });
+  const [amountSpentRange, setAmountSpentRange] = useState({
+    min: "",
+    max: "",
+  });
+  const [budgetValueRange, setBudgetValueRange] = useState({
+    min: "",
+    max: "",
+  });
+  const [reimbursementRange, setReimbursementRange] = useState({
+    min: "",
+    max: "",
+  });
+  const [receiptStatus, setReceiptStatus] = useState<
+    "all" | "uploaded" | "missing"
+  >("all");
 
   // Get budget view data
   const budgetViewData = useMemo(() => {
@@ -183,36 +194,86 @@ export default function BudgetPage() {
   // Filter budget data
   const filteredBudgetData = useMemo(() => {
     let results = budgetViewData;
+    const parseRangeValue = (value: string) => {
+      const trimmedValue = value.trim();
+      if (!trimmedValue) {
+        return null;
+      }
+      const parsedValue = Number.parseFloat(trimmedValue);
+      return Number.isNaN(parsedValue) ? null : parsedValue;
+    };
+
+    const isWithinRange = (
+      value: number | null | undefined,
+      range: { min: string; max: string },
+    ) => {
+      const minValue = parseRangeValue(range.min);
+      const maxValue = parseRangeValue(range.max);
+
+      if (minValue === null && maxValue === null) {
+        return true;
+      }
+
+      if (value === null || value === undefined || Number.isNaN(value)) {
+        return false;
+      }
+
+      if (minValue !== null && value < minValue) {
+        return false;
+      }
+
+      if (maxValue !== null && value > maxValue) {
+        return false;
+      }
+
+      return true;
+    };
 
     // Filter by search query
     if (searchQuery.trim().length > 0) {
       const query = searchQuery.toLowerCase();
       results = results.filter((item) => {
         const searchFields = [
+          item.jevaId || "",
+          item.assignId || "",
           item.evaluatorName || "",
           item.email || "",
           item.company || "",
           item.restaurantName || "",
         ];
         return searchFields.some((field) =>
-          field.toLowerCase().includes(query),
+          String(field).toLowerCase().includes(query),
         );
       });
     }
 
-    // Filter by date range
-    if (selectedDateRange.start && selectedDateRange.end) {
-      results = results.filter((item) => {
-        if (!item.dateAssigned || item.dateAssigned === "-") return false;
-        const assignedDate = new Date(item.dateAssigned);
-        const startDate = new Date(selectedDateRange.start);
-        const endDate = new Date(selectedDateRange.end);
-        return assignedDate >= startDate && assignedDate <= endDate;
-      });
-    }
+    results = results.filter((item) => {
+      const amountSpent = item.amountSpent ?? null;
+      const budgetValue = item.budget ?? null;
+      const reimbursementValue = item.reimbursement ?? null;
+      const hasReceipt = Boolean(item.receipt);
+      const matchesReceiptStatus =
+        receiptStatus === "all" ||
+        (receiptStatus === "uploaded" && hasReceipt) ||
+        (receiptStatus === "missing" && !hasReceipt);
+
+      return (
+        isWithinRange(amountSpent, amountSpentRange) &&
+        isWithinRange(budgetValue, budgetValueRange) &&
+        isWithinRange(reimbursementValue, reimbursementRange) &&
+        matchesReceiptStatus
+      );
+    });
 
     return results;
-  }, [budgetViewData, searchQuery, selectedDateRange]);
+  }, [
+    budgetViewData,
+    searchQuery,
+    amountSpentRange,
+    budgetValueRange,
+    reimbursementRange,
+    receiptStatus,
+  ]);
 
   // Calculate pagination
   const totalPages = Math.ceil(filteredBudgetData.length / rowsPerPage);
@@ -224,7 +285,13 @@ export default function BudgetPage() {
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, selectedDateRange]);
+  }, [
+    searchQuery,
+    amountSpentRange,
+    budgetValueRange,
+    reimbursementRange,
+    receiptStatus,
+  ]);
 
   // Reset page when rows per page changes
   useEffect(() => {
@@ -233,12 +300,19 @@ export default function BudgetPage() {
 
   const handleClearFilters = () => {
     setSearchQuery("");
-    setSelectedDateRange({ start: "", end: "" });
+    setAmountSpentRange({ min: "", max: "" });
+    setBudgetValueRange({ min: "", max: "" });
+    setReimbursementRange({ min: "", max: "" });
+    setReceiptStatus("all");
   };
 
   const activeFiltersCount =
     (searchQuery.trim().length > 0 ? 1 : 0) +
-    (selectedDateRange.start || selectedDateRange.end ? 1 : 0);
+    ([amountSpentRange, budgetValueRange, reimbursementRange].filter(
+      (range) => range.min.trim() || range.max.trim(),
+    ).length || 0);
+  const receiptFilterCount = receiptStatus === "all" ? 0 : 1;
+  const totalActiveFilters = activeFiltersCount + receiptFilterCount;
 
   return (
     <div className="text-black flex flex-col gap-4 lg:gap-6 p-4 sm:p-6">
@@ -250,9 +324,15 @@ export default function BudgetPage() {
         type="budget"
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
-        selectedDateRange={selectedDateRange}
-        setSelectedDateRange={setSelectedDateRange}
-        activeFiltersCount={activeFiltersCount}
+        amountSpentRange={amountSpentRange}
+        setAmountSpentRange={setAmountSpentRange}
+        budgetValueRange={budgetValueRange}
+        setBudgetValueRange={setBudgetValueRange}
+        reimbursementRange={reimbursementRange}
+        setReimbursementRange={setReimbursementRange}
+        receiptStatus={receiptStatus}
+        setReceiptStatus={setReceiptStatus}
+        activeFiltersCount={totalActiveFilters}
         clearFilters={handleClearFilters}
         rowsPerPage={rowsPerPage}
         setRowsPerPage={setRowsPerPage}
