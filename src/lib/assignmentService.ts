@@ -5,7 +5,7 @@ import { get, off, onValue, ref } from "firebase/database";
 export interface EvaluatorAssignment {
   id: string;
   establishmentId: string;
-  status: "pending" | "submitted" | "completed";
+  status: "pending" | "submitted" | "completed" | "reassigned" | "reported";
   uniqueId?: string;
   assignedAt: string;
   establishment: Establishment;
@@ -13,7 +13,7 @@ export interface EvaluatorAssignment {
 
 export function subscribeToEvaluatorAssignments(
   evaluatorId: string,
-  callback: (assignments: EvaluatorAssignment[]) => void
+  callback: (assignments: EvaluatorAssignment[]) => void,
 ) {
   console.log("🔍 Subscribing to assignments for evaluator:", evaluatorId);
 
@@ -43,7 +43,7 @@ export function subscribeToEvaluatorAssignments(
               e1Unique: value.evaluator1UniqueID,
               e2Unique: value.evaluator2UniqueID,
               val: value,
-            }
+            },
           );
 
           // Fetch establishment details (one-time fetch is usually okay for static data,
@@ -51,7 +51,7 @@ export function subscribeToEvaluatorAssignments(
           // For now, let's fetch fresh data on every assignment update)
           const establishmentRef = ref(
             db,
-            `establishments/${value.establishmentId}`
+            `establishments/${value.establishmentId}`,
           );
           const establishmentSnap = await get(establishmentRef);
 
@@ -95,7 +95,7 @@ export function subscribeToEvaluatorAssignments(
             });
           }
         }
-      }
+      },
     );
 
     await Promise.all(promises);
@@ -103,7 +103,7 @@ export function subscribeToEvaluatorAssignments(
     // Sort by assignedAt desc
     evaluatorAssignments.sort(
       (a, b) =>
-        new Date(b.assignedAt).getTime() - new Date(a.assignedAt).getTime()
+        new Date(b.assignedAt).getTime() - new Date(a.assignedAt).getTime(),
     );
 
     callback(evaluatorAssignments);
@@ -114,7 +114,7 @@ export function subscribeToEvaluatorAssignments(
 }
 
 export async function getEvaluatorAssignments(
-  evaluatorId: string
+  evaluatorId: string,
 ): Promise<EvaluatorAssignment[]> {
   try {
     console.log("🔍 Fetching assignments for evaluator:", evaluatorId);
@@ -133,7 +133,7 @@ export async function getEvaluatorAssignments(
     const allAssignments = snapshot.val();
     console.log(
       "📊 Total assignments in DB:",
-      Object.keys(allAssignments).length
+      Object.keys(allAssignments).length,
     );
 
     const evaluatorAssignments: EvaluatorAssignment[] = [];
@@ -148,7 +148,7 @@ export async function getEvaluatorAssignments(
         if (isEvaluator1 || isEvaluator2) {
           const establishmentRef = ref(
             db,
-            `establishments/${value.establishmentId}`
+            `establishments/${value.establishmentId}`,
           );
           const establishmentSnap = await get(establishmentRef);
 
@@ -170,7 +170,7 @@ export async function getEvaluatorAssignments(
           } else {
             // Handle case where establishment data is missing but assignment exists
             console.warn(
-              `Establishment data missing for ID: ${value.establishmentId}`
+              `Establishment data missing for ID: ${value.establishmentId}`,
             );
             evaluatorAssignments.push({
               id: key,
@@ -190,20 +190,20 @@ export async function getEvaluatorAssignments(
             });
           }
         }
-      }
+      },
     );
 
     await Promise.all(promises);
 
     console.log(
       "✅ Filtered assignments for evaluator:",
-      evaluatorAssignments.length
+      evaluatorAssignments.length,
     );
 
     // Sort by assignedAt desc
     return evaluatorAssignments.sort(
       (a, b) =>
-        new Date(b.assignedAt).getTime() - new Date(a.assignedAt).getTime()
+        new Date(b.assignedAt).getTime() - new Date(a.assignedAt).getTime(),
     );
   } catch (error) {
     console.error("❌ Error fetching assignments:", error);

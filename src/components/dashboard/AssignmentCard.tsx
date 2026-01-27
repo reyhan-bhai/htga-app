@@ -1,5 +1,4 @@
 import { EvaluatorAssignment } from "@/lib/assignmentService";
-import React from "react";
 
 interface AssignmentCardProps {
   assignment: EvaluatorAssignment;
@@ -27,6 +26,10 @@ export default function AssignmentCard({
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case "reported":
+        return "bg-red-500";
+      case "reassigned":
+        return "bg-purple-500";
       case "completed":
         return "bg-green-500";
       case "submitted":
@@ -38,6 +41,10 @@ export default function AssignmentCard({
 
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case "reported":
+        return "bg-red-100 text-red-700";
+      case "reassigned":
+        return "bg-purple-100 text-purple-700";
       case "completed":
         return "bg-green-100 text-green-700";
       case "submitted":
@@ -47,12 +54,32 @@ export default function AssignmentCard({
     }
   };
 
+  const getCardBackground = (status: string) => {
+    switch (status) {
+      case "reported":
+        return "bg-red-50 border-red-100";
+      case "reassigned":
+        return "bg-purple-50 border-purple-100";
+      default:
+        return "bg-white border-gray-100";
+    }
+  };
+
+  const isDisabled =
+    assignment.status === "completed" ||
+    assignment.status === "reported" ||
+    assignment.status === "reassigned";
+
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative overflow-hidden">
+    <div
+      className={`rounded-2xl p-5 shadow-sm border hover:shadow-md transition-shadow relative overflow-hidden ${getCardBackground(
+        assignment.status,
+      )}`}
+    >
       {/* Status Stripe */}
       <div
         className={`absolute left-0 top-0 bottom-0 w-1.5 ${getStatusColor(
-          assignment.status
+          assignment.status,
         )}`}
       ></div>
 
@@ -73,10 +100,12 @@ export default function AssignmentCard({
         </div>
         <span
           className={`px-3 py-1 rounded-full text-xs font-bold capitalize ${getStatusBadge(
-            assignment.status
+            assignment.status,
           )}`}
         >
-          {assignment.status}
+          {assignment.status === "reassigned"
+            ? "Reassign Requested"
+            : assignment.status}{" "}
         </span>
       </div>
 
@@ -127,20 +156,24 @@ export default function AssignmentCard({
             if (assignment.status === "pending") onSubmit(assignment);
             if (assignment.status === "submitted") onClaim(assignment);
           }}
-          disabled={assignment.status === "completed"}
+          disabled={isDisabled}
           className={`w-full py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
-            assignment.status === "completed"
+            isDisabled
               ? "bg-gray-200 text-gray-500 cursor-not-allowed"
               : assignment.status === "submitted"
-              ? "bg-blue-500 text-white hover:bg-blue-600 shadow-lg shadow-orange-100"
-              : "bg-[#1B1B1B] text-white hover:bg-black shadow-lg shadow-gray-200"
+                ? "bg-blue-500 text-white hover:bg-blue-600 shadow-lg shadow-orange-100"
+                : "bg-[#1B1B1B] text-white hover:bg-black shadow-lg shadow-gray-200"
           }`}
         >
           {assignment.status === "completed"
             ? "Completed"
-            : assignment.status === "submitted"
-            ? "Claim Submission"
-            : "Submit Form"}
+            : assignment.status === "reported"
+              ? "Reported"
+              : assignment.status === "reassigned"
+                ? "Reassigned"
+                : assignment.status === "submitted"
+                  ? "Claim Submission"
+                  : "Submit Form"}
           <div
             className={
               assignment.status === "completed"

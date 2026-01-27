@@ -32,14 +32,14 @@ export interface Assignment {
   id: string;
   establishmentId: string;
   evaluator1Id: string;
-  evaluator1Status: "pending" | "completed";
+  evaluator1Status: "pending" | "completed" | "reassigned" | "reported";
   evaluator1UniqueID?: string;
   evaluator1AssignedAt?: string;
   evaluator1Receipt?: string; // URL to receipt image
   evaluator1AmountSpent?: number; // Amount spent in RM
   evaluator1Currency?: string;
   evaluator2Id: string;
-  evaluator2Status: "pending" | "completed";
+  evaluator2Status: "pending" | "completed" | "reassigned" | "reported";
   evaluator2UniqueID?: string;
   evaluator2AssignedAt?: string;
   evaluator2Receipt?: string; // URL to receipt image

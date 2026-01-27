@@ -1,8 +1,14 @@
 import { EvaluatorAssignment } from "@/lib/assignmentService";
-import React, { useState } from "react";
+import { useState } from "react";
 import AssignmentCard from "./AssignmentCard";
 
-type StatusFilter = "All" | "Pending" | "Submitted" | "Completed";
+type StatusFilter =
+  | "All"
+  | "Pending"
+  | "Submitted"
+  | "Completed"
+  | "Reassigned"
+  | "Reported";
 
 interface AssignmentListProps {
   assignments: EvaluatorAssignment[];
@@ -30,8 +36,8 @@ export default function AssignmentList({
       new Set(
         assignments
           .map((assignment) => assignment.establishment.category)
-          .filter((category) => category && category.trim().length > 0)
-      )
+          .filter((category) => category && category.trim().length > 0),
+      ),
     ),
   ];
 
@@ -79,6 +85,8 @@ export default function AssignmentList({
                       "Pending",
                       "Submitted",
                       "Completed",
+                      "Reassigned",
+                      "Reported",
                     ] as StatusFilter[]
                   ).map((status) => (
                     <option key={status} value={status}>
