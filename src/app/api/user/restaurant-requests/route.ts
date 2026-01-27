@@ -1,4 +1,5 @@
 import admin, { db } from "@/lib/firebase-admin";
+import { sendNotificationEmail } from "@/lib/emailService";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -56,6 +57,37 @@ export async function POST(request: Request): Promise<NextResponse> {
       status: "Pending",
       createdAt: admin.database.ServerValue.TIMESTAMP,
     });
+
+    const adminEmail =
+      process.env.ADMIN_NOTIFICATION_EMAIL?.trim() ||
+      process.env.GMAIL_FROM?.trim();
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+    const feedbackUrl = appUrl ? `${appUrl}/admin/feedback` : "";
+
+    if (adminEmail) {
+      const subject = `New Restaurant Recommendation ${requestId}`;
+      const text = `A new restaurant recommendation has been submitted by ${submitterName} (${evaluatorId}).\nRestaurant: ${restaurantName}\nCategory: ${category || "-"}\nAddress: ${address}\nNotes: ${body.notes || "-"}\n\nOpen the feedback page: ${feedbackUrl || "(app URL not configured)"}`;
+      const html = `
+        <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+          <h2 style="color:#A67C37;">New Restaurant Recommendation</h2>
+          <p><strong>Request ID:</strong> ${requestId}</p>
+          <p><strong>Evaluator:</strong> ${submitterName} (${evaluatorId})</p>
+          <p><strong>Restaurant:</strong> ${restaurantName}</p>
+          <p><strong>Category:</strong> ${category || "-"}</p>
+          <p><strong>Address:</strong> ${address}</p>
+          <p><strong>Notes:</strong> ${body.notes || "-"}</p>
+          <p style="margin-top: 24px;">
+            <a href="${feedbackUrl}" style="background:#A67C37;color:#fff;text-decoration:none;padding:10px 18px;border-radius:6px;display:inline-block;">
+              Open Feedback Page
+            </a>
+          </p>
+        </div>
+      `.trim();
+
+      await sendNotificationEmail(adminEmail, subject, text, html);
+    } else {
+      console.warn("[RestaurantRequests] ADMIN_NOTIFICATION_EMAIL not set.");
+    }
 
     return NextResponse.json({ success: true, id: requestId });
   } catch (error) {

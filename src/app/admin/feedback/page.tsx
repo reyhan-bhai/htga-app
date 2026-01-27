@@ -88,6 +88,15 @@ export default function FeedbackPage() {
   const { assignments, evaluators, establishments, fetchData } =
     useAssignedContext();
 
+  const totalFeedbackCount =
+    requestData.length + reportData.length + reassignData.length;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("feedbackLastSeenTotal", String(totalFeedbackCount));
+    window.dispatchEvent(new Event("feedback:seen"));
+  }, [totalFeedbackCount]);
+
   useEffect(() => {
     let isMounted = true;
     let readyCount = 0;

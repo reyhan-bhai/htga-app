@@ -1,4 +1,5 @@
 import admin, { db } from "@/lib/firebase-admin";
+import { sendNotificationEmail } from "@/lib/emailService";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -149,6 +150,36 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
 
     await db.ref().update(updates);
+
+    const adminEmail =
+      process.env.ADMIN_NOTIFICATION_EMAIL?.trim() ||
+      process.env.GMAIL_FROM?.trim();
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+    const feedbackUrl = appUrl ? `${appUrl}/admin/feedback` : "";
+
+    if (adminEmail) {
+      const subject = `New Reassign Request ${requestId}`;
+      const text = `A new reassign request has been submitted by ${evaluatorName} (${evaluatorId}).\nAssignment: ${assignId}\nRestaurant: ${restaurantName}\nReason: ${reason || "-"}\n\nOpen the feedback page: ${feedbackUrl || "(app URL not configured)"}`;
+      const html = `
+        <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+          <h2 style="color:#A67C37;">New Reassign Request</h2>
+          <p><strong>Request ID:</strong> ${requestId}</p>
+          <p><strong>Evaluator:</strong> ${evaluatorName} (${evaluatorId})</p>
+          <p><strong>Assignment ID:</strong> ${assignId}</p>
+          <p><strong>Restaurant:</strong> ${restaurantName}</p>
+          <p><strong>Reason:</strong> ${reason || "-"}</p>
+          <p style="margin-top: 24px;">
+            <a href="${feedbackUrl}" style="background:#A67C37;color:#fff;text-decoration:none;padding:10px 18px;border-radius:6px;display:inline-block;">
+              Open Feedback Page
+            </a>
+          </p>
+        </div>
+      `.trim();
+
+      await sendNotificationEmail(adminEmail, subject, text, html);
+    } else {
+      console.warn("[ReassignRequests] ADMIN_NOTIFICATION_EMAIL not set.");
+    }
 
     return NextResponse.json({ success: true, id: requestId });
   } catch (error) {

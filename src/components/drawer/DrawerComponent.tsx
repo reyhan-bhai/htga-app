@@ -1,9 +1,12 @@
 "use client";
 
+import { db } from "@/lib/firebase";
+import { onValue, ref } from "firebase/database";
 import localFont from "next/font/local";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import {
   MdAccountBalanceWallet,
   MdAssignment,
@@ -49,6 +52,71 @@ export default function DrawerComponent({
   onClose,
 }: DrawerComponentProps) {
   const pathname = usePathname();
+  const [requestCount, setRequestCount] = useState(0);
+  const [reportCount, setReportCount] = useState(0);
+  const [reassignCount, setReassignCount] = useState(0);
+  const [lastSeenTotal, setLastSeenTotal] = useState(0);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const storedValue = localStorage.getItem("feedbackLastSeenTotal");
+    setLastSeenTotal(storedValue ? Number.parseInt(storedValue, 10) || 0 : 0);
+
+    const handleSeenUpdate = () => {
+      const latestValue = localStorage.getItem("feedbackLastSeenTotal");
+      setLastSeenTotal(latestValue ? Number.parseInt(latestValue, 10) || 0 : 0);
+    };
+
+    window.addEventListener("feedback:seen", handleSeenUpdate);
+    window.addEventListener("storage", handleSeenUpdate);
+
+    return () => {
+      window.removeEventListener("feedback:seen", handleSeenUpdate);
+      window.removeEventListener("storage", handleSeenUpdate);
+    };
+  }, []);
+
+  useEffect(() => {
+    const requestsRef = ref(db, "restaurantRequests");
+    const reportsRef = ref(db, "reportRequests");
+    const reassignRef = ref(db, "reassignRequests");
+
+    const requestUnsub = onValue(requestsRef, (snapshot) => {
+      const data = snapshot.val();
+      setRequestCount(data ? Object.keys(data).length : 0);
+    });
+
+    const reportUnsub = onValue(reportsRef, (snapshot) => {
+      const data = snapshot.val();
+      setReportCount(data ? Object.keys(data).length : 0);
+    });
+
+    const reassignUnsub = onValue(reassignRef, (snapshot) => {
+      const data = snapshot.val();
+      setReassignCount(data ? Object.keys(data).length : 0);
+    });
+
+    return () => {
+      requestUnsub();
+      reportUnsub();
+      reassignUnsub();
+    };
+  }, []);
+
+  const totalFeedbackCount = requestCount + reportCount + reassignCount;
+  const unreadFeedbackCount = useMemo(() => {
+    return Math.max(totalFeedbackCount - lastSeenTotal, 0);
+  }, [totalFeedbackCount, lastSeenTotal]);
+
+  useEffect(() => {
+    if (!pathname || typeof window === "undefined") return;
+
+    if (pathname.startsWith("/admin/feedback")) {
+      localStorage.setItem("feedbackLastSeenTotal", String(totalFeedbackCount));
+      setLastSeenTotal(totalFeedbackCount);
+    }
+  }, [pathname, totalFeedbackCount]);
 
   const normalize = (p: string) => p.replace(/\/$/, "");
   const isActive = (href: string) => {
@@ -151,11 +219,16 @@ export default function DrawerComponent({
             <li>
               <Link
                 href="/admin/feedback"
-                className={navItemClass("/admin/feedback")}
+                className={`${navItemClass("/admin/feedback")} relative`}
                 onClick={onClose}
               >
                 <MdFeedback size={24} />
                 Feedback
+                {unreadFeedbackCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center shadow-sm">
+                    {unreadFeedbackCount}
+                  </span>
+                )}
               </Link>
             </li>
           </ul>

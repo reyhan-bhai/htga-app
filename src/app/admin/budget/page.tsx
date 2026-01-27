@@ -7,6 +7,7 @@ import { useAssignedContext } from "@/context/admin/AssignedContext";
 import { Pagination } from "@nextui-org/react";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
+import { MdEdit } from "react-icons/md";
 
 // Budget management specific columns
 const budgetColumns = [
@@ -21,6 +22,7 @@ const budgetColumns = [
   { name: "Amount Spent", uid: "amountSpent" },
   { name: "Budget", uid: "budget" },
   { name: "Reimbursement", uid: "reimbursement" },
+  { name: "Actions", uid: "actions" },
 ];
 
 // Helper function to calculate reimbursement
@@ -185,6 +187,9 @@ export default function BudgetPage() {
   const [receiptStatus, setReceiptStatus] = useState<
     "all" | "uploaded" | "missing"
   >("all");
+  const [uploadingReceiptId, setUploadingReceiptId] = useState<string | null>(
+    null,
+  );
 
   // Get budget view data
   const budgetViewData = useMemo(() => {
@@ -304,6 +309,33 @@ export default function BudgetPage() {
     setBudgetValueRange({ min: "", max: "" });
     setReimbursementRange({ min: "", max: "" });
     setReceiptStatus("all");
+  };
+
+  const handleReceiptUpload = async (item: any, file: File) => {
+    if (!item?.assignmentId || !item?.evaluatorId) return;
+
+    try {
+      setUploadingReceiptId(item.id);
+      const formData = new FormData();
+      formData.append("assignmentId", item.assignmentId);
+      formData.append("evaluatorId", item.evaluatorId);
+      formData.append("receipt", file);
+
+      const response = await fetch("/api/admin/receipt-update", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const payload = await response.json();
+        throw new Error(payload?.error || "Failed to update receipt.");
+      }
+    } catch (error) {
+      console.error("[Budget] Receipt update failed:", error);
+      alert("Failed to update receipt. Please try again.");
+    } finally {
+      setUploadingReceiptId(null);
+    }
   };
 
   const activeFiltersCount =
@@ -435,6 +467,39 @@ export default function BudgetPage() {
                   </span>
                 </div>
               );
+
+            case "actions": {
+              const inputId = `receipt-upload-${item.id}`;
+              const isUploading = uploadingReceiptId === item.id;
+
+              return (
+                <div className="flex items-center justify-center gap-2">
+                  <input
+                    id={inputId}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (!file) return;
+                      handleReceiptUpload(item, file);
+                      event.target.value = "";
+                    }}
+                  />
+                  <label
+                    htmlFor={inputId}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition ${
+                      isUploading
+                        ? "bg-gray-200 text-gray-500 cursor-wait"
+                        : "bg-white text-[#A67C37] border border-[#A67C37] hover:bg-[#A67C37] hover:text-white"
+                    }`}
+                  >
+                    <MdEdit size={14} />
+                    {isUploading ? "Updating..." : "Edit Receipt"}
+                  </label>
+                </div>
+              );
+            }
 
             default:
               return cellValue || "-";
