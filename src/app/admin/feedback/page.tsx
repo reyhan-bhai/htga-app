@@ -12,6 +12,7 @@ import { onValue, ref, update } from "firebase/database";
 import { useEffect, useMemo, useState, type Key, type ReactNode } from "react";
 import {
   MdAssignment,
+  MdClose,
   MdReportProblem,
   MdRestaurantMenu,
 } from "react-icons/md";
@@ -53,6 +54,8 @@ export const reassignColumns = [
   { name: "Evaluator Name", uid: "evaluator_name" },
   { name: "Restaurant Name", uid: "restaurant_name" },
   { name: "Reason", uid: "reason" },
+  { name: "Status", uid: "status" }, // Open, Resolved, Ignored
+
   { name: "Actions", uid: "actions" },
 ];
 
@@ -62,6 +65,13 @@ export default function FeedbackPage() {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilters, setStatusFilters] = useState<
+    Record<"request" | "report" | "reassign", string[]>
+  >({
+    request: [],
+    report: [],
+    reassign: [],
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [requestData, setRequestData] = useState<any[]>([]);
   const [reportData, setReportData] = useState<any[]>([]);
@@ -170,11 +180,26 @@ export default function FeedbackPage() {
       );
     }
 
+    const activeStatusFilters =
+      statusFilters[selectedView as "request" | "report" | "reassign"] || [];
+    if (activeStatusFilters.length > 0) {
+      data = data.filter((item) =>
+        activeStatusFilters.includes(String(item.status || "")),
+      );
+    }
+
     // 3. (Optional) Filter Status jika nanti diimplementasikan
     // if (selectedStatus.length > 0) ...
 
     return data;
-  }, [selectedView, searchQuery, requestData, reportData, reassignData]);
+  }, [
+    selectedView,
+    searchQuery,
+    requestData,
+    reportData,
+    reassignData,
+    statusFilters,
+  ]);
   // Pagination Logic
   const totalPages = Math.ceil(filteredData.length / rowsPerPage);
   const paginatedData = filteredData.slice(
@@ -513,6 +538,10 @@ export default function FeedbackPage() {
 
   const renderFeedbackCell = (item: any, columnKey: Key): ReactNode => {
     const cellValue = item[columnKey as keyof typeof item];
+    const baseActionClass =
+      "inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] sm:text-xs font-semibold transition-all";
+    const labelClass = "hidden sm:inline";
+    const iconClass = "text-xs sm:text-sm";
 
     switch (columnKey) {
       case "id":
@@ -625,30 +654,34 @@ export default function FeedbackPage() {
 
         if (selectedView === "request") {
           return (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => handleOpenRestaurantModal(item)}
                 disabled={isCompleted}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all border ${
+                className={`${baseActionClass} ${
                   isCompleted
                     ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                     : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
                 }`}
+                title="Add to Restaurant"
               >
-                Add to Restaurant
+                <MdRestaurantMenu className={iconClass} />
+                <span className={labelClass}>Add</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleDecline(item)}
                 disabled={isCompleted}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all border ${
+                className={`${baseActionClass} ${
                   isCompleted
                     ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                     : "bg-white text-red-600 border-red-200 hover:bg-red-50"
                 }`}
+                title="Decline Request"
               >
-                Decline
+                <MdClose className={iconClass} />
+                <span className={labelClass}>Decline</span>
               </button>
             </div>
           );
@@ -656,30 +689,34 @@ export default function FeedbackPage() {
 
         if (selectedView === "report") {
           return (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => handleKillRestaurant(item)}
                 disabled={isCompleted}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all border ${
+                className={`${baseActionClass} ${
                   isCompleted
                     ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                     : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
                 }`}
+                title="Kill Restaurant"
               >
-                Kill Restaurant
+                <MdReportProblem className={iconClass} />
+                <span className={labelClass}>Kill</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleDecline(item)}
                 disabled={isCompleted}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all border ${
+                className={`${baseActionClass} ${
                   isCompleted
                     ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                     : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
                 }`}
+                title="Ignore Report"
               >
-                Decline
+                <MdClose className={iconClass} />
+                <span className={labelClass}>Ignore</span>
               </button>
             </div>
           );
@@ -687,30 +724,34 @@ export default function FeedbackPage() {
 
         if (selectedView === "reassign") {
           return (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => handleOpenReassignModal(item)}
                 disabled={isCompleted}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all border ${
+                className={`${baseActionClass} ${
                   isCompleted
                     ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                     : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
                 }`}
+                title="Reassign Evaluator"
               >
-                Reassign Evaluator
+                <MdAssignment className={iconClass} />
+                <span className={labelClass}>Reassign</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleDecline(item)}
                 disabled={isCompleted}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all border ${
+                className={`${baseActionClass} ${
                   isCompleted
                     ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                     : "bg-white text-red-600 border-red-200 hover:bg-red-50"
                 }`}
+                title="Decline Reassign"
               >
-                Decline
+                <MdClose className={iconClass} />
+                <span className={labelClass}>Decline</span>
               </button>
             </div>
           );
@@ -807,10 +848,34 @@ export default function FeedbackPage() {
         setSelectedEvaTwoProgress={() => {}}
         toggleEvaOneProgress={() => {}}
         toggleEvaTwoProgress={() => {}}
-        activeFiltersCount={searchQuery ? 1 : 0}
+        activeFiltersCount={
+          (searchQuery ? 1 : 0) +
+          (statusFilters[selectedView as "request" | "report" | "reassign"]
+            ?.length || 0)
+        }
+        statusFilterOptions={{
+          request: ["Pending", "Approved", "Rejected"],
+          report: ["Open", "Resolved", "Ignored"],
+          reassign: ["Pending", "Approved", "Rejected"],
+        }}
+        selectedStatusFilters={
+          statusFilters[selectedView as "request" | "report" | "reassign"]
+        }
+        setSelectedStatusFilters={(statuses: string[]) =>
+          setStatusFilters((prev) => ({
+            ...prev,
+            [selectedView as "request" | "report" | "reassign"]: statuses,
+          }))
+        }
         evaluatorViewData={requestData}
         restaurantViewData={reportData}
-        clearFilters={() => setSearchQuery("")}
+        clearFilters={() => {
+          setSearchQuery("");
+          setStatusFilters((prev) => ({
+            ...prev,
+            [selectedView as "request" | "report" | "reassign"]: [],
+          }));
+        }}
         rowsPerPage={rowsPerPage}
         setRowsPerPage={setRowsPerPage}
       />

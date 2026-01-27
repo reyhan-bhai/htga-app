@@ -44,6 +44,9 @@ interface AdminViewControlProps {
   // Assignment Only
   selectedView?: string;
   setSelectedView?: (view: string) => void;
+  statusFilterOptions?: Record<string, string[]>;
+  selectedStatusFilters?: string[];
+  setSelectedStatusFilters?: (statuses: string[]) => void;
   selectedNDAStatus?: string[];
   setSelectedNDAStatus?: (statuses: string[]) => void;
   selectedSpecialties?: string[];
@@ -105,6 +108,9 @@ export default function AdminViewControl({
   setSelectedDateRange,
   selectedView,
   setSelectedView,
+  statusFilterOptions,
+  selectedStatusFilters,
+  setSelectedStatusFilters,
   selectedNDAStatus,
   setSelectedNDAStatus,
   selectedSpecialties,
@@ -161,6 +167,13 @@ export default function AdminViewControl({
 
   const resolvedTabs =
     tabOptions && tabOptions.length > 0 ? tabOptions : defaultTabOptions;
+  const isFeedbackFilter =
+    !!statusFilterOptions &&
+    !!selectedView &&
+    !["evaluator", "restaurant"].includes(selectedView);
+  const feedbackStatusOptions = isFeedbackFilter
+    ? statusFilterOptions?.[selectedView || ""] || []
+    : [];
 
   switch (type) {
     case "assignment":
@@ -277,7 +290,50 @@ export default function AdminViewControl({
                   {/* Scrollable Content */}
                   <div className="flex-1 overflow-y-auto px-4 py-3">
                     <div className="flex flex-col gap-3 sm:gap-4 text-black">
-                      {selectedView === "evaluator" ? (
+                      {isFeedbackFilter ? (
+                        <>
+                          {/* Status Filter */}
+                          <div className="flex flex-col gap-2">
+                            <span className="font-medium text-xs sm:text-sm text-gray-700">
+                              Status
+                            </span>
+                            <div className="flex flex-wrap gap-2">
+                              {feedbackStatusOptions.map((status) => {
+                                const isSelected =
+                                  selectedStatusFilters?.includes(status) ??
+                                  false;
+                                return (
+                                  <Checkbox
+                                    key={status}
+                                    size="sm"
+                                    isSelected={isSelected}
+                                    onValueChange={() => {
+                                      if (setSelectedStatusFilters) {
+                                        const nextValues = isSelected
+                                          ? (
+                                              selectedStatusFilters || []
+                                            ).filter(
+                                              (value) => value !== status,
+                                            )
+                                          : [
+                                              ...(selectedStatusFilters || []),
+                                              status,
+                                            ];
+                                        setSelectedStatusFilters(nextValues);
+                                      }
+                                    }}
+                                    classNames={{
+                                      label: "text-black text-xs sm:text-sm",
+                                    }}
+                                  >
+                                    {status}
+                                  </Checkbox>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </>
+                      ) : selectedView === "evaluator" ? (
                         /* Evaluator View Filters */
                         <>
                           {/* NDA Status Filter */}
