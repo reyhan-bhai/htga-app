@@ -488,8 +488,11 @@ export default function FeedbackPage() {
       updates[`${updatePath}/status`] = newStatus;
       updates[`${updatePath}/resolvedAt`] = new Date().toISOString();
 
-      // For Reassign: Revert assignment status to 'pending'
-      if (selectedView === "reassign" && item.assign_id) {
+      // For Reassign/Report: Revert assignment status to 'pending'
+      if (
+        (selectedView === "reassign" || selectedView === "report") &&
+        item.assign_id
+      ) {
         const assignment = assignments.find((a) => a.id === item.assign_id);
         if (assignment) {
           if (assignment.evaluators) {
@@ -501,6 +504,9 @@ export default function FeedbackPage() {
               updates[
                 `assignments/${item.assign_id}/evaluators/JEVA_FIRST/status`
               ] = "pending";
+              updates[
+                `assignments/${item.assign_id}/evaluators/JEVA_FIRST/evaluatorStatus`
+              ] = "pending";
             }
             // Check JEVA_SECOND
             else if (
@@ -509,6 +515,9 @@ export default function FeedbackPage() {
             ) {
               updates[
                 `assignments/${item.assign_id}/evaluators/JEVA_SECOND/status`
+              ] = "pending";
+              updates[
+                `assignments/${item.assign_id}/evaluators/JEVA_SECOND/evaluatorStatus`
               ] = "pending";
             }
           } else {

@@ -1,5 +1,5 @@
-import admin, { db } from "@/lib/firebase-admin";
 import { sendNotificationEmail } from "@/lib/emailService";
+import admin, { db } from "@/lib/firebase-admin";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";

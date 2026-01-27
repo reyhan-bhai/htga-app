@@ -190,6 +190,11 @@ export default function BudgetPage() {
   const [uploadingReceiptId, setUploadingReceiptId] = useState<string | null>(
     null,
   );
+  const [editReceiptItem, setEditReceiptItem] = useState<any | null>(null);
+  const [editReceiptFile, setEditReceiptFile] = useState<File | null>(null);
+  const [editReceiptPreview, setEditReceiptPreview] = useState<string | null>(
+    null,
+  );
 
   // Get budget view data
   const budgetViewData = useMemo(() => {
@@ -311,8 +316,11 @@ export default function BudgetPage() {
     setReceiptStatus("all");
   };
 
-  const handleReceiptUpload = async (item: any, file: File) => {
-    if (!item?.assignmentId || !item?.evaluatorId) return;
+  const handleReceiptUpload = async (
+    item: any,
+    file: File,
+  ): Promise<boolean> => {
+    if (!item?.assignmentId || !item?.evaluatorId) return false;
 
     try {
       setUploadingReceiptId(item.id);
@@ -330,12 +338,40 @@ export default function BudgetPage() {
         const payload = await response.json();
         throw new Error(payload?.error || "Failed to update receipt.");
       }
+      return true;
     } catch (error) {
       console.error("[Budget] Receipt update failed:", error);
       alert("Failed to update receipt. Please try again.");
+      return false;
     } finally {
       setUploadingReceiptId(null);
     }
+  };
+
+  useEffect(() => {
+    if (!editReceiptFile) {
+      setEditReceiptPreview(null);
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(editReceiptFile);
+    setEditReceiptPreview(previewUrl);
+
+    return () => {
+      URL.revokeObjectURL(previewUrl);
+    };
+  }, [editReceiptFile]);
+
+  const handleOpenReceiptModal = (item: any) => {
+    setEditReceiptItem(item);
+    setEditReceiptFile(null);
+    setEditReceiptPreview(null);
+  };
+
+  const handleCloseReceiptModal = () => {
+    setEditReceiptItem(null);
+    setEditReceiptFile(null);
+    setEditReceiptPreview(null);
   };
 
   const activeFiltersCount =
@@ -474,18 +510,6 @@ export default function BudgetPage() {
 
               return (
                 <div className="flex items-center justify-center gap-2">
-                  <input
-                    id={inputId}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      if (!file) return;
-                      handleReceiptUpload(item, file);
-                      event.target.value = "";
-                    }}
-                  />
                   <label
                     htmlFor={inputId}
                     className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition ${
@@ -493,6 +517,10 @@ export default function BudgetPage() {
                         ? "bg-gray-200 text-gray-500 cursor-wait"
                         : "bg-white text-[#A67C37] border border-[#A67C37] hover:bg-[#A67C37] hover:text-white"
                     }`}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      handleOpenReceiptModal(item);
+                    }}
                   >
                     <MdEdit size={14} />
                     {isUploading ? "Updating..." : "Edit Receipt"}
@@ -569,6 +597,155 @@ export default function BudgetPage() {
                 height={700}
                 className="max-h-[70vh] w-auto rounded-2xl object-contain"
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editReceiptItem && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={handleCloseReceiptModal}
+        >
+          <div
+            className="w-full max-w-3xl rounded-3xl bg-white p-5 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Edit Receipt
+                </h2>
+                <p className="text-sm text-gray-500">
+                  Update the receipt for {editReceiptItem.evaluatorName || "-"}.
+                </p>
+                <div className="mt-3 grid gap-2 text-xs text-gray-600 sm:grid-cols-2">
+                  <div className="rounded-xl bg-gray-50 px-3 py-2">
+                    <span className="font-semibold text-gray-700">Name:</span>{" "}
+                    {editReceiptItem.evaluatorName || "-"}
+                  </div>
+                  <div className="rounded-xl bg-gray-50 px-3 py-2">
+                    <span className="font-semibold text-gray-700">
+                      JEVA ID:
+                    </span>{" "}
+                    {editReceiptItem.jevaId || "-"}
+                  </div>
+                  <div className="rounded-xl bg-gray-50 px-3 py-2">
+                    <span className="font-semibold text-gray-700">
+                      Assign ID:
+                    </span>{" "}
+                    {editReceiptItem.assignId || "-"}
+                  </div>
+                  <div className="rounded-xl bg-gray-50 px-3 py-2">
+                    <span className="font-semibold text-gray-700">
+                      Restaurant:
+                    </span>{" "}
+                    {editReceiptItem.restaurantName || "-"}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseReceiptModal}
+                className="rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-gray-600"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                <p className="text-sm font-semibold text-gray-700">
+                  Stored Receipt
+                </p>
+                {editReceiptItem.receipt ? (
+                  <div className="mt-3 flex justify-center">
+                    <Image
+                      src={editReceiptItem.receipt}
+                      alt="Stored receipt"
+                      width={420}
+                      height={320}
+                      className="max-h-64 w-auto rounded-2xl object-contain"
+                    />
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm text-gray-400 italic">
+                    No receipt uploaded yet.
+                  </p>
+                )}
+              </div>
+
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                <p className="text-sm font-semibold text-gray-700">
+                  New Upload Preview
+                </p>
+                {editReceiptPreview ? (
+                  <div className="mt-3 flex justify-center">
+                    <Image
+                      src={editReceiptPreview}
+                      alt="Receipt preview"
+                      width={420}
+                      height={320}
+                      className="max-h-64 w-auto rounded-2xl object-contain"
+                    />
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm text-gray-400 italic">
+                    Select an image to preview.
+                  </p>
+                )}
+                <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-full border border-[#A67C37] px-4 py-2 text-sm font-semibold text-[#A67C37] transition hover:bg-[#A67C37] hover:text-white">
+                  Choose Image
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (!file) return;
+                      setEditReceiptFile(file);
+                      event.target.value = "";
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={handleCloseReceiptModal}
+                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={
+                  !editReceiptFile || uploadingReceiptId === editReceiptItem.id
+                }
+                onClick={async () => {
+                  if (!editReceiptFile) return;
+                  const didSave = await handleReceiptUpload(
+                    editReceiptItem,
+                    editReceiptFile,
+                  );
+                  if (didSave) {
+                    handleCloseReceiptModal();
+                  }
+                }}
+                className={`rounded-full px-4 py-2 text-sm font-semibold text-white transition ${
+                  !editReceiptFile || uploadingReceiptId === editReceiptItem.id
+                    ? "cursor-not-allowed bg-gray-300"
+                    : "bg-[#A67C37] hover:bg-[#8f6a2f]"
+                }`}
+              >
+                {uploadingReceiptId === editReceiptItem.id
+                  ? "Saving..."
+                  : "Save"}
+              </button>
             </div>
           </div>
         </div>

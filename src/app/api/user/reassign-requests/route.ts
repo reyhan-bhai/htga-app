@@ -1,5 +1,5 @@
-import admin, { db } from "@/lib/firebase-admin";
 import { sendNotificationEmail } from "@/lib/emailService";
+import admin, { db } from "@/lib/firebase-admin";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -33,10 +33,18 @@ const hasDuplicateRequest = async (
     return false;
   }
 
-  const data = snapshot.val() as Record<string, { evaluator_id?: string }>;
-  return Object.values(data).some(
-    (entry) => entry?.evaluator_id === evaluatorId,
-  );
+  const data = snapshot.val() as Record<
+    string,
+    { evaluator_id?: string; status?: string }
+  >;
+  return Object.values(data).some((entry) => {
+    if (entry?.evaluator_id !== evaluatorId) {
+      return false;
+    }
+
+    const status = String(entry.status || "").toLowerCase();
+    return status !== "rejected";
+  });
 };
 
 const buildAssignmentStatusUpdates = (
