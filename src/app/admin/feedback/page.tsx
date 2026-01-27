@@ -1,17 +1,21 @@
 "use client";
 
 import AdminHeader from "@/components/admin/AdminHeader";
+import AdminModal from "@/components/admin/AdminModal";
 import AdminTable from "@/components/admin/AdminTable";
 import AdminViewControl from "@/components/admin/AdminViewControl";
+import { useAssignedContext } from "@/context/admin/AssignedContext";
+import { handleSaveEdit } from "@/lib/assignedPageUtils";
 import { db } from "@/lib/firebase";
 import { Pagination } from "@nextui-org/react";
-import { onValue, ref } from "firebase/database";
+import { onValue, ref, update } from "firebase/database";
 import { useEffect, useMemo, useState, type Key, type ReactNode } from "react";
 import {
   MdAssignment,
   MdReportProblem,
   MdRestaurantMenu,
 } from "react-icons/md";
+import Swal from "sweetalert2";
 
 export const requestColumns = [
   { name: "Request ID", uid: "id" },
@@ -62,6 +66,17 @@ export default function FeedbackPage() {
   const [requestData, setRequestData] = useState<any[]>([]);
   const [reportData, setReportData] = useState<any[]>([]);
   const [reassignData, setReassignData] = useState<any[]>([]);
+  const [isRestaurantModalOpen, setIsRestaurantModalOpen] = useState(false);
+  const [isReassignModalOpen, setIsReassignModalOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
+  const [selectedReassign, setSelectedReassign] = useState<any | null>(null);
+  const [editingRestaurant, setEditingRestaurant] = useState<any>(null);
+  const [editEvaluator1, setEditEvaluator1] = useState<string>("");
+  const [editEvaluator2, setEditEvaluator2] = useState<string>("");
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const { assignments, evaluators, establishments, fetchData } =
+    useAssignedContext();
 
   useEffect(() => {
     let isMounted = true;
@@ -185,6 +200,317 @@ export default function FeedbackPage() {
     console.log("Resolve/Approve:", item);
   };
 
+  const handleOpenRestaurantModal = (item: any) => {
+    setSelectedRequest(item);
+    setIsRestaurantModalOpen(true);
+  };
+
+  const handleSaveRestaurant = async (data: any) => {
+    if (!selectedRequest) return;
+
+    setActionLoading(true);
+    try {
+      const response = await fetch("/api/admin/establishments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create restaurant");
+      }
+
+      const result = await response.json();
+
+      await update(ref(db, `restaurantRequests/${selectedRequest.id}`), {
+        status: "Approved",
+        establishmentId: result.establishment?.id || null,
+        approvedAt: new Date().toISOString(),
+      });
+
+      await Swal.fire({
+        icon: "success",
+        title: "Restaurant Added",
+        text: "Request has been added to establishments.",
+        confirmButtonColor: "#A67C37",
+      });
+
+      setIsRestaurantModalOpen(false);
+      setSelectedRequest(null);
+    } catch (error) {
+      console.error("Error saving restaurant request:", error);
+      await Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: error instanceof Error ? error.message : "Failed to add request",
+        confirmButtonColor: "#A67C37",
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleKillRestaurant = async (item: any) => {
+    if (!item.assign_id) {
+      await Swal.fire({
+        icon: "error",
+        title: "Missing Assign ID",
+        text: "This report does not have an assignment ID.",
+        confirmButtonColor: "#A67C37",
+      });
+      return;
+    }
+
+    const result = await Swal.fire({
+      title: "Remove evaluators from this restaurant?",
+      text: "This will delete the assignment so the restaurant has no evaluators.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#A67C37",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, remove",
+    });
+
+    if (!result.isConfirmed) return;
+
+    setActionLoading(true);
+    try {
+      const response = await fetch(
+        `/api/admin/assignments?id=${item.assign_id}`,
+        { method: "DELETE" },
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to remove assignment");
+      }
+
+      await update(ref(db, `reportRequests/${item.id}`), {
+        status: "Resolved",
+        resolvedAt: new Date().toISOString(),
+      });
+
+      await Swal.fire({
+        icon: "success",
+        title: "Assignment Removed",
+        text: "Evaluators removed for this restaurant.",
+        confirmButtonColor: "#A67C37",
+      });
+    } catch (error) {
+      console.error("Error removing assignment:", error);
+      await Swal.fire({
+        icon: "error",
+        title: "Error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Failed to remove assignment",
+        confirmButtonColor: "#A67C37",
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleOpenReassignModal = async (item: any) => {
+    const assignment = assignments.find((a) => a.id === item.assign_id);
+    if (!assignment) {
+      await Swal.fire({
+        icon: "error",
+        title: "Assignment Not Found",
+        text: "Could not find assignment for this request.",
+        confirmButtonColor: "#A67C37",
+      });
+      return;
+    }
+
+    const establishment = establishments.find(
+      (est) => est.id === assignment.establishmentId,
+    );
+
+    if (!establishment) {
+      await Swal.fire({
+        icon: "error",
+        title: "Restaurant Not Found",
+        text: "Could not find restaurant for this assignment.",
+        confirmButtonColor: "#A67C37",
+      });
+      return;
+    }
+
+    const evaluatorsData = assignment.evaluators || {};
+    const jevaFirst = evaluatorsData.JEVA_FIRST;
+    const jevaSecond = evaluatorsData.JEVA_SECOND;
+
+    const evaluatorOneId = jevaFirst?.evaluatorId || assignment.evaluator1Id;
+    const evaluatorTwoId = jevaSecond?.evaluatorId || assignment.evaluator2Id;
+    const targetEvaluatorId = item.evaluator_id;
+
+    if (targetEvaluatorId === evaluatorTwoId) {
+      setEditEvaluator1(targetEvaluatorId || "");
+      setEditEvaluator2(evaluatorOneId || "");
+    } else {
+      setEditEvaluator1(targetEvaluatorId || evaluatorOneId || "");
+      setEditEvaluator2(evaluatorTwoId || "");
+    }
+    setEditingRestaurant({
+      res_id: establishment.id,
+      name: establishment.name,
+      category: establishment.category,
+    });
+    setSelectedReassign(item);
+    setIsReassignModalOpen(true);
+  };
+
+  const handleReassignSave = async (
+    editingRestaurantInput: any,
+    editEvaluator1Input: string,
+    editEvaluator2Input: string,
+    assignmentsInput: any[],
+    establishmentsInput: any[],
+    evaluatorsInput: any[],
+    setIsLoadingInput: (loading: boolean) => void,
+    fetchDataInput: () => Promise<void>,
+    setIsEditModalOpenInput: (open: boolean) => void,
+    setEditingRestaurantInput: (restaurant: any) => void,
+    setEditEvaluator1Input: (id: string) => void,
+    setEditEvaluator2Input: (id: string) => void,
+  ) => {
+    const success = await handleSaveEdit(
+      editingRestaurantInput,
+      editEvaluator1Input,
+      editEvaluator2Input,
+      assignmentsInput,
+      establishmentsInput,
+      evaluatorsInput,
+      setIsLoadingInput,
+      fetchDataInput,
+      setIsEditModalOpenInput,
+      setEditingRestaurantInput,
+      setEditEvaluator1Input,
+      setEditEvaluator2Input,
+    );
+
+    if (success) {
+      if (selectedReassign?.id) {
+        await update(ref(db, `reassignRequests/${selectedReassign.id}`), {
+          status: "Approved",
+          resolvedAt: new Date().toISOString(),
+        });
+      }
+      setSelectedReassign(null);
+    }
+  };
+
+  const handleDecline = async (item: any) => {
+    let updatePath = "";
+    let newStatus = "";
+    let confirmTitle = "";
+    let confirmText = "";
+    let successText = "Request declined.";
+
+    switch (selectedView) {
+      case "request":
+        updatePath = `restaurantRequests/${item.id}`;
+        newStatus = "Rejected";
+        confirmTitle = "Decline Request";
+        confirmText =
+          "Are you sure you want to decline this restaurant request?";
+        break;
+      case "report":
+        updatePath = `reportRequests/${item.id}`;
+        newStatus = "Ignored";
+        confirmTitle = "Ignore Report";
+        confirmText = "Are you sure you want to ignore this report?";
+        successText = "Report ignored.";
+        break;
+      case "reassign":
+        updatePath = `reassignRequests/${item.id}`;
+        newStatus = "Rejected";
+        confirmTitle = "Decline Reassign";
+        confirmText =
+          "Are you sure you want to decline this re-assign request? The assignment status will be reverted to 'Pending'.";
+        break;
+      default:
+        return;
+    }
+
+    const result = await Swal.fire({
+      title: confirmTitle,
+      text: confirmText,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, proceed",
+    });
+
+    if (!result.isConfirmed) return;
+
+    setActionLoading(true);
+    try {
+      const updates: Record<string, any> = {};
+      updates[`${updatePath}/status`] = newStatus;
+      updates[`${updatePath}/resolvedAt`] = new Date().toISOString();
+
+      // For Reassign: Revert assignment status to 'pending'
+      if (selectedView === "reassign" && item.assign_id) {
+        const assignment = assignments.find((a) => a.id === item.assign_id);
+        if (assignment) {
+          if (assignment.evaluators) {
+            // Check JEVA_FIRST
+            if (
+              assignment.evaluators.JEVA_FIRST?.evaluatorId ===
+              item.evaluator_id
+            ) {
+              updates[
+                `assignments/${item.assign_id}/evaluators/JEVA_FIRST/status`
+              ] = "pending";
+            }
+            // Check JEVA_SECOND
+            else if (
+              assignment.evaluators.JEVA_SECOND?.evaluatorId ===
+              item.evaluator_id
+            ) {
+              updates[
+                `assignments/${item.assign_id}/evaluators/JEVA_SECOND/status`
+              ] = "pending";
+            }
+          } else {
+            // Legacy
+            if (assignment.evaluator1Id === item.evaluator_id) {
+              updates[`assignments/${item.assign_id}/evaluator1Status`] =
+                "pending";
+            } else if (assignment.evaluator2Id === item.evaluator_id) {
+              updates[`assignments/${item.assign_id}/evaluator2Status`] =
+                "pending";
+            }
+          }
+        }
+      }
+
+      await update(ref(db), updates);
+
+      await Swal.fire({
+        icon: "success",
+        title: "Success",
+        text: successText,
+        confirmButtonColor: "#A67C37",
+      });
+    } catch (error) {
+      console.error("Error processing request:", error);
+      await Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to process request.",
+        confirmButtonColor: "#A67C37",
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const renderFeedbackCell = (item: any, columnKey: Key): ReactNode => {
     const cellValue = item[columnKey as keyof typeof item];
 
@@ -292,6 +618,104 @@ export default function FeedbackPage() {
       }
 
       case "actions":
+        const isCompleted =
+          ["Approved", "Resolved", "Rejected", "Ignored"].includes(
+            String(item.status || ""),
+          ) || actionLoading;
+
+        if (selectedView === "request") {
+          return (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleOpenRestaurantModal(item)}
+                disabled={isCompleted}
+                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all border ${
+                  isCompleted
+                    ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                    : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                Add to Restaurant
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDecline(item)}
+                disabled={isCompleted}
+                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all border ${
+                  isCompleted
+                    ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                    : "bg-white text-red-600 border-red-200 hover:bg-red-50"
+                }`}
+              >
+                Decline
+              </button>
+            </div>
+          );
+        }
+
+        if (selectedView === "report") {
+          return (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleKillRestaurant(item)}
+                disabled={isCompleted}
+                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all border ${
+                  isCompleted
+                    ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                    : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
+                }`}
+              >
+                Kill Restaurant
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDecline(item)}
+                disabled={isCompleted}
+                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all border ${
+                  isCompleted
+                    ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                    : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                }`}
+              >
+                Decline
+              </button>
+            </div>
+          );
+        }
+
+        if (selectedView === "reassign") {
+          return (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleOpenReassignModal(item)}
+                disabled={isCompleted}
+                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all border ${
+                  isCompleted
+                    ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                    : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+                }`}
+              >
+                Reassign Evaluator
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDecline(item)}
+                disabled={isCompleted}
+                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all border ${
+                  isCompleted
+                    ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                    : "bg-white text-red-600 border-red-200 hover:bg-red-50"
+                }`}
+              >
+                Decline
+              </button>
+            </div>
+          );
+        }
+
         return undefined;
 
       default:
@@ -456,6 +880,56 @@ export default function FeedbackPage() {
           />
         </div>
       </div>
+
+      <AdminModal
+        type="restaurant"
+        isOpen={isRestaurantModalOpen}
+        onClose={() => {
+          setIsRestaurantModalOpen(false);
+          setSelectedRequest(null);
+        }}
+        entity={
+          selectedRequest
+            ? {
+                name: selectedRequest.restaurant_name || "",
+                category: selectedRequest.category || "",
+                address: selectedRequest.address || "",
+                remarks: selectedRequest.notes || "",
+              }
+            : undefined
+        }
+        mode="edit"
+        onSave={handleSaveRestaurant}
+        isLoading={actionLoading}
+      />
+
+      <AdminModal
+        type="assignment"
+        subtype="edit"
+        isOpen={isReassignModalOpen}
+        onClose={() => {
+          setIsReassignModalOpen(false);
+          setEditingRestaurant(null);
+          setEditEvaluator1("");
+          setEditEvaluator2("");
+          setSelectedReassign(null);
+        }}
+        singleEvaluatorMode={true}
+        allowRestaurantSelection={true}
+        editingRestaurant={editingRestaurant}
+        setEditingRestaurant={setEditingRestaurant}
+        editEvaluator1={editEvaluator1}
+        setEditEvaluator1={setEditEvaluator1}
+        editEvaluator2={editEvaluator2}
+        setEditEvaluator2={setEditEvaluator2}
+        evaluators={evaluators}
+        assignments={assignments}
+        establishments={establishments}
+        isLoading={actionLoading}
+        setIsLoading={setActionLoading}
+        fetchData={fetchData}
+        handleSaveEdit={handleReassignSave}
+      />
 
       {/* Disini nanti bisa ditambahkan Modal Details/Resolve */}
     </div>

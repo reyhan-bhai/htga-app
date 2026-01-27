@@ -5,30 +5,30 @@ import Swal from "sweetalert2";
 export const toggleNDAStatus = (
   status: string,
   selectedNDAStatus: string[],
-  setSelectedNDAStatus: (statuses: string[]) => void
+  setSelectedNDAStatus: (statuses: string[]) => void,
 ) => {
   setSelectedNDAStatus(
     selectedNDAStatus.includes(status)
       ? selectedNDAStatus.filter((s) => s !== status)
-      : [...selectedNDAStatus, status]
+      : [...selectedNDAStatus, status],
   );
 };
 
 export const toggleMatchStatus = (
   status: string,
   selectedMatchStatus: string[],
-  setSelectedMatchStatus: (statuses: string[]) => void
+  setSelectedMatchStatus: (statuses: string[]) => void,
 ) => {
   setSelectedMatchStatus(
     selectedMatchStatus.includes(status)
       ? selectedMatchStatus.filter((s) => s !== status)
-      : [...selectedMatchStatus, status]
+      : [...selectedMatchStatus, status],
   );
 };
 
 export const clearFilters = (
   setSelectedNDAStatus: (statuses: string[]) => void,
-  setSelectedMatchStatus: (statuses: string[]) => void
+  setSelectedMatchStatus: (statuses: string[]) => void,
 ) => {
   setSelectedNDAStatus([]);
   setSelectedMatchStatus([]);
@@ -36,7 +36,7 @@ export const clearFilters = (
 
 export const getActiveFiltersCount = (
   selectedNDAStatus: string[],
-  selectedMatchStatus: string[]
+  selectedMatchStatus: string[],
 ) => selectedNDAStatus.length + selectedMatchStatus.length;
 
 // Data transformation functions (pure functions)
@@ -193,7 +193,7 @@ export const getEvaluatorViewData = (evaluators: any[], assignments: any[]) => {
 export const getRestaurantViewData = (
   establishments: any[],
   assignments: any[],
-  evaluators: any[]
+  evaluators: any[],
 ) => {
   if (!establishments || establishments.length === 0) return [];
 
@@ -372,7 +372,7 @@ export const handleMatchEvaluator = async (
   setIsLoading: (loading: boolean) => void,
   assignments: any[],
   establishments: any[],
-  fetchData: () => Promise<void>
+  fetchData: () => Promise<void>,
 ) => {
   try {
     setIsLoading(true);
@@ -380,7 +380,7 @@ export const handleMatchEvaluator = async (
     // Find unassigned restaurants
     const assignedEstablishmentIds = assignments.map((a) => a.establishmentId);
     const unassignedEstablishments = establishments.filter(
-      (est) => !assignedEstablishmentIds.includes(est.id)
+      (est) => !assignedEstablishmentIds.includes(est.id),
     );
 
     if (unassignedEstablishments.length === 0) {
@@ -399,8 +399,8 @@ export const handleMatchEvaluator = async (
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ establishmentId: establishment.id }),
-        }).then((res) => res.json())
-      )
+        }).then((res) => res.json()),
+      ),
     );
 
     const successful = results.filter((r) => r.status === "fulfilled").length;
@@ -430,7 +430,7 @@ export const handleMatchEvaluator = async (
 };
 
 export const handleManualMatch = (
-  setIsManualMatchOpen: (open: boolean) => void
+  setIsManualMatchOpen: (open: boolean) => void,
 ) => {
   setIsManualMatchOpen(true);
 };
@@ -445,7 +445,7 @@ export const handleSaveManualMatch = async (
   fetchData: () => Promise<void>,
   setIsManualMatchOpen: (open: boolean) => void,
   setSelectedEvaluator: (id: string) => void,
-  setSelectedRestaurant: (id: string) => void
+  setSelectedRestaurant: (id: string) => void,
 ) => {
   if (!selectedEvaluator || !selectedRestaurant) return;
 
@@ -472,7 +472,7 @@ export const handleSaveManualMatch = async (
 
     // Check if restaurant already has assignments
     const existingAssignments = assignments.filter(
-      (a) => a.establishmentId === selectedRestaurant
+      (a) => a.establishmentId === selectedRestaurant,
     );
 
     if (existingAssignments.length > 0) {
@@ -676,7 +676,7 @@ export const handleEdit = (
   setEditingRestaurant: (restaurant: any) => void,
   setEditEvaluator1: (id: string) => void,
   setEditEvaluator2: (id: string) => void,
-  setIsEditModalOpen: (open: boolean) => void
+  setIsEditModalOpen: (open: boolean) => void,
 ) => {
   if (selectedView === "restaurant") {
     // FIXED SLOT STRUCTURE: Find the assignment for this restaurant
@@ -723,9 +723,9 @@ export const handleSaveEdit = async (
   setIsEditModalOpen: (open: boolean) => void,
   setEditingRestaurant: (restaurant: any) => void,
   setEditEvaluator1: (id: string) => void,
-  setEditEvaluator2: (id: string) => void
-) => {
-  if (!editingRestaurant) return;
+  setEditEvaluator2: (id: string) => void,
+): Promise<boolean> => {
+  if (!editingRestaurant) return false;
 
   try {
     setIsLoading(true);
@@ -751,7 +751,7 @@ export const handleSaveEdit = async (
 
     // Validate specialty matches
     const restaurant = establishments.find(
-      (e) => e.id === editingRestaurant.res_id
+      (e) => e.id === editingRestaurant.res_id,
     );
 
     if (editEvaluator1) {
@@ -765,7 +765,7 @@ export const handleSaveEdit = async (
           title: "Specialty Mismatch",
           text: `Evaluator 1 (${evaluator1.name}) does not have specialty "${restaurant?.category}".`,
         });
-        return;
+        return false;
       }
     }
 
@@ -780,7 +780,7 @@ export const handleSaveEdit = async (
           title: "Specialty Mismatch",
           text: `Evaluator 2 (${evaluator2.name}) does not have specialty "${restaurant?.category}".`,
         });
-        return;
+        return false;
       }
     }
 
@@ -791,7 +791,7 @@ export const handleSaveEdit = async (
           `/api/admin/assignments?id=${assignment.id}`,
           {
             method: "DELETE",
-          }
+          },
         );
 
         if (!response.ok) {
@@ -848,6 +848,7 @@ export const handleSaveEdit = async (
     setEditingRestaurant(null);
     setEditEvaluator1("");
     setEditEvaluator2("");
+    return true;
   } catch (error: any) {
     console.error("Error updating assignment:", error);
     await Swal.fire({
@@ -855,6 +856,7 @@ export const handleSaveEdit = async (
       title: "Update Failed",
       text: error.message || "An error occurred while updating the assignment.",
     });
+    return false;
   } finally {
     setIsLoading(false);
   }
