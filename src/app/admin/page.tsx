@@ -890,10 +890,8 @@ export default function AssignedPage() {
       <AdminHeader
         type="assignment"
         assignments={assignments}
+        evaluators={evaluators}
         establishments={establishments}
-        setIsLoading={setIsLoading}
-        fetchData={fetchData}
-        setIsManualMatchOpen={setIsManualMatchOpen}
       />
 
       {/* View Toggle & Search/Filter Section */}
@@ -941,6 +939,12 @@ export default function AssignedPage() {
         clearFilters={handleClearFilters}
         rowsPerPage={rowsPerPage}
         setRowsPerPage={setRowsPerPage}
+        showAssignmentActions={true}
+        assignments={assignments}
+        establishments={establishments}
+        setIsLoading={setIsLoading}
+        fetchData={fetchData}
+        setIsManualMatchOpen={setIsManualMatchOpen}
       />
 
       {/* Table Section */}

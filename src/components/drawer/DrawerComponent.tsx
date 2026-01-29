@@ -187,6 +187,16 @@ export default function DrawerComponent({
             </li>
             <li>
               <Link
+                href="/admin/budget"
+                className={navItemClass("/admin/budget")}
+                onClick={onClose}
+              >
+                <MdAccountBalanceWallet size={24} />
+                Budget Management
+              </Link>
+            </li>
+            <li>
+              <Link
                 href="/admin/restaurants"
                 className={navItemClass("/admin/restaurants")}
                 onClick={onClose}
@@ -206,16 +216,6 @@ export default function DrawerComponent({
               </Link>
             </li>
 
-            <li>
-              <Link
-                href="/admin/budget"
-                className={navItemClass("/admin/budget")}
-                onClick={onClose}
-              >
-                <MdAccountBalanceWallet size={24} />
-                Budget Management
-              </Link>
-            </li>
             <li>
               <Link
                 href="/admin/feedback"

@@ -1,4 +1,8 @@
 import {
+  handleManualMatch,
+  handleMatchEvaluator,
+} from "@/lib/assignedPageUtils";
+import {
   Button,
   Checkbox,
   Divider,
@@ -15,9 +19,11 @@ import {
   MdAdd,
   MdClose,
   MdFilterList,
+  MdLink,
   MdPeople,
   MdRestaurant,
   MdSearch,
+  MdShuffle,
 } from "react-icons/md";
 
 interface AdminViewControlProps {
@@ -103,6 +109,14 @@ interface AdminViewControlProps {
   // Buttons
   handleAddRestaurant?: () => void;
   handleAddEvaluator?: () => void;
+
+  // Assignment Action Buttons
+  showAssignmentActions?: boolean;
+  assignments?: any[];
+  establishments?: any[];
+  setIsLoading?: (loading: boolean) => void;
+  fetchData?: () => Promise<void>;
+  setIsManualMatchOpen?: (open: boolean) => void;
 }
 
 export default function AdminViewControl({
@@ -155,6 +169,12 @@ export default function AdminViewControl({
   restaurantViewData = [],
   handleAddEvaluator,
   handleAddRestaurant,
+  showAssignmentActions = true,
+  assignments,
+  establishments,
+  setIsLoading,
+  fetchData,
+  setIsManualMatchOpen,
 }: AdminViewControlProps) {
   const defaultTabOptions = [
     {
@@ -663,89 +683,132 @@ export default function AdminViewControl({
                 </PopoverContent>
               </Popover>
             </div>
+            <div className="flex flex-col gap-y-4">
+              {type === "assignment" &&
+                showAssignmentActions &&
+                assignments &&
+                establishments &&
+                setIsLoading &&
+                fetchData &&
+                setIsManualMatchOpen && (
+                  <div className="flex gap-2 sm:gap-3 ml-auto">
+                    <Button
+                      className="bg-[#A67C37] text-white font-semibold rounded-lg text-sm"
+                      startContent={<MdShuffle size={18} />}
+                      onPress={() =>
+                        handleMatchEvaluator(
+                          setIsLoading,
+                          assignments,
+                          establishments,
+                          fetchData,
+                        )
+                      }
+                      size="sm"
+                    >
+                      <span className="hidden sm:inline">Match Evaluator</span>
+                      <span className="sm:hidden">Match</span>
+                    </Button>
+                    <Button
+                      className="bg-white border-2 border-[#A67C37] text-[#A67C37] font-semibold rounded-lg text-sm"
+                      startContent={<MdLink size={18} />}
+                      onPress={() => handleManualMatch(setIsManualMatchOpen)}
+                      size="sm"
+                    >
+                      <span className="hidden sm:inline">Manual Match</span>
+                      <span className="sm:hidden">Manual</span>
+                    </Button>
+                  </div>
+                )}
 
-            {/* Summary Stats */}
-            {showAssignmentStats &&
-              (evaluatorViewData.length > 0 ||
-                restaurantViewData.length > 0) && (
-                <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm">
-                  {selectedView === "evaluator" ? (
-                    <>
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
-                        <span className="text-gray-600 whitespace-nowrap">
-                          <span className="hidden sm:inline">NDA Signed: </span>
-                          <span className="sm:hidden">Signed: </span>
-                          {
-                            evaluatorViewData.filter(
-                              (e) => e.nda_status === "Signed",
-                            ).length
-                          }
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
-                        <span className="text-gray-600 whitespace-nowrap">
-                          Pending:{" "}
-                          {
-                            evaluatorViewData.filter(
-                              (e) => e.nda_status === "Pending",
-                            ).length
-                          }
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
-                        <span className="text-gray-600 whitespace-nowrap">
-                          <span className="hidden sm:inline">Not Sent: </span>
-                          <span className="sm:hidden">Unsent: </span>
-                          {
-                            evaluatorViewData.filter(
-                              (e) => e.nda_status === "Not Sent",
-                            ).length
-                          }
-                        </span>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
-                        <span className="text-gray-600 whitespace-nowrap">
-                          Matched:{" "}
-                          {
-                            restaurantViewData.filter(
-                              (r) => r.matched === "Yes",
-                            ).length
-                          }
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
-                        <span className="text-gray-600 whitespace-nowrap">
-                          Partial:{" "}
-                          {
-                            restaurantViewData.filter(
-                              (r) => r.matched === "Partial",
-                            ).length
-                          }
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
-                        <span className="text-gray-600 whitespace-nowrap">
-                          <span className="hidden sm:inline">Unassigned: </span>
-                          <span className="sm:hidden">None: </span>
-                          {
-                            restaurantViewData.filter((r) => r.matched === "No")
-                              .length
-                          }
-                        </span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
+              {/* Summary Stats */}
+              {showAssignmentStats &&
+                (evaluatorViewData.length > 0 ||
+                  restaurantViewData.length > 0) && (
+                  <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm">
+                    {selectedView === "evaluator" ? (
+                      <>
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
+                          <span className="text-gray-600 whitespace-nowrap">
+                            <span className="hidden sm:inline">
+                              NDA Signed:{" "}
+                            </span>
+                            <span className="sm:hidden">Signed: </span>
+                            {
+                              evaluatorViewData.filter(
+                                (e) => e.nda_status === "Signed",
+                              ).length
+                            }
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
+                          <span className="text-gray-600 whitespace-nowrap">
+                            Pending:{" "}
+                            {
+                              evaluatorViewData.filter(
+                                (e) => e.nda_status === "Pending",
+                              ).length
+                            }
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
+                          <span className="text-gray-600 whitespace-nowrap">
+                            <span className="hidden sm:inline">Not Sent: </span>
+                            <span className="sm:hidden">Unsent: </span>
+                            {
+                              evaluatorViewData.filter(
+                                (e) => e.nda_status === "Not Sent",
+                              ).length
+                            }
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
+                          <span className="text-gray-600 whitespace-nowrap">
+                            Matched:{" "}
+                            {
+                              restaurantViewData.filter(
+                                (r) => r.matched === "Yes",
+                              ).length
+                            }
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
+                          <span className="text-gray-600 whitespace-nowrap">
+                            Partial:{" "}
+                            {
+                              restaurantViewData.filter(
+                                (r) => r.matched === "Partial",
+                              ).length
+                            }
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
+                          <span className="text-gray-600 whitespace-nowrap">
+                            <span className="hidden sm:inline">
+                              Unassigned:{" "}
+                            </span>
+                            <span className="sm:hidden">None: </span>
+                            {
+                              restaurantViewData.filter(
+                                (r) => r.matched === "No",
+                              ).length
+                            }
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+            </div>
+            {/* Assignment Action Buttons - Right aligned above stats */}
           </div>
         </div>
       );
