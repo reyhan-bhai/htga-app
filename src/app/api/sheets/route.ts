@@ -265,6 +265,7 @@ const transformBudgetToSheet = (
     "Company/Organization",
     "Restaurant Name",
     "Date Assigned",
+    "Currency",
     "Amount Spent",
     "Budget",
     "Reimbursement",
@@ -283,6 +284,7 @@ const transformBudgetToSheet = (
         (e) => e.id === assignment.evaluator1Id,
       );
       const amountSpent = assignment.evaluator1AmountSpent || 0;
+      const currency = assignment.evaluator1Currency || establishment?.currency || "MYR";
       const budget = establishment?.budget || 0;
       const reimbursement = Math.min(Number(amountSpent), Number(budget));
 
@@ -296,6 +298,7 @@ const transformBudgetToSheet = (
         assignment.assignedAt
           ? new Date(assignment.assignedAt).toLocaleDateString()
           : "",
+        safeString(currency),
         safeString(amountSpent),
         safeString(budget),
         safeString(reimbursement),
@@ -308,6 +311,7 @@ const transformBudgetToSheet = (
         (e) => e.id === assignment.evaluator2Id,
       );
       const amountSpent = assignment.evaluator2AmountSpent || 0;
+      const currency = assignment.evaluator2Currency || establishment?.currency || "MYR";
       const budget = establishment?.budget || 0;
       const reimbursement = Math.min(Number(amountSpent), Number(budget));
 
@@ -321,6 +325,7 @@ const transformBudgetToSheet = (
         assignment.assignedAt
           ? new Date(assignment.assignedAt).toLocaleDateString()
           : "",
+        safeString(currency),
         safeString(amountSpent),
         safeString(budget),
         safeString(reimbursement),
