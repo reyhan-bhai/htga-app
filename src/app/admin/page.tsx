@@ -41,6 +41,11 @@ export const byEvaluatorColumns = [
 export const byRestaurantColumns = [
   { name: "Name", uid: "name" },
   { name: "Category", uid: "category" },
+  { name: "Rating", uid: "rating" },
+  { name: "Budget", uid: "budget" },
+  { name: "Halal Status", uid: "halal_status" },
+  { name: "Remark", uid: "remark" },
+  { name: "Contact", uid: "contact" },
   { name: "Matched", uid: "matched" },
   // { name: "Date Assigned", uid: "date_assigned" },
   { name: "Eva 1 Date Assigned", uid: "evaluator1_assigned_date" },
@@ -667,6 +672,27 @@ export default function AssignedPage() {
         return value || "—";
 
       case "category":
+        return value || "—";
+
+      case "rating":
+        return value || "—";
+
+      case "budget": {
+        const currency = item.currency || "";
+        return value ? `${currency} ${value}` : "—";
+      }
+
+      case "halal_status":
+        return value || "—";
+
+      case "remark":
+        return (
+          <div className="max-w-[150px] truncate" title={value}>
+            {value || "—"}
+          </div>
+        );
+
+      case "contact":
         return value || "—";
 
       case "matched": {
