@@ -24,7 +24,12 @@ const evaluatorColumns = [
 
 export default function EvaluatorsPage() {
   const { evaluators, isLoading, refetchEvaluators } = useEvaluators();
-  const { fetchData: refetchAssignments } = useAssignedContext();
+  const {
+    assignments,
+    evaluators: contextEvaluators,
+    establishments,
+    fetchData: refetchAssignments,
+  } = useAssignedContext();
 
   const [page, setPage] = React.useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -348,7 +353,12 @@ export default function EvaluatorsPage() {
 
   return (
     <div className="text-black flex flex-col gap-6">
-      <AdminHeader type="evaluator" />
+      <AdminHeader
+        type="evaluator"
+        assignments={assignments}
+        evaluators={contextEvaluators}
+        establishments={establishments}
+      />
 
       <AdminViewControl
         type="evaluator"

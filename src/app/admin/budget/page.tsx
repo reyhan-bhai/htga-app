@@ -385,7 +385,13 @@ export default function BudgetPage() {
   return (
     <div className="text-black flex flex-col gap-4 lg:gap-6 p-4 sm:p-6">
       {/* Header Section */}
-      <AdminHeader type="budget" title="Budget Management" />
+      <AdminHeader
+        type="budget"
+        title="Budget Management"
+        assignments={assignments}
+        evaluators={evaluators}
+        establishments={establishments}
+      />
 
       {/* View Control & Search/Filter Section */}
       <AdminViewControl

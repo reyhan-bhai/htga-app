@@ -27,7 +27,12 @@ const restaurantColumns = [
 
 export default function RestaurantsPage() {
   const { restaurants, isLoading, refetchRestaurants } = useRestaurants();
-  const { fetchData: refetchAssignments } = useAssignedContext();
+  const {
+    assignments,
+    evaluators,
+    establishments,
+    fetchData: refetchAssignments,
+  } = useAssignedContext();
   const [page, setPage] = React.useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
@@ -334,7 +339,12 @@ export default function RestaurantsPage() {
 
   return (
     <div className="text-black flex flex-col gap-6">
-      <AdminHeader type="restaurant" />
+      <AdminHeader
+        type="restaurant"
+        assignments={assignments}
+        evaluators={evaluators}
+        establishments={establishments}
+      />
 
       <AdminViewControl
         type="restaurant"

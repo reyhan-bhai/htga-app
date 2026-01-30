@@ -351,13 +351,17 @@ GET {{baseUrl}}/api/admin/seed
 
 
 ### ================================================================================
-### SHEETS API (/api/sheets)
+### SHEETS API (/api/sheets) - SPREADSHEET SYNC
 ### ================================================================================
 
 ### GET - Fetch spreadsheet data (should work or fail with Google API error)
 GET {{baseUrl}}/api/sheets
 
-### POST - Sync data without evaluators (should return 400)
+### ---------------------------------------------------------------------------------
+### VALIDATION ERROR TESTS - Missing Required Fields
+### ---------------------------------------------------------------------------------
+
+### POST - Sync data without evaluators (should return 400 VALIDATION_ERROR)
 POST {{baseUrl}}/api/sheets
 Content-Type: application/json
 
@@ -366,7 +370,7 @@ Content-Type: application/json
   "assignments": []
 }
 
-### POST - Sync data without establishments (should return 400)
+### POST - Sync data without establishments (should return 400 VALIDATION_ERROR)
 POST {{baseUrl}}/api/sheets
 Content-Type: application/json
 
@@ -375,7 +379,7 @@ Content-Type: application/json
   "assignments": []
 }
 
-### POST - Sync data without assignments (should return 400)
+### POST - Sync data without assignments (should return 400 VALIDATION_ERROR)
 POST {{baseUrl}}/api/sheets
 Content-Type: application/json
 
@@ -383,6 +387,334 @@ Content-Type: application/json
   "evaluators": [],
   "establishments": []
 }
+
+### POST - Sync data with empty body (should return 400 VALIDATION_ERROR)
+POST {{baseUrl}}/api/sheets
+Content-Type: application/json
+
+{}
+
+### POST - Sync data with null values (should return 400 VALIDATION_ERROR)
+POST {{baseUrl}}/api/sheets
+Content-Type: application/json
+
+{
+  "evaluators": null,
+  "establishments": null,
+  "assignments": null
+}
+
+### POST - Sync data missing all three fields (should return 400 listing all missing)
+POST {{baseUrl}}/api/sheets
+Content-Type: application/json
+
+{
+  "someOtherField": "value"
+}
+
+### ---------------------------------------------------------------------------------
+### INVALID DATA TYPE TESTS
+### ---------------------------------------------------------------------------------
+
+### POST - Sync data with evaluators as string instead of array (should handle gracefully)
+POST {{baseUrl}}/api/sheets
+Content-Type: application/json
+
+{
+  "evaluators": "not an array",
+  "establishments": [],
+  "assignments": []
+}
+
+### POST - Sync data with evaluators as object instead of array (should handle gracefully)
+POST {{baseUrl}}/api/sheets
+Content-Type: application/json
+
+{
+  "evaluators": {"key": "value"},
+  "establishments": [],
+  "assignments": []
+}
+
+### POST - Sync data with evaluators as number (should handle gracefully)
+POST {{baseUrl}}/api/sheets
+Content-Type: application/json
+
+{
+  "evaluators": 123,
+  "establishments": [],
+  "assignments": []
+}
+
+### ---------------------------------------------------------------------------------
+### VALID SYNC TESTS - Empty Arrays
+### ---------------------------------------------------------------------------------
+
+### POST - Sync with all empty arrays (should work but sync 0 records)
+POST {{baseUrl}}/api/sheets
+Content-Type: application/json
+
+{
+  "evaluators": [],
+  "establishments": [],
+  "assignments": []
+}
+
+### ---------------------------------------------------------------------------------
+### VALID SYNC TESTS - With Sample Data
+### ---------------------------------------------------------------------------------
+
+### POST - Sync with valid sample evaluator data (should work)
+POST {{baseUrl}}/api/sheets
+Content-Type: application/json
+
+{
+  "evaluators": [
+    {
+      "id": "JEVA01",
+      "name": "Test Evaluator 1",
+      "email": "test1@example.com",
+      "phone": "+60123456789",
+      "position": "Food Critic",
+      "company": "Test Company",
+      "specialties": ["BAKING", "PASTRY"],
+      "nda": { "status": "Signed" }
+    }
+  ],
+  "establishments": [
+    {
+      "id": "EST001",
+      "name": "Test Restaurant",
+      "address": "123 Test Street",
+      "category": "BAKING/PASTRY",
+      "contactInfo": "+60123456789",
+      "rating": "4.5",
+      "budget": 100,
+      "currency": "MYR",
+      "halalStatus": "Halal Certified",
+      "remarks": "Test remarks"
+    }
+  ],
+  "assignments": [
+    {
+      "id": "ASSIGN01",
+      "establishmentId": "EST001",
+      "evaluator1Id": "JEVA01",
+      "evaluator1Status": "pending",
+      "assignedAt": "2026-01-30T10:00:00.000Z"
+    }
+  ]
+}
+
+### POST - Sync with multiple evaluators and establishments (should work)
+POST {{baseUrl}}/api/sheets
+Content-Type: application/json
+
+{
+  "evaluators": [
+    {
+      "id": "JEVA01",
+      "name": "Ahmad Bakri",
+      "email": "ahmad.bakri@example.com",
+      "phone": "+60123456789",
+      "position": "Chef",
+      "company": "Halal Foods Inc",
+      "specialties": ["BAKING", "PASTRY"],
+      "nda": { "status": "Signed" }
+    },
+    {
+      "id": "JEVA02",
+      "name": "Siti Aminah",
+      "email": "siti.aminah@example.com",
+      "phone": "+60198765432",
+      "position": "Food Inspector",
+      "company": "JAKIM",
+      "specialties": ["MEAT", "SEAFOOD"],
+      "nda": { "status": "Pending" }
+    }
+  ],
+  "establishments": [
+    {
+      "id": "EST001",
+      "name": "Roti Canai Palace",
+      "address": "Jalan Sultan, KL",
+      "category": "BAKING/PASTRY",
+      "contactInfo": "+60312345678",
+      "rating": "4.8",
+      "budget": 150,
+      "currency": "MYR",
+      "halalStatus": "Halal Certified"
+    },
+    {
+      "id": "EST002",
+      "name": "Nasi Lemak Corner",
+      "address": "Bukit Bintang, KL",
+      "category": "RICE DISHES",
+      "contactInfo": "+60387654321",
+      "rating": "4.5",
+      "budget": 80,
+      "currency": "MYR",
+      "halalStatus": "Self-Declared Halal"
+    }
+  ],
+  "assignments": [
+    {
+      "id": "ASSIGN01",
+      "establishmentId": "EST001",
+      "evaluator1Id": "JEVA01",
+      "evaluator2Id": "JEVA02",
+      "evaluator1Status": "completed",
+      "evaluator2Status": "pending",
+      "evaluator1AmountSpent": 120,
+      "evaluator1Currency": "MYR",
+      "assignedAt": "2026-01-15T10:00:00.000Z"
+    },
+    {
+      "id": "ASSIGN02",
+      "establishmentId": "EST002",
+      "evaluator1Id": "JEVA02",
+      "evaluator1Status": "pending",
+      "assignedAt": "2026-01-20T14:30:00.000Z"
+    }
+  ]
+}
+
+### ---------------------------------------------------------------------------------
+### EDGE CASE TESTS
+### ---------------------------------------------------------------------------------
+
+### POST - Sync with evaluator having specialties as object (Firebase structure)
+POST {{baseUrl}}/api/sheets
+Content-Type: application/json
+
+{
+  "evaluators": [
+    {
+      "id": "JEVA01",
+      "name": "Test Evaluator",
+      "email": "test@example.com",
+      "specialties": {
+        "0": "BAKING",
+        "1": "PASTRY"
+      }
+    }
+  ],
+  "establishments": [],
+  "assignments": []
+}
+
+### POST - Sync with evaluator having specialties as string
+POST {{baseUrl}}/api/sheets
+Content-Type: application/json
+
+{
+  "evaluators": [
+    {
+      "id": "JEVA01",
+      "name": "Test Evaluator",
+      "email": "test@example.com",
+      "specialties": "BAKING"
+    }
+  ],
+  "establishments": [],
+  "assignments": []
+}
+
+### POST - Sync with assignment having nested evaluator data
+POST {{baseUrl}}/api/sheets
+Content-Type: application/json
+
+{
+  "evaluators": [
+    {
+      "id": "JEVA01",
+      "name": "Test Evaluator",
+      "email": "test@example.com"
+    }
+  ],
+  "establishments": [
+    {
+      "id": "EST001",
+      "name": "Test Restaurant",
+      "category": "BAKING",
+      "budget": 100,
+      "currency": "MYR"
+    }
+  ],
+  "assignments": [
+    {
+      "id": "ASSIGN01",
+      "establishmentId": "EST001",
+      "evaluator1Id": "JEVA01",
+      "evaluators": {
+        "JEVA_FIRST": {
+          "receiptUrl": "https://example.com/receipt.jpg",
+          "amountSpent": 85,
+          "currency": "MYR"
+        }
+      },
+      "evaluator1Status": "completed",
+      "assignedAt": "2026-01-30T10:00:00.000Z"
+    }
+  ]
+}
+
+### POST - Sync with null/undefined field values (should handle gracefully)
+POST {{baseUrl}}/api/sheets
+Content-Type: application/json
+
+{
+  "evaluators": [
+    {
+      "id": "JEVA01",
+      "name": null,
+      "email": "test@example.com",
+      "phone": null,
+      "position": null,
+      "company": null,
+      "specialties": null
+    }
+  ],
+  "establishments": [
+    {
+      "id": "EST001",
+      "name": "Test Restaurant",
+      "address": null,
+      "category": "BAKING",
+      "budget": null,
+      "rating": null
+    }
+  ],
+  "assignments": [
+    {
+      "id": "ASSIGN01",
+      "establishmentId": "EST001",
+      "evaluator1Id": "JEVA01",
+      "evaluator1AmountSpent": null,
+      "assignedAt": null
+    }
+  ]
+}
+
+### ---------------------------------------------------------------------------------
+### ---------------------------------------------------------------------------------
+### INVALID JSON TESTS
+### ---------------------------------------------------------------------------------
+
+### POST - Sync with invalid JSON format (should return parse error)
+POST {{baseUrl}}/api/sheets
+Content-Type: application/json
+
+{ invalid json format }
+
+### POST - Sync with malformed JSON - missing closing brace
+POST {{baseUrl}}/api/sheets
+Content-Type: application/json
+
+{
+  "evaluators": [],
+  "establishments": [],
+  "assignments": [
 
 
 ### ================================================================================
