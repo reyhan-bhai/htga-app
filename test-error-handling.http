@@ -735,6 +735,109 @@ PATCH {{baseUrl}}/api/admin/nda
 
 
 ### ================================================================================
+### HANDBOOK API (/api/admin/handbook) - Evaluator Documents
+### ================================================================================
+
+### GET - Fetch all handbook documents (should work)
+GET {{baseUrl}}/api/admin/handbook
+
+### GET - Fetch only active documents (should work)
+GET {{baseUrl}}/api/admin/handbook?activeOnly=true
+
+### GET - Get specific document (should return 404 if not exists)
+GET {{baseUrl}}/api/admin/handbook?id=NONEXISTENT123
+
+### POST - Create handbook document without title (should return 400)
+POST {{baseUrl}}/api/admin/handbook
+Content-Type: application/json
+
+{
+  "category": "General Guidelines",
+  "fileUrl": "https://drive.google.com/test"
+}
+
+### POST - Create handbook document without category (should return 400)
+POST {{baseUrl}}/api/admin/handbook
+Content-Type: application/json
+
+{
+  "title": "Test Document",
+  "fileUrl": "https://drive.google.com/test"
+}
+
+### POST - Create handbook document without fileUrl (should return 400)
+POST {{baseUrl}}/api/admin/handbook
+Content-Type: application/json
+
+{
+  "title": "Test Document",
+  "category": "General Guidelines"
+}
+
+### POST - Create handbook document with empty body (should return 400)
+POST {{baseUrl}}/api/admin/handbook
+Content-Type: application/json
+
+{}
+
+### POST - Create valid handbook document (should work)
+POST {{baseUrl}}/api/admin/handbook
+Content-Type: application/json
+
+{
+  "title": "Halal Evaluation Guidelines 2026",
+  "description": "Complete guidelines for halal food evaluation process",
+  "category": "Halal Standards",
+  "fileUrl": "https://drive.google.com/file/d/abc123/view",
+  "fileType": "pdf"
+}
+
+### POST - Create another handbook document (should work)
+POST {{baseUrl}}/api/admin/handbook
+Content-Type: application/json
+
+{
+  "title": "Safety & Hygiene Checklist",
+  "description": "Checklist for evaluating restaurant hygiene standards",
+  "category": "Safety & Hygiene",
+  "fileUrl": "https://docs.google.com/document/d/xyz789",
+  "fileType": "link"
+}
+
+### PUT - Update handbook document without ID (should return 400)
+PUT {{baseUrl}}/api/admin/handbook
+Content-Type: application/json
+
+{
+  "title": "Updated Title"
+}
+
+### PUT - Update non-existent document (should return 404)
+PUT {{baseUrl}}/api/admin/handbook
+Content-Type: application/json
+
+{
+  "id": "NONEXISTENT123",
+  "title": "Updated Title"
+}
+
+### PUT - Toggle document active status (replace ID with real one)
+PUT {{baseUrl}}/api/admin/handbook
+Content-Type: application/json
+
+{
+  "id": "YOUR_DOCUMENT_ID_HERE",
+  "isActive": false
+}
+
+### DELETE - Delete document without ID (should return 400)
+DELETE {{baseUrl}}/api/admin/handbook
+
+### DELETE - Delete non-existent document (should return 404)
+DELETE {{baseUrl}}/api/admin/handbook?id=NONEXISTENT123
+
+
+### ================================================================================
 ### INVALID JSON TESTS
 ### ================================================================================
 

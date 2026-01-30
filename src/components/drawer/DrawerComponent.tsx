@@ -13,6 +13,7 @@ import {
   MdClose,
   MdFeedback,
   MdLogout,
+  MdMenuBook,
   MdPeople,
   MdRestaurant,
 } from "react-icons/md";
@@ -229,6 +230,16 @@ export default function DrawerComponent({
                     {unreadFeedbackCount}
                   </span>
                 )}
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/admin/handbook"
+                className={navItemClass("/admin/handbook")}
+                onClick={onClose}
+              >
+                <MdMenuBook size={24} />
+                Evaluator Handbook
               </Link>
             </li>
           </ul>
