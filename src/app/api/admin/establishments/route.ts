@@ -1,3 +1,9 @@
+import {
+  createConflictError,
+  createErrorResponse,
+  createNotFoundError,
+  createValidationError,
+} from "@/lib/api-error-handler";
 import { db } from "@/lib/firebase-admin";
 import { Establishment } from "@/types/restaurant";
 import { NextResponse } from "next/server";
@@ -15,9 +21,10 @@ export async function GET(request: Request) {
       const establishment = snapshot.val();
 
       if (!establishment) {
-        return NextResponse.json(
-          { error: "Establishment not found" },
-          { status: 404 },
+        return createNotFoundError(
+          "Establishment",
+          id,
+          "/api/admin/establishments",
         );
       }
 
@@ -51,9 +58,12 @@ export async function GET(request: Request) {
       establishments,
       count: establishments.length,
     });
-  } catch (error: any) {
-    console.error("Error getting establishments:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return createErrorResponse(error, {
+      operation: "GET /api/admin/establishments",
+      resourceType: "Establishment",
+      path: "/api/admin/establishments",
+    });
   }
 }
 
@@ -75,9 +85,10 @@ export async function POST(request: Request) {
 
     // Validation
     if (!name || !category) {
-      return NextResponse.json(
-        { error: "Name and category are required" },
-        { status: 400 },
+      return createValidationError(
+        !name ? "name" : "category",
+        "Name and category are required to create an establishment",
+        "/api/admin/establishments",
       );
     }
 
@@ -108,9 +119,12 @@ export async function POST(request: Request) {
       },
       { status: 201 },
     );
-  } catch (error: any) {
-    console.error("Error creating establishment:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return createErrorResponse(error, {
+      operation: "POST /api/admin/establishments (Create Establishment)",
+      resourceType: "Establishment",
+      path: "/api/admin/establishments",
+    });
   }
 }
 
@@ -132,18 +146,20 @@ export async function PUT(request: Request) {
     } = body;
 
     if (!id) {
-      return NextResponse.json(
-        { error: "Establishment ID is required" },
-        { status: 400 },
+      return createValidationError(
+        "id",
+        "Establishment ID is required for update operation",
+        "/api/admin/establishments",
       );
     }
 
     // Check if establishment exists
     const snapshot = await db.ref(`establishments/${id}`).once("value");
     if (!snapshot.exists()) {
-      return NextResponse.json(
-        { error: "Establishment not found" },
-        { status: 404 },
+      return createNotFoundError(
+        "Establishment",
+        id,
+        "/api/admin/establishments",
       );
     }
 
@@ -169,9 +185,12 @@ export async function PUT(request: Request) {
       message: "Establishment updated successfully",
       establishment: { id, ...updatedSnapshot.val() },
     });
-  } catch (error: any) {
-    console.error("Error updating establishment:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return createErrorResponse(error, {
+      operation: "PUT /api/admin/establishments (Update Establishment)",
+      resourceType: "Establishment",
+      path: "/api/admin/establishments",
+    });
   }
 }
 
@@ -182,18 +201,20 @@ export async function DELETE(request: Request) {
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json(
-        { error: "Establishment ID is required" },
-        { status: 400 },
+      return createValidationError(
+        "id",
+        "Establishment ID is required for delete operation",
+        "/api/admin/establishments",
       );
     }
 
     // Check if establishment exists
     const snapshot = await db.ref(`establishments/${id}`).once("value");
     if (!snapshot.exists()) {
-      return NextResponse.json(
-        { error: "Establishment not found" },
-        { status: 404 },
+      return createNotFoundError(
+        "Establishment",
+        id,
+        "/api/admin/establishments",
       );
     }
 
@@ -205,12 +226,10 @@ export async function DELETE(request: Request) {
       .once("value");
 
     if (assignmentsSnapshot.exists()) {
-      return NextResponse.json(
-        {
-          error:
-            "Cannot delete establishment with existing assignments. Please delete assignments first.",
-        },
-        { status: 400 },
+      return createConflictError(
+        `Cannot delete establishment '${id}' with existing assignments`,
+        "Please delete or reassign the establishment's assignments first before deleting the establishment",
+        "/api/admin/establishments",
       );
     }
 
@@ -219,8 +238,11 @@ export async function DELETE(request: Request) {
     return NextResponse.json({
       message: "Establishment deleted successfully",
     });
-  } catch (error: any) {
-    console.error("Error deleting establishment:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return createErrorResponse(error, {
+      operation: "DELETE /api/admin/establishments",
+      resourceType: "Establishment",
+      path: "/api/admin/establishments",
+    });
   }
 }

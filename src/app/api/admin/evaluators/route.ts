@@ -1,3 +1,9 @@
+import {
+  createConflictError,
+  createErrorResponse,
+  createNotFoundError,
+  createValidationError,
+} from "@/lib/api-error-handler";
 import admin, { db } from "@/lib/firebase-admin";
 import { sendNDA } from "@/lib/nda-service";
 import { Evaluator } from "@/types/restaurant";
@@ -110,10 +116,7 @@ export async function GET(request: Request) {
       }
 
       if (!evaluator) {
-        return NextResponse.json(
-          { error: "Evaluator not found" },
-          { status: 404 },
-        );
+        return createNotFoundError("Evaluator", id, "/api/admin/evaluators");
       }
 
       // Don't return password in response
@@ -143,9 +146,12 @@ export async function GET(request: Request) {
       evaluators,
       count: evaluators.length,
     });
-  } catch (error: any) {
-    console.error("Error getting evaluators:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return createErrorResponse(error, {
+      operation: "GET /api/admin/evaluators",
+      resourceType: "Evaluator",
+      path: "/api/admin/evaluators",
+    });
   }
 }
 
@@ -166,18 +172,20 @@ export async function POST(request: Request) {
 
     // Validation
     if (!name || !email) {
-      return NextResponse.json(
-        { error: "Name and email are required" },
-        { status: 400 },
+      return createValidationError(
+        !name ? "name" : "email",
+        "Name and email are required to create an evaluator",
+        "/api/admin/evaluators",
       );
     }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: "Invalid email format" },
-        { status: 400 },
+      return createValidationError(
+        "email",
+        `Invalid email format: '${email}'. Please provide a valid email address`,
+        "/api/admin/evaluators",
       );
     }
 
@@ -189,9 +197,10 @@ export async function POST(request: Request) {
         (evaluator: any) => evaluator.email === email,
       );
       if (emailExists) {
-        return NextResponse.json(
-          { error: "An evaluator with this email already exists" },
-          { status: 400 },
+        return createConflictError(
+          `An evaluator with email '${email}' already exists`,
+          "Please use a different email address or update the existing evaluator",
+          "/api/admin/evaluators",
         );
       }
     }
@@ -305,9 +314,12 @@ export async function POST(request: Request) {
       },
       { status: 201 },
     );
-  } catch (error: any) {
-    console.error("Error creating evaluator:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return createErrorResponse(error, {
+      operation: "POST /api/admin/evaluators (Create Evaluator)",
+      resourceType: "Evaluator",
+      path: "/api/admin/evaluators",
+    });
   }
 }
 
@@ -320,7 +332,7 @@ export async function PUT(request: Request) {
       name,
       email,
       phone,
-      city, 
+      city,
       position,
       company,
       specialties,
@@ -329,19 +341,17 @@ export async function PUT(request: Request) {
     } = body;
 
     if (!id) {
-      return NextResponse.json(
-        { error: "Evaluator ID is required" },
-        { status: 400 },
+      return createValidationError(
+        "id",
+        "Evaluator ID is required for update operation",
+        "/api/admin/evaluators",
       );
     }
 
     // Check if evaluator exists
     const snapshot = await db.ref(`evaluators/${id}`).once("value");
     if (!snapshot.exists()) {
-      return NextResponse.json(
-        { error: "Evaluator not found" },
-        { status: 404 },
-      );
+      return createNotFoundError("Evaluator", id, "/api/admin/evaluators");
     }
 
     const currentEvaluator = snapshot.val();
@@ -355,9 +365,10 @@ export async function PUT(request: Request) {
       // Email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
-        return NextResponse.json(
-          { error: "Invalid email format" },
-          { status: 400 },
+        return createValidationError(
+          "email",
+          `Invalid email format: '${email}'. Please provide a valid email address`,
+          "/api/admin/evaluators",
         );
       }
 
@@ -371,9 +382,10 @@ export async function PUT(request: Request) {
               evalId !== id && evaluator.email === email,
           );
           if (emailExists) {
-            return NextResponse.json(
-              { error: "An evaluator with this email already exists" },
-              { status: 400 },
+            return createConflictError(
+              `An evaluator with email '${email}' already exists`,
+              "Please use a different email address",
+              "/api/admin/evaluators",
             );
           }
         }
@@ -462,9 +474,12 @@ export async function PUT(request: Request) {
       message,
       evaluator: { id, ...evaluatorWithoutPassword },
     });
-  } catch (error: any) {
-    console.error("Error updating evaluator:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return createErrorResponse(error, {
+      operation: "PUT /api/admin/evaluators (Update Evaluator)",
+      resourceType: "Evaluator",
+      path: "/api/admin/evaluators",
+    });
   }
 }
 
@@ -475,19 +490,17 @@ export async function DELETE(request: Request) {
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json(
-        { error: "Evaluator ID is required" },
-        { status: 400 },
+      return createValidationError(
+        "id",
+        "Evaluator ID is required for delete operation",
+        "/api/admin/evaluators",
       );
     }
 
     // Check if evaluator exists in database
     const snapshot = await db.ref(`evaluators/${id}`).once("value");
     if (!snapshot.exists()) {
-      return NextResponse.json(
-        { error: "Evaluator not found" },
-        { status: 404 },
-      );
+      return createNotFoundError("Evaluator", id, "/api/admin/evaluators");
     }
 
     const evaluatorData = snapshot.val();
@@ -506,12 +519,10 @@ export async function DELETE(request: Request) {
       .once("value");
 
     if (assignmentsSnapshot.exists() || assignmentsSnapshot2.exists()) {
-      return NextResponse.json(
-        {
-          error:
-            "Cannot delete evaluator with existing assignments. Please reassign or delete assignments first.",
-        },
-        { status: 400 },
+      return createConflictError(
+        `Cannot delete evaluator '${id}' with existing assignments`,
+        "Please reassign or delete the evaluator's assignments first before deleting the evaluator",
+        "/api/admin/evaluators",
       );
     }
 
@@ -519,29 +530,23 @@ export async function DELETE(request: Request) {
     const firebaseUid = evaluatorData.firebaseUid;
 
     if (!firebaseUid) {
-      return NextResponse.json(
-        {
-          error:
-            "Evaluator does not have a Firebase UID. Cannot delete from authentication.",
-        },
-        { status: 400 },
+      return createValidationError(
+        "firebaseUid",
+        `Evaluator '${id}' does not have a Firebase UID. Cannot delete from authentication. This evaluator may have been created incorrectly.`,
+        "/api/admin/evaluators",
       );
     }
 
     // Delete from Firebase Authentication using the Firebase UID
     try {
       await admin.auth().deleteUser(firebaseUid);
-    } catch (authError: any) {
-      console.error("Error deleting Auth user:", authError);
-      // If Auth deletion fails, do NOT delete from DB and return error for SweetAlert
-      return NextResponse.json(
-        {
-          error:
-            "Failed to delete evaluator from authentication. Please try again or contact support.",
-          details: authError.message,
-        },
-        { status: 500 },
-      );
+    } catch (authError: unknown) {
+      return createErrorResponse(authError, {
+        operation: "DELETE /api/admin/evaluators (Firebase Auth Delete)",
+        resourceType: "Evaluator",
+        resourceId: id,
+        path: "/api/admin/evaluators",
+      });
     }
 
     // Only delete from Realtime Database if Auth deletion succeeded
@@ -551,8 +556,11 @@ export async function DELETE(request: Request) {
       message:
         "Evaluator deleted successfully from database and authentication.",
     });
-  } catch (error: any) {
-    console.error("Error deleting evaluator:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return createErrorResponse(error, {
+      operation: "DELETE /api/admin/evaluators",
+      resourceType: "Evaluator",
+      path: "/api/admin/evaluators",
+    });
   }
 }

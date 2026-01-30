@@ -1,3 +1,4 @@
+import { createErrorResponse } from "@/lib/api-error-handler";
 import { db } from "@/lib/firebase-admin";
 import crypto from "crypto";
 import { NextResponse } from "next/server";
@@ -304,7 +305,7 @@ export async function POST(request: Request) {
         {
           message: "Data already exists. Use ?clear=true to clear and reseed.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -351,15 +352,14 @@ export async function POST(request: Request) {
         evaluatorIds,
         establishmentIds,
       },
-      { status: 201 }
+      { status: 201 },
     );
-  } catch (e: any) {
-    console.error("❌ Error seeding database:", e);
-    console.error("Stack trace:", e.stack);
-    return NextResponse.json(
-      { error: e.message, stack: e.stack },
-      { status: 500 }
-    );
+  } catch (e: unknown) {
+    return createErrorResponse(e, {
+      operation: "POST /api/admin/seed (Seed Database)",
+      resourceType: "Database Seed",
+      path: "/api/admin/seed",
+    });
   }
 }
 
@@ -392,10 +392,12 @@ export async function GET() {
         stats.establishments === 0 &&
         stats.assignments === 0,
     });
-  } catch (e: any) {
-    console.error("❌ Error getting stats:", e);
-    console.error("Stack trace:", e.stack);
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  } catch (e: unknown) {
+    return createErrorResponse(e, {
+      operation: "GET /api/admin/seed (Database Stats)",
+      resourceType: "Database",
+      path: "/api/admin/seed",
+    });
   }
 }
 
@@ -410,9 +412,11 @@ export async function DELETE() {
     return NextResponse.json({
       message: "All data cleared successfully",
     });
-  } catch (e: any) {
-    console.error("❌ Error clearing database:", e);
-    console.error("Stack trace:", e.stack);
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  } catch (e: unknown) {
+    return createErrorResponse(e, {
+      operation: "DELETE /api/admin/seed (Clear Database)",
+      resourceType: "Database",
+      path: "/api/admin/seed",
+    });
   }
 }

@@ -1,51 +1,10 @@
-import admin, { db } from "@/lib/firebase-admin";
+import {
+  createErrorResponse,
+  createValidationError,
+} from "@/lib/api-error-handler";
 import { sendNotificationEmail } from "@/lib/emailService";
+import admin, { db } from "@/lib/firebase-admin";
 import { NextResponse } from "next/server";
-
-// Helper to send WhatsApp via CallMeBot
-async function sendWhatsApp(phone: string, message: string) {
-  const apiKey = process.env.CALLMEBOT_API_KEY;
-  if (!apiKey) {
-    console.warn(
-      "⚠️ CALLMEBOT_API_KEY is not set. Skipping WhatsApp notification."
-    );
-    return { success: false, error: "Missing API Key" };
-  }
-
-  // Format phone number: remove non-digits
-  // If starts with 0, replace with 62 (assuming Indonesia)
-  let formattedPhone = phone.replace(/\D/g, "");
-  if (formattedPhone.startsWith("0")) {
-    formattedPhone = "62" + formattedPhone.substring(1);
-  }
-
-  try {
-    const encodedMessage = encodeURIComponent(message);
-    const url = `https://api.callmebot.com/whatsapp.php?phone=${formattedPhone}&text=${encodedMessage}&apikey=${apiKey}`;
-
-    console.log(
-      `Sending WhatsApp request to: ${url.replace(apiKey, "HIDDEN")}`
-    );
-
-    const response = await fetch(url);
-
-    // CallMeBot might return 200 even on error, but let's check status
-    if (!response.ok) {
-      throw new Error(`CallMeBot API error: ${response.statusText}`);
-    }
-
-    // CallMeBot returns text response
-    const text = await response.text();
-    if (text.toLowerCase().includes("error")) {
-      throw new Error(`CallMeBot Error: ${text}`);
-    }
-
-    return { success: true };
-  } catch (error: any) {
-    console.error("❌ Error sending WhatsApp:", error);
-    return { success: false, error: error.message };
-  }
-}
 
 export async function POST(request: Request) {
   try {
@@ -53,9 +12,10 @@ export async function POST(request: Request) {
     const { token, userId, title, message, url } = body;
 
     if (!title || !message) {
-      return NextResponse.json(
-        { error: "Title and message are required" },
-        { status: 400 }
+      return createValidationError(
+        !title ? "title" : "message",
+        "Both title and message are required for notifications",
+        "/api/admin/notifications/send",
       );
     }
 
@@ -112,7 +72,7 @@ export async function POST(request: Request) {
 
         if (userSnapshot.exists()) {
           const userData = userSnapshot.val();
-          const { email, phone } = userData;
+          const { email } = userData;
 
           // Send Email
           if (email) {
@@ -140,7 +100,7 @@ export async function POST(request: Request) {
                   <p>HTGA Notification System</p>
                 </div>
               </div>
-              `
+              `,
             );
             results.email = {
               ...emailResult,
@@ -151,22 +111,6 @@ export async function POST(request: Request) {
               success: false,
               status: "failed",
               error: "No email found for user",
-            };
-          }
-
-          // Send WhatsApp
-          if (phone) {
-            console.log(`💬 Sending WhatsApp to: ${phone}`);
-            const waResult = await sendWhatsApp(phone, message);
-            results.whatsapp = {
-              ...waResult,
-              status: waResult.success ? "sent" : "failed",
-            };
-          } else {
-            results.whatsapp = {
-              success: false,
-              status: "failed",
-              error: "No phone found for user",
             };
           }
         } else {
@@ -184,11 +128,11 @@ export async function POST(request: Request) {
       message: "Notification process completed",
       results,
     });
-  } catch (error: any) {
-    console.error("Error in notification route:", error);
-    return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    return createErrorResponse(error, {
+      operation: "POST /api/admin/notifications/send",
+      resourceType: "Notification",
+      path: "/api/admin/notifications/send",
+    });
   }
 }

@@ -1,3 +1,8 @@
+import {
+  createErrorResponse,
+  createNotFoundError,
+  createValidationError,
+} from "@/lib/api-error-handler";
 import { db } from "@/lib/firebase-admin";
 import crypto from "crypto";
 import { mkdir, writeFile } from "fs/promises";
@@ -38,9 +43,10 @@ export async function POST(request: Request): Promise<NextResponse> {
       typeof evaluatorId !== "string" ||
       !(receiptFile instanceof File)
     ) {
-      return NextResponse.json(
-        { error: "Invalid request payload." },
-        { status: 400 },
+      return createValidationError(
+        "payload",
+        "Invalid request payload. Required: assignmentId (string), evaluatorId (string), receipt (File)",
+        "/api/admin/receipt-update",
       );
     }
 
@@ -66,9 +72,10 @@ export async function POST(request: Request): Promise<NextResponse> {
     const snapshot = await assignmentRef.get();
 
     if (!snapshot.exists()) {
-      return NextResponse.json(
-        { error: "Assignment not found." },
-        { status: 404 },
+      return createNotFoundError(
+        "Assignment",
+        assignmentId,
+        "/api/admin/receipt-update",
       );
     }
 
@@ -96,20 +103,21 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     if (Object.keys(updates).length === 0) {
-      return NextResponse.json(
-        { error: "Evaluator does not match this assignment." },
-        { status: 400 },
+      return createValidationError(
+        "evaluatorId",
+        `Evaluator '${evaluatorId}' does not match this assignment '${assignmentId}'. Expected evaluator1Id: '${assignmentData.evaluator1Id}' or evaluator2Id: '${assignmentData.evaluator2Id}'`,
+        "/api/admin/receipt-update",
       );
     }
 
     await assignmentRef.update(updates);
 
     return NextResponse.json({ success: true, receiptPath });
-  } catch (error) {
-    console.error("[AdminReceiptUpdate] Error:", error);
-    return NextResponse.json(
-      { error: "Failed to update receipt." },
-      { status: 500 },
-    );
+  } catch (error: unknown) {
+    return createErrorResponse(error, {
+      operation: "POST /api/admin/receipt-update",
+      resourceType: "Receipt",
+      path: "/api/admin/receipt-update",
+    });
   }
 }

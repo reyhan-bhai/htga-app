@@ -1,3 +1,7 @@
+import {
+  createErrorResponse,
+  createValidationError,
+} from "@/lib/api-error-handler";
 import { db } from "@/lib/firebase-admin";
 import { NextResponse } from "next/server";
 
@@ -43,8 +47,12 @@ export async function GET(request: Request) {
 
       return NextResponse.json({ tokens, count: tokens.length });
     }
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return createErrorResponse(error, {
+      operation: "GET /api/admin/tokens",
+      resourceType: "FCM Token",
+      path: "/api/admin/tokens",
+    });
   }
 }
 
@@ -53,8 +61,20 @@ export async function POST(request: Request) {
   try {
     const { token, userId } = await request.json();
 
-    if (!token) throw new Error("Token is required");
-    if (!userId) throw new Error("UserId is required");
+    if (!token) {
+      return createValidationError(
+        "token",
+        "FCM token is required",
+        "/api/admin/tokens",
+      );
+    }
+    if (!userId) {
+      return createValidationError(
+        "userId",
+        "User ID is required to save FCM token",
+        "/api/admin/tokens",
+      );
+    }
 
     const tokenRef = db.ref(`evaluators/${userId}/fcmTokens`);
 
@@ -66,8 +86,12 @@ export async function POST(request: Request) {
       userId,
       totalTokens: 1,
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return createErrorResponse(error, {
+      operation: "POST /api/admin/tokens (Save Token)",
+      resourceType: "FCM Token",
+      path: "/api/admin/tokens",
+    });
   }
 }
 
@@ -76,7 +100,13 @@ export async function DELETE(request: Request) {
   try {
     const { userId } = await request.json();
 
-    if (!userId) throw new Error("UserId is required");
+    if (!userId) {
+      return createValidationError(
+        "userId",
+        "User ID is required to delete FCM token",
+        "/api/admin/tokens",
+      );
+    }
 
     const tokenRef = db.ref(`evaluators/${userId}/fcmTokens`);
 
@@ -86,7 +116,11 @@ export async function DELETE(request: Request) {
       message: "Token removed",
       userId,
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return createErrorResponse(error, {
+      operation: "DELETE /api/admin/tokens",
+      resourceType: "FCM Token",
+      path: "/api/admin/tokens",
+    });
   }
 }

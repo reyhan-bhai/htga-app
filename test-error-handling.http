@@ -1,0 +1,425 @@
+# ===================================================================================
+# HTGA Admin API Error Handling Test Cases
+# ===================================================================================
+# Use these test cases with VS Code REST Client extension
+# Start dev server first: npm run dev
+# ===================================================================================
+
+@baseUrl = http://localhost:3000
+
+### ================================================================================
+### EVALUATORS API (/api/admin/evaluators)
+### ================================================================================
+
+### GET - Fetch all evaluators (should work)
+GET {{baseUrl}}/api/admin/evaluators
+
+### GET - Get non-existent evaluator (should return 404 NOT_FOUND)
+GET {{baseUrl}}/api/admin/evaluators?id=NONEXISTENT123
+
+### POST - Create evaluator without required fields (should return 400 MISSING_REQUIRED_FIELD)
+POST {{baseUrl}}/api/admin/evaluators
+Content-Type: application/json
+
+{
+  "phone": "123456789"
+}
+
+### POST - Create evaluator with invalid email format (should return 400 MISSING_REQUIRED_FIELD)
+POST {{baseUrl}}/api/admin/evaluators
+Content-Type: application/json
+
+{
+  "name": "Test User",
+  "email": "invalid-email-format"
+}
+
+### POST - Create evaluator with duplicate email (should return 409 CONFLICT)
+# First run this to check for existing emails, then use one that exists
+POST {{baseUrl}}/api/admin/evaluators
+Content-Type: application/json
+
+{
+  "name": "Duplicate User",
+  "email": "ahmad.bakri@example.com"
+}
+
+### PUT - Update evaluator without ID (should return 400 MISSING_REQUIRED_FIELD)
+PUT {{baseUrl}}/api/admin/evaluators
+Content-Type: application/json
+
+{
+  "name": "Updated Name"
+}
+
+### PUT - Update non-existent evaluator (should return 404 NOT_FOUND)
+PUT {{baseUrl}}/api/admin/evaluators
+Content-Type: application/json
+
+{
+  "id": "NONEXISTENT123",
+  "name": "Updated Name"
+}
+
+### PUT - Update evaluator with invalid email (should return 400)
+PUT {{baseUrl}}/api/admin/evaluators
+Content-Type: application/json
+
+{
+  "id": "JEVA01",
+  "email": "bad-email"
+}
+
+### DELETE - Delete evaluator without ID (should return 400 MISSING_REQUIRED_FIELD)
+DELETE {{baseUrl}}/api/admin/evaluators
+
+### DELETE - Delete non-existent evaluator (should return 404 NOT_FOUND)
+DELETE {{baseUrl}}/api/admin/evaluators?id=NONEXISTENT123
+
+
+### ================================================================================
+### ESTABLISHMENTS API (/api/admin/establishments)
+### ================================================================================
+
+### GET - Fetch all establishments (should work)
+GET {{baseUrl}}/api/admin/establishments
+
+### GET - Get non-existent establishment (should return 404 NOT_FOUND)
+GET {{baseUrl}}/api/admin/establishments?id=NONEXISTENT123
+
+### POST - Create establishment without required fields (should return 400)
+POST {{baseUrl}}/api/admin/establishments
+Content-Type: application/json
+
+{
+  "address": "123 Test Street"
+}
+
+### POST - Create establishment without category (should return 400)
+POST {{baseUrl}}/api/admin/establishments
+Content-Type: application/json
+
+{
+  "name": "Test Restaurant"
+}
+
+### PUT - Update establishment without ID (should return 400)
+PUT {{baseUrl}}/api/admin/establishments
+Content-Type: application/json
+
+{
+  "name": "Updated Name"
+}
+
+### PUT - Update non-existent establishment (should return 404)
+PUT {{baseUrl}}/api/admin/establishments
+Content-Type: application/json
+
+{
+  "id": "NONEXISTENT123",
+  "name": "Updated Name"
+}
+
+### DELETE - Delete establishment without ID (should return 400)
+DELETE {{baseUrl}}/api/admin/establishments
+
+### DELETE - Delete non-existent establishment (should return 404)
+DELETE {{baseUrl}}/api/admin/establishments?id=NONEXISTENT123
+
+### DELETE - Delete establishment with assignments (should return 409 CONFLICT)
+# Use an establishment ID that has assignments
+DELETE {{baseUrl}}/api/admin/establishments?id=EST001
+
+
+### ================================================================================
+### ASSIGNMENTS API (/api/admin/assignments)
+### ================================================================================
+
+### GET - Fetch all assignments (should work)
+GET {{baseUrl}}/api/admin/assignments
+
+### GET - Get non-existent assignment (should return 404)
+GET {{baseUrl}}/api/admin/assignments?id=NONEXISTENT123
+
+### POST - Create assignment without establishment ID (should return 400)
+POST {{baseUrl}}/api/admin/assignments
+Content-Type: application/json
+
+{
+  "evaluator1Id": "JEVA01"
+}
+
+### POST - Create assignment with non-existent establishment (should return 404)
+POST {{baseUrl}}/api/admin/assignments
+Content-Type: application/json
+
+{
+  "establishmentId": "NONEXISTENT_ESTABLISHMENT"
+}
+
+### POST - Create duplicate assignment (should return 409 CONFLICT)
+# First create one, then try again with same establishment
+POST {{baseUrl}}/api/admin/assignments
+Content-Type: application/json
+
+{
+  "establishmentId": "EST001"
+}
+
+### DELETE - Delete assignment without ID (should return 400)
+DELETE {{baseUrl}}/api/admin/assignments
+
+### DELETE - Delete non-existent assignment (should return 404)
+DELETE {{baseUrl}}/api/admin/assignments?id=NONEXISTENT123
+
+
+### ================================================================================
+### NOTIFICATIONS API (/api/admin/notifications)
+### ================================================================================
+
+### POST - Broadcast notification without title (should return 400)
+POST {{baseUrl}}/api/admin/notifications
+Content-Type: application/json
+
+{
+  "notificationBody": "This is a test message"
+}
+
+### POST - Broadcast notification without body (should return 400)
+POST {{baseUrl}}/api/admin/notifications
+Content-Type: application/json
+
+{
+  "notificationTitle": "Test Title"
+}
+
+### POST - Broadcast notification with empty body (should return 400)
+POST {{baseUrl}}/api/admin/notifications
+Content-Type: application/json
+
+{}
+
+### POST - Send valid broadcast notification (should work or return 404 if no subscribers)
+POST {{baseUrl}}/api/admin/notifications
+Content-Type: application/json
+
+{
+  "notificationTitle": "Test Notification",
+  "notificationBody": "This is a test broadcast notification",
+  "url": "/dashboard"
+}
+
+
+### ================================================================================
+### NOTIFICATIONS SEND API (/api/admin/notifications/send)
+### ================================================================================
+
+### POST - Send notification without title (should return 400)
+POST {{baseUrl}}/api/admin/notifications/send
+Content-Type: application/json
+
+{
+  "message": "Test message",
+  "userId": "JEVA01"
+}
+
+### POST - Send notification without message (should return 400)
+POST {{baseUrl}}/api/admin/notifications/send
+Content-Type: application/json
+
+{
+  "title": "Test Title",
+  "userId": "JEVA01"
+}
+
+### POST - Send valid notification to user (should work)
+POST {{baseUrl}}/api/admin/notifications/send
+Content-Type: application/json
+
+{
+  "title": "Test Title",
+  "message": "Test message body",
+  "userId": "JEVA01",
+  "url": "/dashboard"
+}
+
+
+### ================================================================================
+### TOKENS API (/api/admin/tokens)
+### ================================================================================
+
+### GET - Get all tokens (should work)
+GET {{baseUrl}}/api/admin/tokens
+
+### GET - Get tokens for specific user (should work)
+GET {{baseUrl}}/api/admin/tokens?userId=JEVA01
+
+### POST - Save token without token field (should return 400)
+POST {{baseUrl}}/api/admin/tokens
+Content-Type: application/json
+
+{
+  "userId": "JEVA01"
+}
+
+### POST - Save token without userId (should return 400)
+POST {{baseUrl}}/api/admin/tokens
+Content-Type: application/json
+
+{
+  "token": "test-fcm-token-123"
+}
+
+### POST - Save valid token (should work)
+POST {{baseUrl}}/api/admin/tokens
+Content-Type: application/json
+
+{
+  "token": "test-fcm-token-123",
+  "userId": "JEVA01"
+}
+
+### DELETE - Delete token without userId (should return 400)
+DELETE {{baseUrl}}/api/admin/tokens
+Content-Type: application/json
+
+{}
+
+
+### ================================================================================
+### RECEIPT UPDATE API (/api/admin/receipt-update)
+### ================================================================================
+
+### POST - Upload receipt without assignmentId (should return 400)
+# Note: This is a multipart form-data endpoint, test via Postman or curl
+# curl -X POST http://localhost:3000/api/admin/receipt-update \
+#   -F "evaluatorId=JEVA01" \
+#   -F "receipt=@receipt.jpg"
+
+### POST - Upload receipt with non-existent assignment (should return 404)
+# curl -X POST http://localhost:3000/api/admin/receipt-update \
+#   -F "assignmentId=NONEXISTENT" \
+#   -F "evaluatorId=JEVA01" \
+#   -F "receipt=@receipt.jpg"
+
+
+### ================================================================================
+### WEBHOOK ZOHO API (/api/admin/webhook-zoho)
+### ================================================================================
+
+### POST - Webhook without assignment_id (should return 400)
+POST {{baseUrl}}/api/admin/webhook-zoho
+Content-Type: application/json
+
+{
+  "evaluator_id": "JEVA01"
+}
+
+### POST - Webhook without evaluator_id (should return 400)
+POST {{baseUrl}}/api/admin/webhook-zoho
+Content-Type: application/json
+
+{
+  "assignment_id": "ASSIGN01"
+}
+
+### POST - Webhook with non-existent assignment (should return 404)
+POST {{baseUrl}}/api/admin/webhook-zoho
+Content-Type: application/json
+
+{
+  "assignment_id": "NONEXISTENT",
+  "evaluator_id": "JEVA01"
+}
+
+### POST - Webhook with mismatched evaluator (should return 400)
+POST {{baseUrl}}/api/admin/webhook-zoho
+Content-Type: application/json
+
+{
+  "assignment_id": "ASSIGN01",
+  "evaluator_id": "WRONG_EVALUATOR"
+}
+
+
+### ================================================================================
+### SEED API (/api/admin/seed)
+### ================================================================================
+
+### GET - Get database statistics (should work)
+GET {{baseUrl}}/api/admin/seed
+
+
+### ================================================================================
+### SHEETS API (/api/sheets)
+### ================================================================================
+
+### GET - Fetch spreadsheet data (should work or fail with Google API error)
+GET {{baseUrl}}/api/sheets
+
+### POST - Sync data without evaluators (should return 400)
+POST {{baseUrl}}/api/sheets
+Content-Type: application/json
+
+{
+  "establishments": [],
+  "assignments": []
+}
+
+### POST - Sync data without establishments (should return 400)
+POST {{baseUrl}}/api/sheets
+Content-Type: application/json
+
+{
+  "evaluators": [],
+  "assignments": []
+}
+
+### POST - Sync data without assignments (should return 400)
+POST {{baseUrl}}/api/sheets
+Content-Type: application/json
+
+{
+  "evaluators": [],
+  "establishments": []
+}
+
+
+### ================================================================================
+### NDA API (/api/admin/nda)
+### ================================================================================
+
+### GET - Check NDA status without identifiers (should return 400)
+GET {{baseUrl}}/api/admin/nda
+
+### GET - Check NDA status for non-existent evaluator
+GET {{baseUrl}}/api/admin/nda?evaluatorId=NONEXISTENT
+
+### GET - Check NDA status for specific evaluator (should work)
+GET {{baseUrl}}/api/admin/nda?evaluatorId=JEVA01
+
+### PATCH - Get API health check (should work)
+PATCH {{baseUrl}}/api/admin/nda
+
+
+### ================================================================================
+### INVALID JSON TESTS
+### ================================================================================
+
+### Send invalid JSON to evaluators endpoint (should return parse error)
+POST {{baseUrl}}/api/admin/evaluators
+Content-Type: application/json
+
+{ invalid json here }
+
+### Send invalid JSON to assignments endpoint (should return parse error)
+POST {{baseUrl}}/api/admin/assignments
+Content-Type: application/json
+
+{ not: valid: json }
+
+### Send invalid JSON to notifications endpoint (should return parse error)
+POST {{baseUrl}}/api/admin/notifications
+Content-Type: application/json
+
+[broken json}

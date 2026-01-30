@@ -1,4 +1,8 @@
 // src/app/api/sheets/route.ts
+import {
+  createErrorResponse,
+  createValidationError,
+} from "@/lib/api-error-handler";
 import { google } from "googleapis";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -53,12 +57,12 @@ export async function GET() {
       status: "success",
       data: evaluatorResponse.data.values,
     });
-  } catch (error: any) {
-    console.error("Error fetching sheets:", error);
-    return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
-      { status: 500 },
-    );
+  } catch (error: unknown) {
+    return createErrorResponse(error, {
+      operation: "GET /api/sheets (Fetch Spreadsheet Data)",
+      resourceType: "Google Sheets",
+      path: "/api/sheets",
+    });
   }
 }
 
@@ -284,7 +288,8 @@ const transformBudgetToSheet = (
         (e) => e.id === assignment.evaluator1Id,
       );
       const amountSpent = assignment.evaluator1AmountSpent || 0;
-      const currency = assignment.evaluator1Currency || establishment?.currency || "MYR";
+      const currency =
+        assignment.evaluator1Currency || establishment?.currency || "MYR";
       const budget = establishment?.budget || 0;
       const reimbursement = Math.min(Number(amountSpent), Number(budget));
 
@@ -311,7 +316,8 @@ const transformBudgetToSheet = (
         (e) => e.id === assignment.evaluator2Id,
       );
       const amountSpent = assignment.evaluator2AmountSpent || 0;
-      const currency = assignment.evaluator2Currency || establishment?.currency || "MYR";
+      const currency =
+        assignment.evaluator2Currency || establishment?.currency || "MYR";
       const budget = establishment?.budget || 0;
       const reimbursement = Math.min(Number(amountSpent), Number(budget));
 
@@ -342,12 +348,14 @@ export async function POST(request: NextRequest) {
     const { evaluators, establishments, assignments } = body;
 
     if (!evaluators || !establishments || !assignments) {
-      return NextResponse.json(
-        {
-          error:
-            "Missing required data: evaluators, establishments, or assignments",
-        },
-        { status: 400 },
+      const missing = [];
+      if (!evaluators) missing.push("evaluators");
+      if (!establishments) missing.push("establishments");
+      if (!assignments) missing.push("assignments");
+      return createValidationError(
+        missing[0],
+        `Missing required data: ${missing.join(", ")}. All three arrays are required for sync`,
+        "/api/sheets",
       );
     }
 
@@ -413,11 +421,11 @@ export async function POST(request: NextRequest) {
         budgetEntries: budgetData.length - 1,
       },
     });
-  } catch (error: any) {
-    console.error("Error syncing to sheets:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to sync data to spreadsheet" },
-      { status: 500 },
-    );
+  } catch (error: unknown) {
+    return createErrorResponse(error, {
+      operation: "POST /api/sheets (Sync to Spreadsheet)",
+      resourceType: "Google Sheets",
+      path: "/api/sheets",
+    });
   }
 }

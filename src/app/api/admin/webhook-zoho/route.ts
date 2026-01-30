@@ -1,3 +1,8 @@
+import {
+  createErrorResponse,
+  createNotFoundError,
+  createValidationError,
+} from "@/lib/api-error-handler";
 import { db } from "@/lib/firebase-admin";
 import { NextResponse } from "next/server";
 
@@ -9,9 +14,10 @@ export async function POST(request: Request) {
     const { assignment_id, evaluator_id } = payload;
 
     if (!assignment_id || !evaluator_id) {
-      return NextResponse.json(
-        { error: "Missing assignment_id or evaluator_id" },
-        { status: 400 }
+      return createValidationError(
+        !assignment_id ? "assignment_id" : "evaluator_id",
+        `Missing required field: ${!assignment_id ? "assignment_id" : "evaluator_id"}`,
+        "/api/admin/webhook-zoho",
       );
     }
 
@@ -20,9 +26,10 @@ export async function POST(request: Request) {
     const assignmentSnap = await assignmentRef.once("value");
 
     if (!assignmentSnap.exists()) {
-      return NextResponse.json(
-        { error: "Assignment not found" },
-        { status: 404 }
+      return createNotFoundError(
+        "Assignment",
+        assignment_id,
+        "/api/admin/webhook-zoho",
       );
     }
 
@@ -40,9 +47,10 @@ export async function POST(request: Request) {
         expected1: assignment.evaluator1Id,
         expected2: assignment.evaluator2Id,
       });
-      return NextResponse.json(
-        { error: "Evaluator ID does not match this assignment" },
-        { status: 400 }
+      return createValidationError(
+        "evaluator_id",
+        `Evaluator ID '${evaluator_id}' does not match this assignment. Expected: '${assignment.evaluator1Id}' or '${assignment.evaluator2Id}'`,
+        "/api/admin/webhook-zoho",
       );
     }
 
@@ -63,8 +71,11 @@ export async function POST(request: Request) {
       message: "Assignment updated successfully",
       updates,
     });
-  } catch (error: any) {
-    console.error("Error processing webhook:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return createErrorResponse(error, {
+      operation: "POST /api/admin/webhook-zoho",
+      resourceType: "Assignment",
+      path: "/api/admin/webhook-zoho",
+    });
   }
 }

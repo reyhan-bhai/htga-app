@@ -1,3 +1,8 @@
+import {
+  createErrorResponse,
+  createNotFoundError,
+  createValidationError,
+} from "@/lib/api-error-handler";
 import admin, { db } from "@/lib/firebase-admin";
 import { NextResponse } from "next/server";
 
@@ -23,7 +28,7 @@ async function getAllTokens(): Promise<{ token: string; userId: string }[]> {
             userId: userId,
           });
         }
-      }
+      },
     );
 
     return tokens;
@@ -46,7 +51,21 @@ async function removeInvalidToken(userId: string): Promise<void> {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    if (!body) throw new Error("Request body is required");
+    if (!body) {
+      return createValidationError(
+        "body",
+        "Request body is required",
+        "/api/admin/notifications",
+      );
+    }
+
+    if (!body.notificationTitle || !body.notificationBody) {
+      return createValidationError(
+        !body.notificationTitle ? "notificationTitle" : "notificationBody",
+        "Both notificationTitle and notificationBody are required",
+        "/api/admin/notifications",
+      );
+    }
 
     console.log("=== SENDING NOTIFICATION TO ALL SUBSCRIBERS ===");
 
@@ -54,9 +73,10 @@ export async function POST(request: Request) {
     console.log(`Total subscribers: ${tokenData.length}`);
 
     if (tokenData.length === 0) {
-      return NextResponse.json(
-        { message: "No subscribers found" },
-        { status: 404 }
+      return createNotFoundError(
+        "FCM Tokens",
+        "subscribers",
+        "/api/admin/notifications",
       );
     }
 
@@ -113,11 +133,11 @@ export async function POST(request: Request) {
       failureCount: results.failureCount,
       totalSubscribers: tokenData.length,
     });
-  } catch (error: any) {
-    console.error("❌ Error sending notification:", error);
-    return NextResponse.json(
-      { error: error.message, details: error },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    return createErrorResponse(error, {
+      operation: "POST /api/admin/notifications (Broadcast Notification)",
+      resourceType: "FCM Notification",
+      path: "/api/admin/notifications",
+    });
   }
 }

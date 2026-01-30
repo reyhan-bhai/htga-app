@@ -1,3 +1,9 @@
+import {
+  createConflictError,
+  createErrorResponse,
+  createNotFoundError,
+  createValidationError,
+} from "@/lib/api-error-handler";
 import { db } from "@/lib/firebase-admin";
 import {
   Assignment,
@@ -11,14 +17,14 @@ import { NextResponse } from "next/server";
 // Helper function to get assignment with details
 async function getAssignmentWithDetails(
   assignmentId: string,
-  assignment: Assignment
+  assignment: Assignment,
 ): Promise<AssignmentWithDetails> {
   const [establishmentSnap, evaluator1Snap, evaluator2Snap] = await Promise.all(
     [
       db.ref(`establishments/${assignment.establishmentId}`).once("value"),
       db.ref(`evaluators/${assignment.evaluator1Id}`).once("value"),
       db.ref(`evaluators/${assignment.evaluator2Id}`).once("value"),
-    ]
+    ],
   );
 
   return {
@@ -47,10 +53,7 @@ export async function GET(request: Request) {
       const assignment = snapshot.val();
 
       if (!assignment) {
-        return NextResponse.json(
-          { error: "Assignment not found" },
-          { status: 404 }
-        );
+        return createNotFoundError("Assignment", id, "/api/admin/assignments");
       }
 
       const assignmentData = { id, ...assignment };
@@ -58,7 +61,7 @@ export async function GET(request: Request) {
       if (includeDetails) {
         const detailedAssignment = await getAssignmentWithDetails(
           id,
-          assignmentData
+          assignmentData,
         );
         return NextResponse.json({ assignment: detailedAssignment });
       }
@@ -80,13 +83,13 @@ export async function GET(request: Request) {
     // Apply filters
     if (establishmentId) {
       assignments = assignments.filter(
-        (a) => a.establishmentId === establishmentId
+        (a) => a.establishmentId === establishmentId,
       );
     }
 
     if (evaluatorId) {
       assignments = assignments.filter(
-        (a) => a.evaluator1Id === evaluatorId || a.evaluator2Id === evaluatorId
+        (a) => a.evaluator1Id === evaluatorId || a.evaluator2Id === evaluatorId,
       );
     }
 
@@ -94,8 +97,8 @@ export async function GET(request: Request) {
     if (includeDetails && assignments.length > 0) {
       const detailedAssignments = await Promise.all(
         assignments.map((assignment) =>
-          getAssignmentWithDetails(assignment.id, assignment)
-        )
+          getAssignmentWithDetails(assignment.id, assignment),
+        ),
       );
 
       return NextResponse.json({
@@ -108,9 +111,12 @@ export async function GET(request: Request) {
       assignments,
       count: assignments.length,
     });
-  } catch (error: any) {
-    console.error("Error getting assignments:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return createErrorResponse(error, {
+      operation: "GET /api/admin/assignments",
+      resourceType: "Assignment",
+      path: "/api/admin/assignments",
+    });
   }
 }
 
@@ -122,9 +128,10 @@ export async function POST(request: Request) {
 
     // Validation
     if (!establishmentId) {
-      return NextResponse.json(
-        { error: "Establishment ID is required" },
-        { status: 400 }
+      return createValidationError(
+        "establishmentId",
+        "Establishment ID is required to create an assignment",
+        "/api/admin/assignments",
       );
     }
 
@@ -133,9 +140,10 @@ export async function POST(request: Request) {
       .ref(`establishments/${establishmentId}`)
       .once("value");
     if (!establishmentSnap.exists()) {
-      return NextResponse.json(
-        { error: "Establishment not found" },
-        { status: 404 }
+      return createNotFoundError(
+        "Establishment",
+        establishmentId,
+        "/api/admin/assignments",
       );
     }
 
@@ -152,12 +160,10 @@ export async function POST(request: Request) {
       .once("value");
 
     if (existingAssignmentSnap.exists() && !forceReassign) {
-      return NextResponse.json(
-        {
-          error:
-            "Establishment already has an assignment. Use forceReassign=true to override.",
-        },
-        { status: 400 }
+      return createConflictError(
+        `Establishment '${establishmentId}' already has an assignment`,
+        "Use forceReassign=true to override the existing assignment",
+        "/api/admin/assignments",
       );
     }
 
@@ -169,19 +175,20 @@ export async function POST(request: Request) {
     const evaluatorsData = evaluatorsSnap.val();
 
     if (!evaluatorsData) {
-      return NextResponse.json(
-        { error: "No evaluators available" },
-        { status: 400 }
+      return createValidationError(
+        "evaluators",
+        "No evaluators available in the system. Please add evaluators first",
+        "/api/admin/assignments",
       );
     }
 
     const allEvaluators: Evaluator[] = Object.entries(evaluatorsData).map(
-      ([id, data]: [string, any]) => ({ id, ...data })
+      ([id, data]: [string, any]) => ({ id, ...data }),
     );
 
     // Filter evaluators by specialty match
     const matchingEvaluators = allEvaluators.filter((evaluator) =>
-      evaluator.specialties.includes(establishment.category)
+      evaluator.specialties.includes(establishment.category),
     );
 
     if (matchingEvaluators.length < 1) {
@@ -189,7 +196,7 @@ export async function POST(request: Request) {
         {
           error: `Not enough evaluators with specialty "${establishment.category}". Need at least 1, found ${matchingEvaluators.length}.`,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -202,11 +209,11 @@ export async function POST(request: Request) {
       Object.values(assignmentsData).forEach((assignment: any) => {
         evaluatorAssignmentCounts.set(
           assignment.evaluator1Id,
-          (evaluatorAssignmentCounts.get(assignment.evaluator1Id) || 0) + 1
+          (evaluatorAssignmentCounts.get(assignment.evaluator1Id) || 0) + 1,
         );
         evaluatorAssignmentCounts.set(
           assignment.evaluator2Id,
-          (evaluatorAssignmentCounts.get(assignment.evaluator2Id) || 0) + 1
+          (evaluatorAssignmentCounts.get(assignment.evaluator2Id) || 0) + 1,
         );
       });
     }
@@ -246,13 +253,13 @@ export async function POST(request: Request) {
           {
             error: `Evaluator does not have specialty "${establishment.category}"`,
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       // Find best match for evaluator2 (excluding evaluator1)
       const availableEvaluators = sortedEvaluators.filter(
-        (e) => e.id !== evaluator1Id
+        (e) => e.id !== evaluator1Id,
       );
 
       if (availableEvaluators.length === 0) {
@@ -279,7 +286,7 @@ export async function POST(request: Request) {
       if (!eval1Snap.exists() || !eval2Snap.exists()) {
         return NextResponse.json(
           { error: "One or both evaluators not found" },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
@@ -301,7 +308,7 @@ export async function POST(request: Request) {
           {
             error: `Both evaluators must have specialty "${establishment.category}"`,
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -311,8 +318,8 @@ export async function POST(request: Request) {
       const existingAssignments = existingAssignmentSnap.val();
       await Promise.all(
         Object.keys(existingAssignments).map((key) =>
-          db.ref(`assignments/${key}`).remove()
-        )
+          db.ref(`assignments/${key}`).remove(),
+        ),
       );
     }
 
@@ -366,11 +373,14 @@ export async function POST(request: Request) {
         message: "Assignment created successfully",
         assignment: detailedAssignment,
       },
-      { status: 201 }
+      { status: 201 },
     );
-  } catch (error: any) {
-    console.error("Error creating assignment:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return createErrorResponse(error, {
+      operation: "POST /api/admin/assignments (Create Assignment)",
+      resourceType: "Assignment",
+      path: "/api/admin/assignments",
+    });
   }
 }
 
@@ -407,7 +417,7 @@ export async function PUT(request: Request) {
           if (!evaluator1Snap.exists()) {
             return NextResponse.json(
               { error: "Evaluator 1 not found" },
-              { status: 404 }
+              { status: 404 },
             );
           }
         }
@@ -419,7 +429,7 @@ export async function PUT(request: Request) {
           if (!evaluator2Snap.exists()) {
             return NextResponse.json(
               { error: "Evaluator 2 not found" },
-              { status: 404 }
+              { status: 404 },
             );
           }
         }
@@ -490,7 +500,7 @@ export async function PUT(request: Request) {
 
         const detailedAssignment = await getAssignmentWithDetails(
           id,
-          updatedAssignment
+          updatedAssignment,
         );
 
         return NextResponse.json({
@@ -510,12 +520,12 @@ export async function PUT(request: Request) {
             error:
               "Assignment not found and establishmentId not provided for creation",
           },
-          { status: 404 }
+          { status: 404 },
         );
       }
       return NextResponse.json(
         { error: "Establishment ID is required for new assignment" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -526,7 +536,7 @@ export async function PUT(request: Request) {
     if (!establishmentSnap.exists()) {
       return NextResponse.json(
         { error: "Establishment not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -581,11 +591,14 @@ export async function PUT(request: Request) {
         message: "Assignment created successfully",
         assignment: detailedAssignment,
       },
-      { status: 201 }
+      { status: 201 },
     );
-  } catch (error: any) {
-    console.error("Error updating/creating assignment:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return createErrorResponse(error, {
+      operation: "PUT /api/admin/assignments (Update/Create Assignment)",
+      resourceType: "Assignment",
+      path: "/api/admin/assignments",
+    });
   }
 }
 
@@ -596,19 +609,17 @@ export async function DELETE(request: Request) {
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json(
-        { error: "Assignment ID is required" },
-        { status: 400 }
+      return createValidationError(
+        "id",
+        "Assignment ID is required for delete operation",
+        "/api/admin/assignments",
       );
     }
 
     // Check if assignment exists
     const snapshot = await db.ref(`assignments/${id}`).once("value");
     if (!snapshot.exists()) {
-      return NextResponse.json(
-        { error: "Assignment not found" },
-        { status: 404 }
-      );
+      return createNotFoundError("Assignment", id, "/api/admin/assignments");
     }
 
     await db.ref(`assignments/${id}`).remove();
@@ -616,8 +627,11 @@ export async function DELETE(request: Request) {
     return NextResponse.json({
       message: "Assignment deleted successfully",
     });
-  } catch (error: any) {
-    console.error("Error deleting assignment:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return createErrorResponse(error, {
+      operation: "DELETE /api/admin/assignments",
+      resourceType: "Assignment",
+      path: "/api/admin/assignments",
+    });
   }
 }
