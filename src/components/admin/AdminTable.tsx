@@ -17,7 +17,7 @@ import {
 } from "react-icons/md";
 
 interface AdminTableProps {
-  type: "assignment" | "evaluator" | "restaurant" | "budget";
+  type: "assignment" | "evaluator" | "restaurant" | "budget" | "handbook";
   isLoading: boolean;
 
   // Assignment Props
@@ -479,6 +479,24 @@ export default function AdminTable({
                 description: "No evaluator budget data found.",
               }}
               hideActions={true}
+            />
+          </div>
+        );
+
+      case "handbook":
+        return (
+          <div className="bg-white rounded-lg">
+            <TableComponent
+              columns={columns}
+              data={data}
+              onEdit={handleEditItem}
+              onView={handleViewItem}
+              onDelete={handleDeleteItem}
+              renderCell={renderCell}
+              emptyMessage={{
+                title: "No documents found",
+                description: "Add your first handbook document.",
+              }}
             />
           </div>
         );

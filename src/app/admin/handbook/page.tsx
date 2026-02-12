@@ -1,19 +1,12 @@
 "use client";
 
+import AdminModal from "@/components/admin/AdminModal";
+import AdminTable from "@/components/admin/AdminTable";
 import { db } from "@/lib/firebase";
-import { Button, Pagination, Spinner } from "@nextui-org/react";
+import { Button, Pagination } from "@nextui-org/react";
 import { onValue, ref } from "firebase/database";
-import { useEffect, useState } from "react";
-import {
-  MdAdd,
-  MdClose,
-  MdDelete,
-  MdEdit,
-  MdLink,
-  MdMenuBook,
-  MdOpenInNew,
-  MdSearch,
-} from "react-icons/md";
+import React, { useEffect, useState } from "react";
+import { MdAdd, MdLink, MdMenuBook, MdSearch } from "react-icons/md";
 import Swal from "sweetalert2";
 
 interface HandbookDocument {
@@ -40,13 +33,6 @@ export default function HandbookPage() {
   const [selectedDocument, setSelectedDocument] =
     useState<HandbookDocument | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-
-  // Form state
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    fileUrl: "",
-  });
 
   // Firebase real-time listener
   useEffect(() => {
@@ -88,22 +74,12 @@ export default function HandbookPage() {
 
   // Handlers
   const handleAdd = () => {
-    setFormData({
-      title: "",
-      description: "",
-      fileUrl: "",
-    });
     setSelectedDocument(null);
     setModalMode("add");
     setIsModalOpen(true);
   };
 
   const handleEdit = (doc: HandbookDocument) => {
-    setFormData({
-      title: doc.title,
-      description: doc.description || "",
-      fileUrl: doc.fileUrl,
-    });
     setSelectedDocument(doc);
     setModalMode("edit");
     setIsModalOpen(true);
@@ -174,8 +150,8 @@ export default function HandbookPage() {
     }
   };
 
-  const handleSave = async () => {
-    if (!formData.title.trim()) {
+  const handleSave = async (payload: Partial<HandbookDocument>) => {
+    if (!payload.title?.trim()) {
       Swal.fire({
         icon: "warning",
         title: "Title Required",
@@ -185,7 +161,7 @@ export default function HandbookPage() {
       return;
     }
 
-    if (!formData.fileUrl.trim()) {
+    if (!payload.fileUrl?.trim()) {
       Swal.fire({
         icon: "warning",
         title: "URL Required",
@@ -199,18 +175,18 @@ export default function HandbookPage() {
     try {
       const url = "/api/admin/handbook";
       const method = modalMode === "add" ? "POST" : "PUT";
-      const body =
+      const requestBody: Partial<HandbookDocument> =
         modalMode === "add"
-          ? formData
-          : { id: selectedDocument?.id, ...formData };
+          ? payload
+          : { id: payload.id || selectedDocument?.id, ...payload };
 
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(requestBody),
       });
 
-      const data = await response.json();
+      const responseData = await response.json();
 
       if (response.ok) {
         Swal.fire({
@@ -221,7 +197,7 @@ export default function HandbookPage() {
         setIsModalOpen(false);
         // Firebase listener will auto-update the list
       } else {
-        throw new Error(data.error || "Failed to save");
+        throw new Error(responseData.error || "Failed to save");
       }
     } catch (error: any) {
       Swal.fire({
@@ -241,6 +217,74 @@ export default function HandbookPage() {
       month: "short",
       day: "numeric",
     });
+  };
+
+  const normalizeLink = (url: string) => {
+    if (!url) return url;
+    return /^https?:\/\//i.test(url) ? url : `https://${url}`;
+  };
+
+  const handbookColumns = [
+    { name: "Document", uid: "document" },
+    { name: "Added", uid: "added" },
+    { name: "Status", uid: "status" },
+    { name: "Link", uid: "link" },
+    { name: "Actions", uid: "actions" },
+  ];
+
+  const renderHandbookCell = (item: HandbookDocument, columnKey: React.Key) => {
+    switch (columnKey) {
+      case "document":
+        return (
+          <div className="flex items-center gap-3">
+            <MdLink className="text-blue-500" size={22} />
+            <div>
+              <p className="font-medium text-gray-900">{item.title}</p>
+              {item.description && (
+                <p className="text-sm text-gray-500 line-clamp-1">
+                  {item.description}
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      case "link":
+        return item.fileUrl ? (
+          <a
+            href={normalizeLink(item.fileUrl)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 underline hover:text-blue-700 text-sm"
+          >
+            Link
+          </a>
+        ) : (
+          <span className="text-gray-400 italic text-sm">No link</span>
+        );
+      case "added":
+        return (
+          <span className="text-sm text-gray-600">
+            {formatDate(item.uploadedAt)}
+          </span>
+        );
+      case "status":
+        return (
+          <button
+            onClick={() => handleToggleActive(item)}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+              item.isActive
+                ? "bg-green-100 text-green-700 hover:bg-green-200"
+                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+            }`}
+          >
+            {item.isActive ? "Published" : "Hidden"}
+          </button>
+        );
+      case "actions":
+        return undefined;
+      default:
+        return undefined;
+    }
   };
 
   return (
@@ -283,104 +327,15 @@ export default function HandbookPage() {
       </div>
 
       {/* Documents Table */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        {isLoading ? (
-          <div className="flex justify-center items-center py-20">
-            <Spinner size="lg" color="warning" />
-          </div>
-        ) : paginatedDocuments.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-500">
-            <MdMenuBook size={48} className="mb-4 opacity-50" />
-            <p className="text-lg font-medium">No documents found</p>
-            <p className="text-sm">Add your first handbook document</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="text-left p-4 font-semibold text-gray-700">
-                    Document
-                  </th>
-                  <th className="text-left p-4 font-semibold text-gray-700 hidden lg:table-cell">
-                    Added
-                  </th>
-                  <th className="text-center p-4 font-semibold text-gray-700">
-                    Status
-                  </th>
-                  <th className="text-center p-4 font-semibold text-gray-700">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedDocuments.map((doc) => (
-                  <tr
-                    key={doc.id}
-                    className="border-b hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <MdLink className="text-blue-500" size={24} />
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {doc.title}
-                          </p>
-                          {doc.description && (
-                            <p className="text-sm text-gray-500 line-clamp-1">
-                              {doc.description}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4 hidden lg:table-cell text-sm text-gray-600">
-                      {formatDate(doc.uploadedAt)}
-                    </td>
-                    <td className="p-4 text-center">
-                      <button
-                        onClick={() => handleToggleActive(doc)}
-                        className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                          doc.isActive
-                            ? "bg-green-100 text-green-700 hover:bg-green-200"
-                            : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                        }`}
-                      >
-                        {doc.isActive ? "Published" : "Hidden"}
-                      </button>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => window.open(doc.fileUrl, "_blank")}
-                          className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 transition-colors"
-                          title="Open Link"
-                        >
-                          <MdOpenInNew size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleEdit(doc)}
-                          className="p-2 rounded-lg hover:bg-amber-50 text-amber-600 transition-colors"
-                          title="Edit"
-                        >
-                          <MdEdit size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(doc)}
-                          className="p-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
-                          title="Delete"
-                        >
-                          <MdDelete size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <AdminTable
+        type="handbook"
+        isLoading={isLoading}
+        columns={handbookColumns}
+        data={paginatedDocuments}
+        handleEditItem={handleEdit}
+        handleDeleteItem={handleDelete}
+        renderCell={renderHandbookCell}
+      />
 
       {/* Pagination */}
       {totalPages > 1 && (
@@ -398,96 +353,15 @@ export default function HandbookPage() {
       )}
 
       {/* Add/Edit Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-bold text-gray-900">
-                {modalMode === "add" ? "Add New Document" : "Edit Document"}
-              </h3>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-              >
-                <MdClose size={20} />
-              </button>
-            </div>
-
-            <div className="p-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Title <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g., Halal Evaluation Guidelines"
-                  value={formData.title}
-                  onChange={(e) =>
-                    setFormData({ ...formData, title: e.target.value })
-                  }
-                  className="w-full h-11 px-3 rounded-lg border border-gray-200 bg-white text-gray-900 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#A67C37] focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <textarea
-                  placeholder="Brief description of the document..."
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  rows={2}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-900 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#A67C37] focus:border-transparent resize-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  File URL / Link <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <MdLink
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                    size={18}
-                  />
-                  <input
-                    type="text"
-                    placeholder="https://drive.google.com/..."
-                    value={formData.fileUrl}
-                    onChange={(e) =>
-                      setFormData({ ...formData, fileUrl: e.target.value })
-                    }
-                    className="w-full h-11 pl-9 pr-3 rounded-lg border border-gray-200 bg-white text-gray-900 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#A67C37] focus:border-transparent"
-                  />
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Paste a Google Drive link, Dropbox link, or any accessible URL
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-3 p-4 border-t">
-              <Button
-                variant="flat"
-                className="flex-1"
-                onPress={() => setIsModalOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="flex-1 bg-[#A67C37] text-white font-semibold"
-                onPress={handleSave}
-                isLoading={isSaving}
-              >
-                {modalMode === "add" ? "Add Document" : "Save Changes"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AdminModal
+        type="handbook"
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSave}
+        entity={selectedDocument}
+        mode={modalMode}
+        isLoading={isSaving}
+      />
     </div>
   );
 }

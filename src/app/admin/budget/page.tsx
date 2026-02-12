@@ -8,6 +8,7 @@ import { Pagination } from "@nextui-org/react";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { MdEdit } from "react-icons/md";
+import Swal from "sweetalert2";
 
 // Budget management specific columns
 const budgetColumns = [
@@ -338,10 +339,25 @@ export default function BudgetPage() {
         const payload = await response.json();
         throw new Error(payload?.error || "Failed to update receipt.");
       }
+      await Swal.fire({
+        icon: "success",
+        title: "Receipt updated",
+        text: "The receipt has been saved successfully.",
+        confirmButtonColor: "#A67C37",
+      });
       return true;
     } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to update receipt. Please try again.";
       console.error("[Budget] Receipt update failed:", error);
-      alert("Failed to update receipt. Please try again.");
+      await Swal.fire({
+        icon: "error",
+        title: "Receipt update failed",
+        text: errorMessage,
+        confirmButtonColor: "#A67C37",
+      });
       return false;
     } finally {
       setUploadingReceiptId(null);
@@ -529,7 +545,7 @@ export default function BudgetPage() {
                     }}
                   >
                     <MdEdit size={14} />
-                    {isUploading ? "Updating..." : "Edit Receipt"}
+                    Edit Receipt
                   </label>
                 </div>
               );
@@ -652,13 +668,6 @@ export default function BudgetPage() {
                   </div>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={handleCloseReceiptModal}
-                className="rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-gray-600"
-              >
-                Close
-              </button>
             </div>
 
             <div className="mt-4 grid gap-4 lg:grid-cols-2">
@@ -727,6 +736,7 @@ export default function BudgetPage() {
               >
                 Cancel
               </button>
+
               <button
                 type="button"
                 disabled={

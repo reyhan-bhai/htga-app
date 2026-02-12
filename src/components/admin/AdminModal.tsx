@@ -1027,8 +1027,33 @@ const baseRestaurantFields: FieldConfig[] = [
   },
 ];
 
+// Handbook field configuration
+const baseHandbookFields: FieldConfig[] = [
+  {
+    name: "title",
+    label: "Document Title",
+    type: "text",
+    placeholder: "e.g., Halal Evaluation Guidelines",
+    required: true,
+  },
+  {
+    name: "description",
+    label: "Description",
+    type: "textarea",
+    placeholder: "Brief description of the document...",
+    rows: 3,
+  },
+  {
+    name: "fileUrl",
+    label: "File URL / Link",
+    type: "text",
+    placeholder: "https://drive.google.com/...",
+    required: true,
+  },
+];
+
 interface AdminModalProps {
-  type: "assignment" | "evaluator" | "restaurant" | "delete";
+  type: "assignment" | "evaluator" | "restaurant" | "handbook" | "delete";
   subtype?: "manual-match" | "edit"; // For assignment
   isOpen: boolean;
   onClose: () => void;
@@ -1299,6 +1324,25 @@ export default function AdminModal(props: AdminModalProps) {
           isLoading={isDeletingOption}
         />
       </>
+    );
+  }
+
+  if (type === "handbook") {
+    return (
+      <EntityModal
+        isOpen={props.isOpen}
+        onClose={props.onClose}
+        onSave={props.onSave!}
+        entity={props.entity}
+        mode={props.mode!}
+        fields={baseHandbookFields}
+        title={{
+          add: "Add Document",
+          edit: "Edit Document",
+          view: "View Document",
+        }}
+        isLoading={isLoading}
+      />
     );
   }
 
