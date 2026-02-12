@@ -708,7 +708,7 @@ export default function AdminViewControl({
                       <span className="hidden sm:inline">Match Evaluator</span>
                       <span className="sm:hidden">Match</span>
                     </Button>
-                    <Button
+                    {/* <Button
                       className="bg-white border-2 border-[#A67C37] text-[#A67C37] font-semibold rounded-lg text-sm"
                       startContent={<MdLink size={18} />}
                       onPress={() => handleManualMatch(setIsManualMatchOpen)}
@@ -716,7 +716,7 @@ export default function AdminViewControl({
                     >
                       <span className="hidden sm:inline">Manual Match</span>
                       <span className="sm:hidden">Manual</span>
-                    </Button>
+                    </Button> */}
                   </div>
                 )}
 

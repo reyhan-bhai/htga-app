@@ -28,7 +28,7 @@
     "geist": "^1.5.1",
     "googleapis": "^170.1.0",
     "jsonwebtoken": "^9.0.3",
-    "next": "15.1.7",
+    "next": "15.1.11",
     "nodemailer": "^7.0.11",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
