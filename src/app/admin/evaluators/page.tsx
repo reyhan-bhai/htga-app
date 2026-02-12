@@ -68,8 +68,13 @@ export default function EvaluatorsPage() {
         });
 
         if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || "Failed to create evaluator");
+          const errorData = await response.json();
+          const errorMessage =
+            errorData.error?.message ||
+            (typeof errorData.error === "string"
+              ? errorData.error
+              : "Failed to create evaluator");
+          throw new Error(errorMessage);
         }
 
         const result = await response.json();
@@ -97,8 +102,13 @@ export default function EvaluatorsPage() {
         });
 
         if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || "Failed to update evaluator");
+          const errorData = await response.json();
+          const errorMessage =
+            errorData.error?.message ||
+            (typeof errorData.error === "string"
+              ? errorData.error
+              : "Failed to update evaluator");
+          throw new Error(errorMessage);
         }
 
         const result = await response.json();
@@ -154,8 +164,13 @@ export default function EvaluatorsPage() {
       );
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to delete evaluator");
+        const errorData = await response.json();
+        const errorMessage =
+          errorData.error?.message ||
+          (typeof errorData.error === "string"
+            ? errorData.error
+            : "Failed to delete evaluator");
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();

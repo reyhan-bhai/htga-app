@@ -1,3 +1,4 @@
+import { NDA_DOCUMENTS } from "@/constants/ndaDocs";
 import { sendEvaluatorCredentials } from "@/lib/emailService";
 import admin, { db } from "@/lib/firebase-admin";
 import { sendNDA } from "@/lib/nda-service";
@@ -167,8 +168,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     let ndaSent = false;
     let warning: string | undefined;
     if (emailResult.success) {
-      const documentBase64 = process.env.DOCUSIGN_BASE64_DOCUMENT;
-
+      // const documentBase64 = process.env.DOCUSIGN_BASE64_DOCUMENT;
+      const documentBase64 = NDA_DOCUMENTS;
       if (!documentBase64) {
         warning =
           "DOCUSIGN_BASE64_DOCUMENT is not configured; NDA could not be sent.";
