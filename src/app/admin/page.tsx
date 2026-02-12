@@ -18,7 +18,9 @@ import {
 } from "@/lib/assignedPageUtils";
 import Image from "next/image";
 
+import { useAuth } from "@/context/AuthContext";
 import { Pagination } from "@nextui-org/react";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type Key, type ReactNode } from "react";
 import { MdNotificationsActive } from "react-icons/md";
 
@@ -62,6 +64,9 @@ export const byRestaurantColumns = [
 ];
 
 export default function AssignedPage() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+
   // Get data from context
   const {
     assignments,
@@ -71,6 +76,24 @@ export default function AssignedPage() {
     setIsLoading,
     fetchData,
   } = useAssignedContext();
+
+  // Role guard: keep users out of the wrong area and prevent UI flashing during role resolution.
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.replace("/");
+      return;
+    }
+
+    if (user.role === "superadmin") {
+      router.replace("/superadmin");
+      return;
+    }
+
+    if (user.role !== "admin") {
+      router.replace("/user/dashboard");
+    }
+  }, [authLoading, router, user]);
 
   // Local state for UI
   const [selectedView, setSelectedView] = useState<string>("evaluator");
@@ -98,6 +121,7 @@ export default function AssignedPage() {
   const [selectedRestaurant, setSelectedRestaurant] = useState<string>("");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingRestaurant, setEditingRestaurant] = useState<any>(null);
+
   const [editEvaluator1, setEditEvaluator1] = useState<string>("");
   const [editEvaluator2, setEditEvaluator2] = useState<string>("");
 

@@ -2,9 +2,11 @@
 
 import PushNotificationsProvider from "@/components/notifications/PushNotificationsProvider";
 import SuperadminDrawer from "@/components/superadmin/SuperadminDrawer";
+import { useAuth } from "@/context/AuthContext";
 import { UserProvider } from "@/utils/useCurrentUser";
 import localFont from "next/font/local";
-import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 import { MdMenu } from "react-icons/md";
 
 const poppins = localFont({
@@ -39,6 +41,33 @@ export default function SuperadminLayout({
   children: React.ReactNode;
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.replace("/");
+      return;
+    }
+    if (user.role === "admin") {
+      router.replace("/admin");
+      return;
+    }
+    if (user.role !== "superadmin") {
+      router.replace("/user/dashboard");
+    }
+  }, [authLoading, router, user]);
+
+  const allow = !authLoading && user?.role === "superadmin";
+
+  if (!allow) {
+    return (
+      <div className="min-h-screen bg-[#FFEDCC] flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-[#1D4ED8] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <UserProvider>

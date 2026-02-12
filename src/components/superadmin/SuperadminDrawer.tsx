@@ -1,10 +1,12 @@
 "use client";
 
+import { useAuth } from "@/context/AuthContext";
 import localFont from "next/font/local";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { MdAdminPanelSettings, MdClose, MdLogout } from "react-icons/md";
+import Swal from "sweetalert2";
 
 const poppins = localFont({
   src: [
@@ -41,6 +43,8 @@ export default function SuperadminDrawer({
   onClose,
 }: SuperadminDrawerProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { logout } = useAuth();
 
   const normalize = (p: string) => p.replace(/\/$/, "");
   const isActive = (href: string) => {
@@ -113,6 +117,23 @@ export default function SuperadminDrawer({
           <button
             className={`w-full flex items-center gap-3 p-3 rounded ${poppins.className} font-semibold text-[16px] hover:bg-red-600 hover:text-white transition-all text-white`}
             aria-label="Log out"
+            onClick={async () => {
+              const result = await Swal.fire({
+                title: "Log out?",
+                text: "Are you sure you want to log out?",
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonText: "Yes, log out",
+                cancelButtonText: "Cancel",
+                confirmButtonColor: "#dc2626",
+              });
+
+              if (!result.isConfirmed) return;
+
+              await logout();
+              onClose();
+              router.push("/");
+            }}
           >
             <MdLogout size={24} />
             Log Out

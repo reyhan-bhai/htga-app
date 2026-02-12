@@ -57,7 +57,7 @@ export interface User {
   name: string;
   username?: string;
   email: string;
-  role: "evaluator";
+  role: "evaluator" | "admin" | "superadmin";
   phone?: string;
   company?: string;
 }

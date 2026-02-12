@@ -1,11 +1,12 @@
 "use client";
 
+import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { onValue, ref } from "firebase/database";
 import localFont from "next/font/local";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   MdAccountBalanceWallet,
@@ -17,6 +18,7 @@ import {
   MdPeople,
   MdRestaurant,
 } from "react-icons/md";
+import Swal from "sweetalert2";
 
 const poppins = localFont({
   src: [
@@ -53,6 +55,8 @@ export default function DrawerComponent({
   onClose,
 }: DrawerComponentProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { logout } = useAuth();
   const [requestCount, setRequestCount] = useState(0);
   const [reportCount, setReportCount] = useState(0);
   const [reassignCount, setReassignCount] = useState(0);
@@ -249,6 +253,23 @@ export default function DrawerComponent({
           <button
             className={`w-full flex items-center gap-3 p-3 rounded ${poppins.className} font-semibold text-[16px] hover:bg-red-600 hover:text-white transition-all text-white`}
             aria-label="Log out"
+            onClick={async () => {
+              const result = await Swal.fire({
+                title: "Log out?",
+                text: "Are you sure you want to log out?",
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonText: "Yes, log out",
+                cancelButtonText: "Cancel",
+                confirmButtonColor: "#dc2626",
+              });
+
+              if (!result.isConfirmed) return;
+
+              await logout();
+              onClose();
+              router.push("/");
+            }}
           >
             <MdLogout size={24} />
             Log Out

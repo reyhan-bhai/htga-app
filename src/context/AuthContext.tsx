@@ -35,7 +35,7 @@ interface AuthContextType {
   login: (
     email: string,
     password: string,
-    rememberMe?: boolean
+    rememberMe?: boolean,
   ) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   ndaSigned: boolean;
@@ -44,6 +44,82 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+type AccountRole = "superadmin" | "admin" | "evaluator";
+
+const resolveAccountRole = async (
+  firebaseUser: FirebaseUser,
+): Promise<{
+  role: AccountRole;
+  profileRef: ReturnType<typeof ref> | null;
+  key: string | null;
+}> => {
+  // Priority: superadmin -> admin -> evaluator
+  const uid = firebaseUser.uid;
+
+  // 1) Superadmin direct lookup (key is uid per provided schema)
+  const superadminRef = ref(db, `superadmins/${uid}`);
+  const superadminSnap = await get(superadminRef);
+  if (superadminSnap.exists()) {
+    const data = superadminSnap.val();
+    if (data?.isActive === false) {
+      // inactive accounts behave like unauthenticated from an app-routing perspective
+      throw new Error("Account is inactive");
+    }
+    return { role: "superadmin", profileRef: superadminRef, key: uid };
+  }
+
+  // 2) Admin direct lookup
+  const adminRef = ref(db, `admins/${uid}`);
+  const adminSnap = await get(adminRef);
+  if (adminSnap.exists()) {
+    const data = adminSnap.val();
+    if (data?.isActive === false) {
+      throw new Error("Account is inactive");
+    }
+    return { role: "admin", profileRef: adminRef, key: uid };
+  }
+
+  // 3) Evaluator lookup: uid node OR by firebaseUid OR email
+  const evaluatorsRoot = ref(db, "evaluators");
+  const directEvaluatorRef = ref(db, `evaluators/${uid}`);
+  const directEvaluatorSnap = await get(directEvaluatorRef);
+  if (directEvaluatorSnap.exists()) {
+    return { role: "evaluator", profileRef: directEvaluatorRef, key: uid };
+  }
+
+  const byFirebaseUidQ = query(
+    evaluatorsRoot,
+    orderByChild("firebaseUid"),
+    equalTo(uid),
+  );
+  const byFirebaseUidSnap = await get(byFirebaseUidQ);
+  if (byFirebaseUidSnap.exists()) {
+    const val = byFirebaseUidSnap.val();
+    const key = Object.keys(val)[0];
+    return { role: "evaluator", profileRef: ref(db, `evaluators/${key}`), key };
+  }
+
+  if (firebaseUser.email) {
+    const byEmailQ = query(
+      evaluatorsRoot,
+      orderByChild("email"),
+      equalTo(firebaseUser.email),
+    );
+    const byEmailSnap = await get(byEmailQ);
+    if (byEmailSnap.exists()) {
+      const val = byEmailSnap.val();
+      const key = Object.keys(val)[0];
+      return {
+        role: "evaluator",
+        profileRef: ref(db, `evaluators/${key}`),
+        key,
+      };
+    }
+  }
+
+  return { role: "evaluator", profileRef: null, key: null };
+};
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -77,54 +153,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (firebaseUser) {
           console.log("AuthContext: User logged in", firebaseUser.uid);
 
-          const evaluatorsRef = ref(db, "evaluators");
-          let targetRef: ReturnType<typeof ref> | null = null;
-          let resolvedKey: string | null = null;
-
           try {
-            // 1. Try direct lookup - but only if it has proper evaluator data (name field)
-            const directRef = ref(db, `evaluators/${firebaseUser.uid}`);
-            const directSnapshot = await get(directRef);
+            const resolved = await resolveAccountRole(firebaseUser);
+            const { role, profileRef, key } = resolved;
 
-            if (directSnapshot.exists() && directSnapshot.val().name) {
-              targetRef = directRef;
-              resolvedKey = firebaseUser.uid;
-            } else {
-              // 2. Try lookup by firebaseUid
-              let userQuery = query(
-                evaluatorsRef,
-                orderByChild("firebaseUid"),
-                equalTo(firebaseUser.uid)
-              );
-              let querySnapshot = await get(userQuery);
-
-              if (querySnapshot.exists()) {
-                const val = querySnapshot.val();
-                const key = Object.keys(val)[0];
-                targetRef = ref(db, `evaluators/${key}`);
-                resolvedKey = key;
-              } else if (firebaseUser.email) {
-                // 3. Try lookup by email
-                userQuery = query(
-                  evaluatorsRef,
-                  orderByChild("email"),
-                  equalTo(firebaseUser.email)
-                );
-                querySnapshot = await get(userQuery);
-
-                if (querySnapshot.exists()) {
-                  const val = querySnapshot.val();
-                  const key = Object.keys(val)[0];
-                  targetRef = ref(db, `evaluators/${key}`);
-                  resolvedKey = key;
-                }
-              }
-            }
-
-            if (!targetRef || !resolvedKey) {
+            if (!profileRef || !key) {
               setUser({
                 id: firebaseUser.uid,
-                name: firebaseUser.displayName || "Evaluator",
+                name: firebaseUser.displayName || "User",
                 email: firebaseUser.email || "",
                 role: "evaluator",
               });
@@ -132,31 +168,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               return;
             }
 
-            // 4. Subscribe to the resolved node (Real-time listener)
-            const finalKey = resolvedKey;
-            dataUnsubscribe = onValue(targetRef, (snapshot) => {
-              if (snapshot.exists()) {
-                const evaluatorData = snapshot.val();
-                const userId = finalKey;
-
-                // UPDATED: Now includes phone and company
+            dataUnsubscribe = onValue(profileRef, (snapshot) => {
+              if (!snapshot.exists()) {
                 setUser({
-                  id: userId,
-                  name:
-                    evaluatorData.name ||
-                    firebaseUser.displayName ||
-                    "Evaluator",
+                  id: firebaseUser.uid,
+                  name: firebaseUser.displayName || "User",
                   email: firebaseUser.email || "",
+                  role,
+                });
+                setLoading(false);
+                return;
+              }
+
+              const data = snapshot.val();
+
+              if (data?.isActive === false) {
+                // If the account is disabled in DB, treat as logged out for the UI.
+                setUser(null);
+                setNdaSigned(false);
+                localStorage.removeItem("htga_nda");
+                setLoading(false);
+                return;
+              }
+
+              if (role === "evaluator") {
+                setUser({
+                  id: key,
+                  name: data?.name || firebaseUser.displayName || "Evaluator",
+                  email: firebaseUser.email || data?.email || "",
                   role: "evaluator",
-                  phone: evaluatorData.phone || "",     // <--- Added
-                  company: evaluatorData.company || "", // <--- Added
+                  phone: data?.phone || "",
+                  company: data?.company || "",
                 });
 
-                // Check NDA status
                 const isSigned =
-                  evaluatorData.nda?.status === "signed" ||
-                  evaluatorData.ndaSigned === true ||
-                  evaluatorData.ndaSigned === "true";
+                  data?.nda?.status === "signed" ||
+                  data?.ndaSigned === true ||
+                  data?.ndaSigned === "true";
 
                 if (isSigned) {
                   setNdaSigned(true);
@@ -166,20 +214,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   localStorage.removeItem("htga_nda");
                 }
               } else {
+                // admin/superadmin
                 setUser({
-                  id: firebaseUser.uid,
-                  name: firebaseUser.displayName || "Evaluator",
-                  email: firebaseUser.email || "",
-                  role: "evaluator",
+                  id: key,
+                  name: data?.name || firebaseUser.displayName || "Admin",
+                  email: firebaseUser.email || data?.email || "",
+                  role,
                 });
+                setNdaSigned(false);
+                localStorage.removeItem("htga_nda");
               }
+
               setLoading(false);
             });
           } catch (error) {
             console.error("AuthContext: Error resolving user profile", error);
             setUser({
               id: firebaseUser.uid,
-              name: firebaseUser.displayName || "Evaluator",
+              name: firebaseUser.displayName || "User",
               email: firebaseUser.email || "",
               role: "evaluator",
             });
@@ -191,7 +243,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem("htga_nda");
           setLoading(false);
         }
-      }
+      },
     );
 
     return () => {
@@ -203,42 +255,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (
     email: string,
     password: string,
-    rememberMe: boolean = true
+    rememberMe: boolean = true,
   ): Promise<{ success: boolean; error?: string }> => {
     try {
       setLoading(true);
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      await signInWithEmailAndPassword(auth, email, password);
 
-      // Fetch user data manually for immediate update
-      try {
-        const response = await fetch(
-          `/api/admin/evaluators?id=${userCredential.user.uid}`
-        );
-        if (response.ok) {
-          const data = await response.json();
-          const evaluatorData = data.evaluator;
-
-          setUser({
-            id: evaluatorData.id || userCredential.user.uid,
-            name: evaluatorData.name || userCredential.user.displayName || "Evaluator",
-            email: userCredential.user.email || "",
-            role: "evaluator",
-            phone: evaluatorData.phone || "",     // <--- Added
-            company: evaluatorData.company || "", // <--- Added
-          });
-
-          if (evaluatorData.ndaSigned) {
-            setNdaSigned(true);
-            localStorage.setItem("htga_nda", "true");
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      }
+      // Note: we rely on onAuthStateChanged + RTDB listeners to populate user/role.
 
       if (typeof window !== "undefined") {
         localStorage.setItem("htga_isLogged", "true");
@@ -249,7 +272,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: true };
     } catch (error: unknown) {
       setLoading(false);
-      return { success: false, error: `Login Error: ${(error as Error).message}` };
+      return {
+        success: false,
+        error: `Login Error: ${(error as Error).message}`,
+      };
     }
   };
 
@@ -288,7 +314,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout, ndaSigned, signNDA, loading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated: !!user,
+        login,
+        logout,
+        ndaSigned,
+        signNDA,
+        loading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

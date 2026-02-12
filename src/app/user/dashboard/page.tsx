@@ -34,6 +34,21 @@ export default function DashboardPage() {
   const { user, ndaSigned, loading: authLoading } = useAuth();
   const { messaging, needsPWAInstall } = useContext(PushNotificationsContext);
 
+  // If an admin/superadmin lands here (e.g., during role resolution), redirect immediately.
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+
+    if (user.role === "superadmin") {
+      router.replace("/superadmin");
+      return;
+    }
+    if (user.role === "admin") {
+      router.replace("/admin");
+      return;
+    }
+  }, [authLoading, router, user]);
+
   // --- State ---
   const [assignments, setAssignments] = useState<EvaluatorAssignment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,6 +68,9 @@ export default function DashboardPage() {
   useEffect(() => {
     if (authLoading) return;
 
+    // Don’t run evaluator subscription for non-evaluator accounts.
+    if (user && user.role !== "evaluator") return;
+
     if (user?.id) {
       const unsubscribe = subscribeToEvaluatorAssignments(user.id, (data) => {
         setAssignments(data);
@@ -65,7 +83,7 @@ export default function DashboardPage() {
       setLoading(false);
       router.push("/");
     }
-  }, [user?.id, authLoading, router]);
+  }, [user, user?.id, authLoading, router, user?.role]);
 
   // 2. Check Notification Status on Load
   useEffect(() => {
