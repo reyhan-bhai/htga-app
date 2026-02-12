@@ -18,7 +18,7 @@ import {
 } from "react-icons/md";
 import Swal from "sweetalert2";
 
-export const requestColumns = [
+const requestColumns = [
   { name: "Request ID", uid: "id" },
   { name: "Date", uid: "date" },
   { name: "Evaluator ID", uid: "evaluator_id" },
@@ -32,7 +32,7 @@ export const requestColumns = [
 ];
 
 // Kolom untuk Tab "Reports" (Laporan Masalah)
-export const reportColumns = [
+const reportColumns = [
   { name: "Report ID", uid: "id" },
   { name: "Date", uid: "date" },
   { name: "Evaluator ID", uid: "evaluator_id" },
@@ -46,7 +46,7 @@ export const reportColumns = [
 ];
 
 // Kolom untuk Tab "Re-assign Request"
-export const reassignColumns = [
+const reassignColumns = [
   { name: "Re-assign ID", uid: "id" },
   { name: "Date", uid: "date" },
   { name: "Evaluator ID", uid: "evaluator_id" },
@@ -788,15 +788,7 @@ export default function FeedbackPage() {
   return (
     <div className="text-black flex flex-col gap-4 lg:gap-6 p-4 sm:p-6">
       {/* Header Section */}
-      <AdminHeader
-        type="assignment"
-        showAssignmentActions={false}
-        assignments={[]}
-        establishments={[]}
-        setIsLoading={setIsLoading}
-        fetchData={async () => {}} // Return a Promise<void>
-        setIsManualMatchOpen={() => {}}
-      />
+      <AdminHeader type="assignment" assignments={[]} establishments={[]} />
       {/* View Control (Tab Switcher & Filter) */}
       <AdminViewControl
         type="assignment"

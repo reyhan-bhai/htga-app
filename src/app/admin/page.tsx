@@ -25,7 +25,7 @@ import { useEffect, useMemo, useState, type Key, type ReactNode } from "react";
 import { MdNotificationsActive } from "react-icons/md";
 
 // Columns for Evaluator View
-export const byEvaluatorColumns = [
+const byEvaluatorColumns = [
   { name: "Eva ID", uid: "eva_id" },
   { name: "Name", uid: "name" },
   { name: "Email", uid: "email" },
@@ -40,7 +40,7 @@ export const byEvaluatorColumns = [
 ];
 
 // Columns for Restaurant View
-export const byRestaurantColumns = [
+const byRestaurantColumns = [
   { name: "Name", uid: "name" },
   { name: "Category", uid: "category" },
   { name: "Rating", uid: "rating" },
