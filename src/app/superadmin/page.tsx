@@ -9,6 +9,8 @@ import { Button, Input } from "@nextui-org/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
 
+import { useAuth } from "@/context/AuthContext";
+
 interface AdminAccount {
   id: string;
   email: string;
@@ -36,6 +38,7 @@ type AdminFormPayload = {
 };
 
 export default function SuperadminPage() {
+  const { user } = useAuth();
   const [admins, setAdmins] = useState<AdminAccount[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -246,7 +249,9 @@ export default function SuperadminPage() {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-lg p-6">
-        <SuperadminHeader />
+        <SuperadminHeader
+          title={`Hello, ${user?.name || "Processing Officer"}`}
+        />
 
         <div className="mt-4 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
           <Input

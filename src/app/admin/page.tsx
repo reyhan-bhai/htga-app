@@ -916,6 +916,7 @@ export default function AssignedPage() {
         assignments={assignments}
         evaluators={evaluators}
         establishments={establishments}
+        userName={user?.name || "Admin"}
       />
 
       {/* View Toggle & Search/Filter Section */}

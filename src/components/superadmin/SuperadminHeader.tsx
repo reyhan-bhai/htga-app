@@ -23,9 +23,7 @@ export default function SuperadminHeader({
   return (
     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
       <div>
-        <h2 className="text-xl sm:text-2xl font-bold uppercase text-gray-800">
-          {title}
-        </h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800">{title}</h2>
         {subtitle ? (
           <p className="text-gray-600 text-sm mt-1">{subtitle}</p>
         ) : null}

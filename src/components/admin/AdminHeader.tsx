@@ -14,17 +14,31 @@ interface AdminHeaderProps {
   assignments?: any[];
   evaluators?: any[];
   establishments?: any[];
+  userName?: string;
 }
 
 export default function AdminHeader({
   type,
-  title,
+  title: initialTitle,
   subtitle,
   assignments,
   evaluators,
   establishments,
+  userName = "Admin",
 }: AdminHeaderProps) {
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // If title is passed via props, use it. Otherwise, use defaults.
+  // For 'assignment', default to greeting.
+  const displayTitle = initialTitle
+    ? initialTitle
+    : type === "assignment"
+      ? `Hello, ${userName}`
+      : type === "evaluator"
+        ? "Manage Evaluators"
+        : type === "restaurant"
+          ? "Manage Restaurants"
+          : "Budget Analytics";
 
   const handleSyncToSpreadsheet = async () => {
     // Check which data is missing and provide informative error
@@ -150,8 +164,8 @@ export default function AdminHeader({
       return (
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold uppercase">
-              {title || "Budget Management"}
+            <h2 className="text-xl sm:text-2xl font-bold">
+              {displayTitle || "Budget Management"}
             </h2>
             {subtitle && (
               <p className="text-gray-600 text-sm mt-1">{subtitle}</p>
@@ -164,8 +178,8 @@ export default function AdminHeader({
     case "assignment":
       return (
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
-          <h2 className="text-xl sm:text-2xl font-bold uppercase">
-            Assignment Management
+          <h2 className="text-xl sm:text-2xl font-bold">
+            {displayTitle || "Assignment Management"}
           </h2>
           {renderSyncButtons()}
         </div>
@@ -173,8 +187,8 @@ export default function AdminHeader({
     case "evaluator":
       return (
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
-          <h2 className="text-xl sm:text-2xl font-bold uppercase">
-            Evaluator Management
+          <h2 className="text-xl sm:text-2xl font-bold">
+            {displayTitle || "Evaluator Management"}
           </h2>
           {renderSyncButtons()}
         </div>
@@ -182,8 +196,8 @@ export default function AdminHeader({
     case "restaurant":
       return (
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
-          <h2 className="text-xl sm:text-2xl font-bold uppercase">
-            Restaurant Management
+          <h2 className="text-xl sm:text-2xl font-bold">
+            {displayTitle || "Restaurant Management"}
           </h2>
           {renderSyncButtons()}
         </div>
