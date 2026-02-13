@@ -1,72 +1,68 @@
 "use client";
 
-import { isRunningAsPWA } from "@/lib/fcmTokenHelper";
 import { DeviceTypes, useDevice } from "@/utils/useDevice";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt(): Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+/**
+ * Check if the app is running in standalone (installed PWA) mode.
+ * Uses matchMedia listener to react to display-mode changes.
+ */
+function useIsStandalone(): boolean {
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // iOS standalone check
+    const isIOSStandalone = (window.navigator as any).standalone === true;
+
+    // display-mode: standalone (Android, Desktop Chrome, Edge, etc.)
+    const mql = window.matchMedia("(display-mode: standalone)");
+    const mqlFullscreen = window.matchMedia("(display-mode: fullscreen)");
+
+    const check = () => {
+      setIsStandalone(isIOSStandalone || mql.matches || mqlFullscreen.matches);
+    };
+
+    // Initial check
+    check();
+
+    // Listen for changes (e.g. app gets installed while page is open)
+    mql.addEventListener("change", check);
+    mqlFullscreen.addEventListener("change", check);
+
+    return () => {
+      mql.removeEventListener("change", check);
+      mqlFullscreen.removeEventListener("change", check);
+    };
+  }, []);
+
+  return isStandalone;
 }
 
 export default function InstallPrompt() {
   const pathname = usePathname();
   const device = useDevice();
+  const isStandalone = useIsStandalone();
   const [showPrompt, setShowPrompt] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
-    // 1. Check if Admin Page -> Don't show
-    if (pathname?.startsWith("/admin")) {
+    // 1. Admin / SuperAdmin pages are never blocked
+    if (pathname?.startsWith("/admin") || pathname?.startsWith("/superadmin")) {
       setShowPrompt(false);
       return;
     }
 
-    // 2. Check if Login Page -> Only show on login screen
-    if (pathname !== "/") {
+    // 2. Running as installed app (standalone) -> allow access
+    if (isStandalone) {
       setShowPrompt(false);
       return;
     }
 
-    // 3. Check if PWA -> Don't show if already installed
-    if (isRunningAsPWA()) {
-      setShowPrompt(false);
-      return;
-    }
-
-    // 4. Show for all users on Login Page who haven't installed the app
-    // This ensures it works on Desktop (for testing) and Mobile
-    setShowPrompt(false);
-
-    // Android/Desktop - listen for beforeinstallprompt
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-    };
-
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener(
-        "beforeinstallprompt",
-        handleBeforeInstallPrompt
-      );
-    };
-  }, [pathname]);
-
-  const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-
-    if (outcome === "accepted") {
-      setShowPrompt(false);
-    }
-    setDeferredPrompt(null);
-  };
+    // 3. Opened in browser (not installed) -> block access
+    setShowPrompt(true);
+  }, [pathname, isStandalone]);
 
   if (!showPrompt) return null;
 
@@ -128,26 +124,18 @@ export default function InstallPrompt() {
             </ol>
           </div>
         ) : (
-          <div className="space-y-4">
-            {deferredPrompt ? (
-              <button
-                onClick={handleInstallClick}
-                className="w-full bg-[#FFA200] hover:bg-[#FF9500] text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-orange-200 transition-all active:scale-95 text-lg"
-              >
-                Install App Now
-              </button>
-            ) : (
-              <div className="bg-gray-50 rounded-2xl p-5 text-sm text-gray-600 border border-gray-100">
-                <p className="mb-3 font-semibold text-gray-900 text-base">
-                  To install:
-                </p>
-                <p className="leading-relaxed">
-                  Tap/Click the browser menu (⋮) and select{" "}
-                  <strong>&quot;Install App&quot;</strong> or{" "}
-                  <strong>&quot;Add to Home Screen&quot;</strong>
-                </p>
-              </div>
-            )}
+          <div className="bg-gray-50 rounded-2xl p-5 text-sm text-gray-600 border border-gray-100">
+            <p className="mb-3 font-semibold text-gray-900 text-base">
+              To install:
+            </p>
+            <p className="leading-relaxed">
+              Click the browser menu{" "}
+              <strong className="text-lg leading-none inline-block align-middle">
+                ⋮
+              </strong>{" "}
+              and select <strong>&quot;Install App&quot;</strong> or{" "}
+              <strong>&quot;Add to Home Screen&quot;</strong>
+            </p>
           </div>
         )}
       </div>
