@@ -74,23 +74,50 @@ const ensureEmailAvailable = async (email: string): Promise<void> => {
   > | null;
 
   if (evaluatorsData) {
+    console.log(`[user/auth] ensureEmailAvailable: checking email='${email}'`);
+
     const emailExists = Object.values(evaluatorsData).some(
       (evaluator) => evaluator.email === email,
     );
 
     if (emailExists) {
+      console.warn(
+        `[user/auth] ensureEmailAvailable: email '${email}' already exists in Realtime DB evaluators -> reject`,
+      );
       throw new Error("An evaluator with this email already exists");
     }
+
+    console.log(
+      `[user/auth] ensureEmailAvailable: loaded ${Object.keys(evaluatorsData).length} evaluator records from DB`,
+    );
+  } else {
+    console.log(
+      "[user/auth] ensureEmailAvailable: no evaluator records found in Realtime DB",
+    );
   }
 
   try {
+    console.log(
+      `[user/auth] ensureEmailAvailable: checking Firebase Auth for email='${email}'`,
+    );
     await admin.auth().getUserByEmail(email);
+    console.warn(
+      `[user/auth] ensureEmailAvailable: email '${email}' exists in Firebase Auth -> reject`,
+    );
     throw new Error("An account with this email already exists");
   } catch (error: unknown) {
     const firebaseError = error as { code?: string };
     if (firebaseError.code !== "auth/user-not-found") {
+      console.error(
+        `[user/auth] ensureEmailAvailable: unexpected Firebase Auth check error for '${email}'`,
+        error,
+      );
       throw error;
     }
+
+    console.log(
+      `[user/auth] ensureEmailAvailable: email '${email}' not found in Firebase Auth -> available`,
+    );
   }
 };
 
@@ -143,7 +170,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const firebaseUser = await admin.auth().createUser({
       email,
-      password: hashedPassword,
+      password,
       displayName: name,
     });
 
