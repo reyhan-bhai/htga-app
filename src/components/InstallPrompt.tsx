@@ -54,6 +54,15 @@ export default function InstallPrompt() {
       return;
     }
 
+    // 2. Password reset pages must be accessible from browser (email links open in browser, not PWA)
+    if (
+      pathname?.startsWith("/user/forgot-password") ||
+      pathname?.startsWith("/user/reset-password")
+    ) {
+      setShowPrompt(false);
+      return;
+    }
+
     // 2. Running as installed app (standalone) -> allow access
     if (isStandalone) {
       setShowPrompt(false);
