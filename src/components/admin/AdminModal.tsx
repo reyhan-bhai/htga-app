@@ -432,6 +432,7 @@ interface ManualMatchModalProps {
   evaluators: any[];
   establishments: any[];
   assignments: any[];
+  isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
   fetchData: () => Promise<void>;
   handleSaveManualMatch: (
@@ -458,137 +459,153 @@ function ManualMatchModal({
   evaluators,
   establishments,
   assignments,
+  isLoading,
   setIsLoading,
   fetchData,
   handleSaveManualMatch,
 }: ManualMatchModalProps) {
+  if (!isOpen) return null;
+
+  const canAssign = selectedEvaluator && selectedRestaurant && !isLoading;
+
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      size="lg"
-      className="mx-4"
-      scrollBehavior="inside"
-    >
-      <ModalContent>
-        {(onClose) => (
-          <>
-            <ModalHeader className="flex flex-col gap-1 text-black uppercase font-bold">
-              Manual Assignment
-            </ModalHeader>
-            <ModalBody>
-              <div className="flex flex-col gap-6">
-                <p className="text-gray-600 text-sm">
-                  Manually assign an evaluator to a restaurant. Select the
-                  evaluator and restaurant from the dropdowns below.
-                </p>
+    <div className="fixed inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden relative">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#FF6B00] to-[#FFA200] text-white p-4 rounded-t-lg flex items-center justify-between">
+          <h2 className="text-lg font-bold uppercase">Manual Assignment</h2>
+          {!isLoading && (
+            <button
+              onClick={onClose}
+              className="hover:bg-white/20 p-1 rounded transition"
+            >
+              <MdClose size={24} />
+            </button>
+          )}
+        </div>
 
-                {/* Evaluator Selection */}
-                <div className="flex flex-col gap-2">
-                  <label className="font-semibold text-sm text-gray-700">
-                    Select Evaluator
-                  </label>
-                  <Select
-                    placeholder="Choose an evaluator..."
-                    selectedKeys={selectedEvaluator ? [selectedEvaluator] : []}
-                    onSelectionChange={(keys) => {
-                      const selected = Array.from(keys)[0] as string;
-                      setSelectedEvaluator(selected);
-                    }}
-                    classNames={{
-                      trigger: "bg-white border border-gray-300",
-                      value: "text-black",
-                    }}
-                  >
-                    {evaluators.map((evaluator) => (
-                      <SelectItem key={evaluator.id} textValue={evaluator.name}>
-                        <div className="flex flex-col">
-                          <span className="text-black">{evaluator.name}</span>
-                          <span className="text-xs text-gray-500">
-                            {Array.isArray(evaluator.specialties)
-                              ? evaluator.specialties.join(", ")
-                              : evaluator.specialties || "No specialty"}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </Select>
-                </div>
+        {/* Body */}
+        <div className="p-6 space-y-4 overflow-y-auto max-h-[calc(90vh-120px)]">
+          <p className="text-gray-600 text-sm">
+            Manually assign an evaluator to a restaurant. Select the evaluator
+            and restaurant from the dropdowns below.
+          </p>
 
-                {/* Restaurant Selection */}
-                <div className="flex flex-col gap-2">
-                  <label className="font-semibold text-sm text-gray-700">
-                    Select Restaurant
-                  </label>
-                  <Select
-                    placeholder="Choose a restaurant..."
-                    selectedKeys={
-                      selectedRestaurant ? [selectedRestaurant] : []
-                    }
-                    onSelectionChange={(keys) => {
-                      const selected = Array.from(keys)[0] as string;
-                      setSelectedRestaurant(selected);
-                    }}
-                    classNames={{
-                      trigger: "bg-white border border-gray-300",
-                      value: "text-black",
-                    }}
-                  >
-                    {establishments.map((restaurant) => (
-                      <SelectItem
-                        key={restaurant.id}
-                        textValue={restaurant.name}
-                      >
-                        <div className="flex flex-col">
-                          <span className="text-black">{restaurant.name}</span>
-                          <span className="text-xs text-gray-500">
-                            {restaurant.category}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </Select>
-                </div>
+          {/* Evaluator Selection */}
+          <div className="flex flex-col gap-2">
+            <label className="font-semibold text-sm text-gray-700">
+              Select Evaluator
+            </label>
+            <Select
+              placeholder="Choose an evaluator..."
+              selectedKeys={selectedEvaluator ? [selectedEvaluator] : []}
+              onSelectionChange={(keys) => {
+                const selected = Array.from(keys)[0] as string;
+                setSelectedEvaluator(selected);
+              }}
+              isDisabled={isLoading}
+              classNames={{
+                trigger: "bg-white border border-gray-300",
+                value: "text-black",
+              }}
+            >
+              {evaluators.map((evaluator) => (
+                <SelectItem key={evaluator.id} textValue={evaluator.name}>
+                  <div className="flex flex-col">
+                    <span className="text-black">{evaluator.name}</span>
+                    <span className="text-xs text-gray-500">
+                      {Array.isArray(evaluator.specialties)
+                        ? evaluator.specialties.join(", ")
+                        : evaluator.specialties || "No specialty"}
+                    </span>
+                  </div>
+                </SelectItem>
+              ))}
+            </Select>
+          </div>
 
-                {/* Info Box */}
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                  <p className="text-sm text-amber-800">
-                    <strong>Note:</strong> Each restaurant can be assigned up to
-                    2 evaluators. Each evaluator can be assigned multiple
-                    restaurants.
-                  </p>
-                </div>
-              </div>
-            </ModalBody>
-            <ModalFooter>
-              <Button color="default" variant="light" onPress={onClose}>
-                Cancel
-              </Button>
-              <Button
-                className="bg-[#A67C37] text-white"
-                onPress={() =>
-                  handleSaveManualMatch(
-                    selectedEvaluator,
-                    selectedRestaurant,
-                    establishments,
-                    evaluators,
-                    assignments,
-                    setIsLoading,
-                    fetchData,
-                    onClose,
-                    setSelectedEvaluator,
-                    setSelectedRestaurant,
-                  )
-                }
-                isDisabled={!selectedEvaluator || !selectedRestaurant}
-              >
-                Assign
-              </Button>
-            </ModalFooter>
-          </>
-        )}
-      </ModalContent>
-    </Modal>
+          {/* Restaurant Selection */}
+          <div className="flex flex-col gap-2">
+            <label className="font-semibold text-sm text-gray-700">
+              Select Restaurant
+            </label>
+            <Select
+              placeholder="Choose a restaurant..."
+              selectedKeys={selectedRestaurant ? [selectedRestaurant] : []}
+              onSelectionChange={(keys) => {
+                const selected = Array.from(keys)[0] as string;
+                setSelectedRestaurant(selected);
+              }}
+              isDisabled={isLoading}
+              classNames={{
+                trigger: "bg-white border border-gray-300",
+                value: "text-black",
+              }}
+            >
+              {establishments.map((restaurant) => (
+                <SelectItem key={restaurant.id} textValue={restaurant.name}>
+                  <div className="flex flex-col">
+                    <span className="text-black">{restaurant.name}</span>
+                    <span className="text-xs text-gray-500">
+                      {restaurant.category}
+                    </span>
+                  </div>
+                </SelectItem>
+              ))}
+            </Select>
+          </div>
+
+          {/* Info Box */}
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <p className="text-sm text-amber-800">
+              <strong>Note:</strong> Each restaurant can be assigned up to 2
+              evaluators. Each evaluator can be assigned multiple restaurants.
+            </p>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              disabled={!canAssign}
+              onClick={() =>
+                handleSaveManualMatch(
+                  selectedEvaluator,
+                  selectedRestaurant,
+                  establishments,
+                  evaluators,
+                  assignments,
+                  setIsLoading,
+                  fetchData,
+                  onClose,
+                  setSelectedEvaluator,
+                  setSelectedRestaurant,
+                )
+              }
+              className={`flex-1 py-2 px-4 rounded-md font-medium transition ${
+                canAssign
+                  ? "bg-gradient-to-r from-[#FF6B00] to-[#FFA200] text-white hover:shadow-lg"
+                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
+              }`}
+            >
+              {isLoading ? "Assigning..." : "Assign"}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isLoading}
+              className={`flex-1 py-2 px-4 rounded-md font-medium transition ${
+                isLoading
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -674,240 +691,268 @@ function EditAssignmentModal({
     });
   };
 
+  if (!isOpen) return null;
+
+  const isDeleteMode = !editEvaluator1 && !editEvaluator2;
+
+  const handleClose = () => {
+    if (isLoading) return;
+    onClose();
+    setEditingRestaurant(null);
+    setEditEvaluator1("");
+    setEditEvaluator2("");
+  };
+
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={() => {
-        onClose();
-        setEditingRestaurant(null);
-        setEditEvaluator1("");
-        setEditEvaluator2("");
-      }}
-      size="lg"
-      className="mx-4"
-      scrollBehavior="inside"
-    >
-      <ModalContent>
-        {(onClose) => (
-          <>
-            <ModalHeader className="flex flex-col gap-1 text-black uppercase font-bold">
-              Edit Assignment - {editingRestaurant?.name}
-            </ModalHeader>
-            <ModalBody>
-              <div className="flex flex-col gap-6">
-                <p className="text-gray-600 text-sm">
-                  {singleEvaluatorMode
-                    ? "Update the evaluator assignment for this restaurant."
-                    : "Reassign or remove evaluators from this restaurant. Leave a field empty to remove that evaluator. Clear both to delete the assignment entirely."}
-                </p>
+    <div className="fixed inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden relative">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#FF6B00] to-[#FFA200] text-white p-4 rounded-t-lg flex items-center justify-between">
+          <h2 className="text-lg font-bold uppercase">
+            Edit Assignment - {editingRestaurant?.name}
+          </h2>
+          {!isLoading && (
+            <button
+              onClick={handleClose}
+              className="hover:bg-white/20 p-1 rounded transition"
+            >
+              <MdClose size={24} />
+            </button>
+          )}
+        </div>
 
-                {/* Evaluator Selection */}
-                <div className="flex flex-col gap-2">
-                  <label className="font-semibold text-sm text-gray-700">
-                    {singleEvaluatorMode ? "Evaluator" : "Evaluator 1"}
-                  </label>
-                  {singleEvaluatorMode && allowRestaurantSelection ? (
-                    <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                      {selectedEvaluator?.name || "Unknown evaluator"}
-                    </div>
-                  ) : (
-                    <Select
-                      placeholder={
-                        singleEvaluatorMode
-                          ? "Select evaluator"
-                          : "Select evaluator 1 or leave empty"
-                      }
-                      selectedKeys={editEvaluator1 ? [editEvaluator1] : []}
-                      onSelectionChange={(keys) => {
-                        const selected = Array.from(keys)[0];
-                        setEditEvaluator1(selected ? String(selected) : "");
-                      }}
-                      variant="bordered"
-                      classNames={{
-                        trigger: "bg-white border-gray-300",
-                        value: "text-black",
-                      }}
-                    >
-                      {evaluators
-                        .filter((e) =>
-                          e.specialties.includes(editingRestaurant?.category),
-                        )
-                        .map((evaluator) => (
-                          <SelectItem
-                            key={evaluator.id}
-                            value={evaluator.id}
-                            textValue={evaluator.name}
-                            className="text-black"
-                          >
-                            <div className="flex flex-col">
-                              <span className="font-medium">
-                                {evaluator.name}
-                              </span>
-                              <span className="text-xs text-gray-500">
-                                {Array.isArray(evaluator.specialties)
-                                  ? evaluator.specialties.join(", ")
-                                  : evaluator.specialties}
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                    </Select>
-                  )}
-                  {editEvaluator1 &&
-                    !(singleEvaluatorMode && allowRestaurantSelection) && (
-                      <Button
-                        size="sm"
-                        color="danger"
-                        variant="flat"
-                        onPress={() => setEditEvaluator1("")}
-                        startContent={<MdClose size={16} />}
-                      >
-                        {singleEvaluatorMode
-                          ? "Remove Evaluator"
-                          : "Remove Evaluator 1"}
-                      </Button>
-                    )}
-                </div>
+        {/* Body */}
+        <div className="p-6 space-y-4 overflow-y-auto max-h-[calc(90vh-120px)]">
+          <p className="text-gray-600 text-sm">
+            {singleEvaluatorMode
+              ? "Update the evaluator assignment for this restaurant."
+              : "Reassign or remove evaluators from this restaurant. Leave a field empty to remove that evaluator. Clear both to delete the assignment entirely."}
+          </p>
 
-                {allowRestaurantSelection ? (
-                  <div className="flex flex-col gap-2">
-                    <label className="font-semibold text-sm text-gray-700">
-                      Restaurant
-                    </label>
-                    <Select
-                      placeholder="Select restaurant"
-                      selectedKeys={selectedRestaurantKey}
-                      onSelectionChange={handleRestaurantChange}
-                      variant="bordered"
-                      classNames={{
-                        trigger: "bg-white border-gray-300",
-                        value: "text-black",
-                      }}
-                    >
-                      {restaurantOptions.map((option) => (
-                        <SelectItem
-                          key={option.id}
-                          value={option.id}
-                          textValue={option.name}
-                          className="text-black"
-                        >
-                          <div className="flex flex-col">
-                            <span className="font-medium">{option.name}</span>
-                            <span className="text-xs text-gray-500">
-                              {option.category}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </Select>
-                  </div>
-                ) : (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-                    <strong>Restaurant Category:</strong>{" "}
-                    {editingRestaurant?.category}
-                  </div>
-                )}
-
-                {!singleEvaluatorMode && (
-                  <div className="flex flex-col gap-2">
-                    <label className="font-semibold text-sm text-gray-700">
-                      Evaluator 2
-                    </label>
-                    <Select
-                      placeholder="Select evaluator 2 or leave empty"
-                      selectedKeys={editEvaluator2 ? [editEvaluator2] : []}
-                      onSelectionChange={(keys) => {
-                        const selected = Array.from(keys)[0];
-                        setEditEvaluator2(selected ? String(selected) : "");
-                      }}
-                      variant="bordered"
-                      classNames={{
-                        trigger: "bg-white border-gray-300",
-                        value: "text-black",
-                      }}
-                    >
-                      {evaluators
-                        .filter(
-                          (e) =>
-                            e.specialties.includes(
-                              editingRestaurant?.category,
-                            ) && e.id !== editEvaluator1,
-                        )
-                        .map((evaluator) => (
-                          <SelectItem
-                            key={evaluator.id}
-                            value={evaluator.id}
-                            textValue={evaluator.name}
-                            className="text-black"
-                          >
-                            <div className="flex flex-col">
-                              <span className="font-medium">
-                                {evaluator.name}
-                              </span>
-                              <span className="text-xs text-gray-500">
-                                {Array.isArray(evaluator.specialties)
-                                  ? evaluator.specialties.join(", ")
-                                  : evaluator.specialties}
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                    </Select>
-                    {editEvaluator2 && (
-                      <Button
-                        size="sm"
-                        color="danger"
-                        variant="flat"
-                        onPress={() => setEditEvaluator2("")}
-                        startContent={<MdClose size={16} />}
-                      >
-                        Remove Evaluator 2
-                      </Button>
-                    )}
-                  </div>
-                )}
-
-                {!singleEvaluatorMode && !editEvaluator1 && !editEvaluator2 && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
-                    ⚠️ Both evaluators are empty. This will delete the entire
-                    assignment.
-                  </div>
-                )}
+          {/* Evaluator 1 Selection */}
+          <div className="flex flex-col gap-2">
+            <label className="font-semibold text-sm text-gray-700">
+              {singleEvaluatorMode ? "Evaluator" : "Evaluator 1"}
+            </label>
+            {singleEvaluatorMode && allowRestaurantSelection ? (
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                {selectedEvaluator?.name || "Unknown evaluator"}
               </div>
-            </ModalBody>
-            <ModalFooter>
-              <Button color="default" variant="light" onPress={onClose}>
-                Cancel
-              </Button>
-              <Button
-                className="bg-[#A67C37] text-white"
-                onPress={() =>
-                  handleSaveEdit(
-                    editingRestaurant,
-                    editEvaluator1,
-                    editEvaluator2,
-                    assignments,
-                    establishments,
-                    evaluators,
-                    setIsLoading,
-                    fetchData,
-                    onClose,
-                    setEditingRestaurant,
-                    setEditEvaluator1,
-                    setEditEvaluator2,
-                  )
+            ) : (
+              <Select
+                placeholder={
+                  singleEvaluatorMode
+                    ? "Select evaluator"
+                    : "Select evaluator 1 or leave empty"
                 }
-                isLoading={isLoading}
+                selectedKeys={editEvaluator1 ? [editEvaluator1] : []}
+                onSelectionChange={(keys) => {
+                  const selected = Array.from(keys)[0];
+                  setEditEvaluator1(selected ? String(selected) : "");
+                }}
+                isDisabled={isLoading}
+                variant="bordered"
+                classNames={{
+                  trigger: "bg-white border-gray-300",
+                  value: "text-black",
+                }}
               >
-                {!editEvaluator1 && !editEvaluator2
+                {evaluators
+                  .filter((e) =>
+                    e.specialties.includes(editingRestaurant?.category),
+                  )
+                  .map((evaluator) => (
+                    <SelectItem
+                      key={evaluator.id}
+                      value={evaluator.id}
+                      textValue={evaluator.name}
+                      className="text-black"
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-medium">{evaluator.name}</span>
+                        <span className="text-xs text-gray-500">
+                          {Array.isArray(evaluator.specialties)
+                            ? evaluator.specialties.join(", ")
+                            : evaluator.specialties}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+              </Select>
+            )}
+            {editEvaluator1 &&
+              !(singleEvaluatorMode && allowRestaurantSelection) && (
+                <button
+                  type="button"
+                  onClick={() => setEditEvaluator1("")}
+                  disabled={isLoading}
+                  className="self-start flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <MdClose size={14} />
+                  {singleEvaluatorMode
+                    ? "Remove Evaluator"
+                    : "Remove Evaluator 1"}
+                </button>
+              )}
+          </div>
+
+          {allowRestaurantSelection ? (
+            <div className="flex flex-col gap-2">
+              <label className="font-semibold text-sm text-gray-700">
+                Restaurant
+              </label>
+              <Select
+                placeholder="Select restaurant"
+                selectedKeys={selectedRestaurantKey}
+                onSelectionChange={handleRestaurantChange}
+                isDisabled={isLoading}
+                variant="bordered"
+                classNames={{
+                  trigger: "bg-white border-gray-300",
+                  value: "text-black",
+                }}
+              >
+                {restaurantOptions.map((option) => (
+                  <SelectItem
+                    key={option.id}
+                    value={option.id}
+                    textValue={option.name}
+                    className="text-black"
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-medium">{option.name}</span>
+                      <span className="text-xs text-gray-500">
+                        {option.category}
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
+          ) : (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+              <strong>Restaurant Category:</strong>{" "}
+              {editingRestaurant?.category}
+            </div>
+          )}
+
+          {!singleEvaluatorMode && (
+            <div className="flex flex-col gap-2">
+              <label className="font-semibold text-sm text-gray-700">
+                Evaluator 2
+              </label>
+              <Select
+                placeholder="Select evaluator 2 or leave empty"
+                selectedKeys={editEvaluator2 ? [editEvaluator2] : []}
+                onSelectionChange={(keys) => {
+                  const selected = Array.from(keys)[0];
+                  setEditEvaluator2(selected ? String(selected) : "");
+                }}
+                isDisabled={isLoading}
+                variant="bordered"
+                classNames={{
+                  trigger: "bg-white border-gray-300",
+                  value: "text-black",
+                }}
+              >
+                {evaluators
+                  .filter(
+                    (e) =>
+                      e.specialties.includes(editingRestaurant?.category) &&
+                      e.id !== editEvaluator1,
+                  )
+                  .map((evaluator) => (
+                    <SelectItem
+                      key={evaluator.id}
+                      value={evaluator.id}
+                      textValue={evaluator.name}
+                      className="text-black"
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-medium">{evaluator.name}</span>
+                        <span className="text-xs text-gray-500">
+                          {Array.isArray(evaluator.specialties)
+                            ? evaluator.specialties.join(", ")
+                            : evaluator.specialties}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+              </Select>
+              {editEvaluator2 && (
+                <button
+                  type="button"
+                  onClick={() => setEditEvaluator2("")}
+                  disabled={isLoading}
+                  className="self-start flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <MdClose size={14} />
+                  Remove Evaluator 2
+                </button>
+              )}
+            </div>
+          )}
+
+          {!singleEvaluatorMode && isDeleteMode && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+              ⚠️ Both evaluators are empty. This will delete the entire
+              assignment.
+            </div>
+          )}
+
+          {/* Buttons */}
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              disabled={isLoading}
+              onClick={() =>
+                handleSaveEdit(
+                  editingRestaurant,
+                  editEvaluator1,
+                  editEvaluator2,
+                  assignments,
+                  establishments,
+                  evaluators,
+                  setIsLoading,
+                  fetchData,
+                  handleClose,
+                  setEditingRestaurant,
+                  setEditEvaluator1,
+                  setEditEvaluator2,
+                )
+              }
+              className={`flex-1 py-2 px-4 rounded-md font-medium transition ${
+                isLoading
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : isDeleteMode
+                    ? "bg-red-500 text-white hover:bg-red-600"
+                    : "bg-gradient-to-r from-[#FF6B00] to-[#FFA200] text-white hover:shadow-lg"
+              }`}
+            >
+              {isLoading
+                ? isDeleteMode
+                  ? "Deleting..."
+                  : "Updating..."
+                : isDeleteMode
                   ? "Delete Assignment"
                   : "Update Assignment"}
-              </Button>
-            </ModalFooter>
-          </>
-        )}
-      </ModalContent>
-    </Modal>
+            </button>
+            <button
+              type="button"
+              onClick={handleClose}
+              disabled={isLoading}
+              className={`flex-1 py-2 px-4 rounded-md font-medium transition ${
+                isLoading
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1353,6 +1398,7 @@ export default function AdminModal(props: AdminModalProps) {
           {...(rest as any)}
           isOpen={props.isOpen}
           onClose={props.onClose}
+          isLoading={isLoading || false}
         />
       );
     }
@@ -1362,6 +1408,7 @@ export default function AdminModal(props: AdminModalProps) {
           {...(rest as any)}
           isOpen={props.isOpen}
           onClose={props.onClose}
+          isLoading={isLoading || false}
         />
       );
     }

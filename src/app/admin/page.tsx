@@ -1038,7 +1038,7 @@ export default function AssignedPage() {
         </div>
       </div>
 
-      {/* Manual Match Modal */}
+      {/* Manual Match Modal (Not used anymore, stays here cause js lint is really pain in the) */}
       <AdminModal
         type="assignment"
         subtype="manual-match"

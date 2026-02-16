@@ -474,6 +474,7 @@ export const handleSaveManualMatch = async (
 
     // Check if evaluator specialty matches restaurant category
     if (!evaluator.specialties.includes(restaurant.category)) {
+      setIsLoading(false);
       await Swal.fire({
         icon: "error",
         title: "Specialty Mismatch",
@@ -495,6 +496,7 @@ export const handleSaveManualMatch = async (
         assignment.evaluator1Id === selectedEvaluator ||
         assignment.evaluator2Id === selectedEvaluator
       ) {
+        setIsLoading(false);
         await Swal.fire({
           icon: "warning",
           title: "Already Assigned",
@@ -505,6 +507,7 @@ export const handleSaveManualMatch = async (
 
       // If restaurant has 2 evaluators, show error
       if (assignment.evaluator1Id && assignment.evaluator2Id) {
+        setIsLoading(false);
         await Swal.fire({
           icon: "warning",
           title: "Maximum Evaluators Reached",
@@ -772,6 +775,7 @@ export const handleSaveEdit = async (
         evaluator1 &&
         !evaluator1.specialties.includes(restaurant?.category)
       ) {
+        setIsLoading(false);
         await Swal.fire({
           icon: "error",
           title: "Specialty Mismatch",
@@ -787,6 +791,7 @@ export const handleSaveEdit = async (
         evaluator2 &&
         !evaluator2.specialties.includes(restaurant?.category)
       ) {
+        setIsLoading(false);
         await Swal.fire({
           icon: "error",
           title: "Specialty Mismatch",
