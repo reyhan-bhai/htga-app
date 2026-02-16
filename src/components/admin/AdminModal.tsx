@@ -1292,9 +1292,9 @@ export default function AdminModal(props: AdminModalProps) {
       }
     }
 
-    // Call original onSave
+    // Call original onSave and await it
     if (props.onSave) {
-      props.onSave(data);
+      await props.onSave(data);
     }
   };
 

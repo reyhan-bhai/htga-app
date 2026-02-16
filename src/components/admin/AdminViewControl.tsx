@@ -1077,7 +1077,6 @@ export default function AdminViewControl({
                                 type="number"
                                 size="sm"
                                 min="0"
-                                max="5"
                                 step="0.1"
                                 value={ratingRange?.min.toString()}
                                 onValueChange={(val) => {
@@ -1103,7 +1102,6 @@ export default function AdminViewControl({
                                 type="number"
                                 size="sm"
                                 min="0"
-                                max="5"
                                 step="0.1"
                                 value={ratingRange?.max.toString()}
                                 onValueChange={(val) => {

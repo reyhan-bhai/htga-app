@@ -13,6 +13,11 @@ const firebaseConfig = {
   databaseURL: process.env.NEXT_PUBLIC_DATABASE_URL,
 };
 
+console.log(
+  "🔧 [Firebase Client] databaseURL:",
+  process.env.NEXT_PUBLIC_DATABASE_URL ? "✅ Set" : "❌ NOT SET",
+);
+
 // Initialize Firebase (client-side)
 export const app =
   getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];

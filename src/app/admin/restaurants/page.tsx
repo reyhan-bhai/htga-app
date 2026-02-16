@@ -100,7 +100,7 @@ export default function RestaurantsPage() {
       }
 
       setIsModalOpen(false);
-      refetchRestaurants();
+      await refetchRestaurants();
       refetchAssignments();
     } catch (error) {
       await Swal.fire({
@@ -152,7 +152,7 @@ export default function RestaurantsPage() {
 
       setIsDeleteModalOpen(false);
       setRestaurantToDelete(null);
-      refetchRestaurants();
+      await refetchRestaurants();
       refetchAssignments();
     } catch (error) {
       console.error("Error deleting restaurant:", error);
@@ -165,18 +165,32 @@ export default function RestaurantsPage() {
     }
   };
 
+  // Compute the actual max rating and budget from the data
+  const dataMaxRating = useMemo(() => {
+    if (restaurants.length === 0) return 5;
+    return Math.max(5, ...restaurants.map((r) => parseFloat(r.rating) || 0));
+  }, [restaurants]);
+
+  const dataMaxBudget = useMemo(() => {
+    if (restaurants.length === 0) return 10000;
+    return Math.max(
+      10000,
+      ...restaurants.map((r) => parseFloat(r.budget) || 0),
+    );
+  }, [restaurants]);
+
   const clearFilters = () => {
     setSelectedCategories([]);
     setSearchQuery("");
-    setRatingRange({ min: 0, max: 5 });
-    setBudgetRange({ min: 0, max: 10000 });
+    setRatingRange({ min: 0, max: dataMaxRating });
+    setBudgetRange({ min: 0, max: dataMaxBudget });
   };
 
   const activeFiltersCount =
     selectedCategories.length +
     (searchQuery.trim().length > 0 ? 1 : 0) +
-    (ratingRange.min > 0 || ratingRange.max < 5 ? 1 : 0) +
-    (budgetRange.min > 0 || budgetRange.max < 10000 ? 1 : 0);
+    (ratingRange.min > 0 || ratingRange.max < dataMaxRating ? 1 : 0) +
+    (budgetRange.min > 0 || budgetRange.max < dataMaxBudget ? 1 : 0);
 
   // Extract unique categories from restaurants data
   const availableCategories = useMemo(() => {
@@ -216,20 +230,36 @@ export default function RestaurantsPage() {
       );
     }
 
-    // Filter by rating range
-    results = results.filter((restaurant) => {
-      const rating = parseFloat(restaurant.rating) || 0;
-      return rating >= ratingRange.min && rating <= ratingRange.max;
-    });
+    // Filter by rating range — only apply if user has customized the range
+    const isRatingFilterActive =
+      ratingRange.min > 0 || ratingRange.max < dataMaxRating;
+    if (isRatingFilterActive) {
+      results = results.filter((restaurant) => {
+        const rating = parseFloat(restaurant.rating) || 0;
+        return rating >= ratingRange.min && rating <= ratingRange.max;
+      });
+    }
 
-    // Filter by budget range
-    results = results.filter((restaurant) => {
-      const budget = parseFloat(restaurant.budget) || 0;
-      return budget >= budgetRange.min && budget <= budgetRange.max;
-    });
+    // Filter by budget range — only apply if user has customized the range
+    const isBudgetFilterActive =
+      budgetRange.min > 0 || budgetRange.max < dataMaxBudget;
+    if (isBudgetFilterActive) {
+      results = results.filter((restaurant) => {
+        const budget = parseFloat(restaurant.budget) || 0;
+        return budget >= budgetRange.min && budget <= budgetRange.max;
+      });
+    }
 
     return results;
-  }, [restaurants, searchQuery, selectedCategories, ratingRange, budgetRange]);
+  }, [
+    restaurants,
+    searchQuery,
+    selectedCategories,
+    ratingRange,
+    budgetRange,
+    dataMaxRating,
+    dataMaxBudget,
+  ]);
 
   // Calculate total pages
   const totalPages = Math.ceil(filteredRestaurants.length / rowsPerPage);
@@ -239,6 +269,21 @@ export default function RestaurantsPage() {
     (page - 1) * rowsPerPage,
     page * rowsPerPage,
   );
+
+  // Sync filter max values when data-derived max increases
+  useEffect(() => {
+    setRatingRange((prev) => {
+      if (prev.max < dataMaxRating) return { ...prev, max: dataMaxRating };
+      return prev;
+    });
+  }, [dataMaxRating]);
+
+  useEffect(() => {
+    setBudgetRange((prev) => {
+      if (prev.max < dataMaxBudget) return { ...prev, max: dataMaxBudget };
+      return prev;
+    });
+  }, [dataMaxBudget]);
 
   // Reset page to 1 when filters or search change
   useEffect(() => {
