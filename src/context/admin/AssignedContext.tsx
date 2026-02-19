@@ -23,14 +23,14 @@ interface AssignedContextType {
 }
 
 const AssignedContext = createContext<AssignedContextType | undefined>(
-  undefined
+  undefined,
 );
 
 export const useAssignedContext = () => {
   const context = useContext(AssignedContext);
   if (!context) {
     throw new Error(
-      "useAssignedContext must be used within an AssignedProvider"
+      "useAssignedContext must be used within an AssignedProvider",
     );
   }
   return context;
@@ -59,13 +59,13 @@ export const AssignedProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Find establishment
       const establishment = establishments.find(
-        (e) => e.id === assignment.establishmentId
+        (e) => e.id === assignment.establishmentId,
       ) || { id: assignment.establishmentId, name: "Unknown Establishment" };
 
       // Process Evaluator 1
       if (assignment.evaluator1Id) {
         const evaluator = evaluators.find(
-          (e) => e.id === assignment.evaluator1Id
+          (e) => e.id === assignment.evaluator1Id,
         );
 
         evaluator1Details = {
@@ -80,7 +80,7 @@ export const AssignedProvider: React.FC<{ children: React.ReactNode }> = ({
       // Process Evaluator 2
       if (assignment.evaluator2Id) {
         const evaluator = evaluators.find(
-          (e) => e.id === assignment.evaluator2Id
+          (e) => e.id === assignment.evaluator2Id,
         );
 
         evaluator2Details = {
@@ -144,10 +144,15 @@ export const AssignedProvider: React.FC<{ children: React.ReactNode }> = ({
     const unsubEvaluators = onValue(evaluatorsRef, (snap) => {
       const data = snap.val();
       const list = data
-        ? Object.entries(data).map(([id, val]: [string, any]) => ({
-            id,
-            ...val,
-          }))
+        ? Object.entries(data)
+            .filter(([, val]: [string, any]) => {
+              // Filter out corrupted/incomplete evaluator nodes
+              return val && typeof val === "object" && val.email;
+            })
+            .map(([id, val]: [string, any]) => ({
+              id,
+              ...val,
+            }))
         : [];
       setEvaluators(list);
     });

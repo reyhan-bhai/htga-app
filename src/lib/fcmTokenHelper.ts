@@ -24,7 +24,7 @@ export function isRunningAsPWA(): boolean {
 
   // Check for display-mode standalone (works on Android and some iOS)
   const isDisplayModeStandalone = window.matchMedia(
-    "(display-mode: standalone)"
+    "(display-mode: standalone)",
   ).matches;
 
   // Also check fullscreen mode which some PWAs use
@@ -62,7 +62,7 @@ export function isPushNotificationSupported(): boolean {
  * Request notification permission and get FCM token
  */
 export async function getFCMToken(
-  messaging: Messaging | undefined
+  messaging: Messaging | undefined,
 ): Promise<string | null> {
   if (!messaging) {
     console.log("Messaging not initialized");
@@ -121,8 +121,13 @@ export async function getFCMToken(
  */
 export async function saveFCMTokenToServer(
   token: string,
-  userId: string
+  userId: string,
 ): Promise<boolean> {
+  if (!userId || userId.trim() === "") {
+    console.warn("⚠️ Cannot save FCM token: userId is empty");
+    return false;
+  }
+
   try {
     console.log("📤 Saving FCM token to server:", {
       token: token.substring(0, 20) + "...",
@@ -161,7 +166,7 @@ export async function saveFCMTokenToServer(
  */
 export async function removeFCMTokenFromServer(
   token: string,
-  userId: string
+  userId: string,
 ): Promise<boolean> {
   try {
     const response = await fetch("/api/admin/tokens", {

@@ -187,8 +187,10 @@ export async function POST(request: Request) {
     );
 
     // Filter evaluators by specialty match
-    const matchingEvaluators = allEvaluators.filter((evaluator) =>
-      evaluator.specialties.includes(establishment.category),
+    const matchingEvaluators = allEvaluators.filter(
+      (evaluator) =>
+        Array.isArray(evaluator.specialties) &&
+        evaluator.specialties.includes(establishment.category),
     );
 
     if (matchingEvaluators.length < 1) {
@@ -301,7 +303,9 @@ export async function POST(request: Request) {
 
       // Check specialty match
       if (
+        !Array.isArray(evaluator1.specialties) ||
         !evaluator1.specialties.includes(establishment.category) ||
+        !Array.isArray(evaluator2.specialties) ||
         !evaluator2.specialties.includes(establishment.category)
       ) {
         return NextResponse.json(

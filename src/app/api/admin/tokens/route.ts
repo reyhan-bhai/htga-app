@@ -68,10 +68,22 @@ export async function POST(request: Request) {
         "/api/admin/tokens",
       );
     }
-    if (!userId) {
+    if (!userId || typeof userId !== "string" || userId.trim() === "") {
       return createValidationError(
         "userId",
         "User ID is required to save FCM token",
+        "/api/admin/tokens",
+      );
+    }
+
+    // Validate that the evaluator actually exists and is a real evaluator (not a ghost node)
+    const evaluatorRef = db.ref(`evaluators/${userId}`);
+    const evaluatorSnapshot = await evaluatorRef.once("value");
+    const evaluatorData = evaluatorSnapshot.val();
+    if (!evaluatorSnapshot.exists() || !evaluatorData?.email) {
+      return createValidationError(
+        "userId",
+        `Evaluator with ID '${userId}' does not exist`,
         "/api/admin/tokens",
       );
     }

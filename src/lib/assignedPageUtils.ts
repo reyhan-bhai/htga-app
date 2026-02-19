@@ -473,7 +473,10 @@ export const handleSaveManualMatch = async (
     }
 
     // Check if evaluator specialty matches restaurant category
-    if (!evaluator.specialties.includes(restaurant.category)) {
+    if (
+      !Array.isArray(evaluator.specialties) ||
+      !evaluator.specialties.includes(restaurant.category)
+    ) {
       setIsLoading(false);
       await Swal.fire({
         icon: "error",
@@ -773,7 +776,8 @@ export const handleSaveEdit = async (
       const evaluator1 = evaluators.find((e) => e.id === editEvaluator1);
       if (
         evaluator1 &&
-        !evaluator1.specialties.includes(restaurant?.category)
+        (!Array.isArray(evaluator1.specialties) ||
+          !evaluator1.specialties.includes(restaurant?.category))
       ) {
         setIsLoading(false);
         await Swal.fire({
@@ -789,7 +793,8 @@ export const handleSaveEdit = async (
       const evaluator2 = evaluators.find((e) => e.id === editEvaluator2);
       if (
         evaluator2 &&
-        !evaluator2.specialties.includes(restaurant?.category)
+        (!Array.isArray(evaluator2.specialties) ||
+          !evaluator2.specialties.includes(restaurant?.category))
       ) {
         setIsLoading(false);
         await Swal.fire({

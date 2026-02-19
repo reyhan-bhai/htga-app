@@ -85,7 +85,11 @@ const resolveAccountRole = async (
   const directEvaluatorRef = ref(db, `evaluators/${uid}`);
   const directEvaluatorSnap = await get(directEvaluatorRef);
   if (directEvaluatorSnap.exists()) {
-    return { role: "evaluator", profileRef: directEvaluatorRef, key: uid };
+    const directData = directEvaluatorSnap.val();
+    // Only treat as a valid evaluator if it has an email (not a ghost/corrupted node)
+    if (directData && typeof directData === "object" && directData.email) {
+      return { role: "evaluator", profileRef: directEvaluatorRef, key: uid };
+    }
   }
 
   const byFirebaseUidQ = query(
@@ -158,12 +162,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const { role, profileRef, key } = resolved;
 
             if (!profileRef || !key) {
-              setUser({
-                id: firebaseUser.uid,
-                name: firebaseUser.displayName || "User",
-                email: firebaseUser.email || "",
-                role: "evaluator",
-              });
+              // No valid profile found in any collection.
+              // This can happen in a race condition during registration where
+              // Firebase Auth user exists but the evaluators DB entry hasn't been written yet.
+              // Do NOT set user.id to firebaseUser.uid — downstream code (e.g., FCM token save)
+              // would create ghost nodes under evaluators/{uid}.
+              console.warn(
+                "AuthContext: No profile found for uid",
+                firebaseUser.uid,
+                "— user will not be set to avoid ghost evaluator nodes",
+              );
+              setUser(null);
               setLoading(false);
               return;
             }
@@ -171,7 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             dataUnsubscribe = onValue(profileRef, (snapshot) => {
               if (!snapshot.exists()) {
                 setUser({
-                  id: firebaseUser.uid,
+                  id: key,
                   name: firebaseUser.displayName || "User",
                   email: firebaseUser.email || "",
                   role,
@@ -229,12 +238,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
           } catch (error) {
             console.error("AuthContext: Error resolving user profile", error);
-            setUser({
-              id: firebaseUser.uid,
-              name: firebaseUser.displayName || "User",
-              email: firebaseUser.email || "",
-              role: "evaluator",
-            });
+            // Do not fallback to firebaseUser.uid as user.id — it would cause
+            // downstream writes to create ghost evaluator nodes.
+            setUser(null);
             setLoading(false);
           }
         } else {

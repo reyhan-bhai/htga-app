@@ -758,8 +758,10 @@ function EditAssignmentModal({
                 }}
               >
                 {evaluators
-                  .filter((e) =>
-                    e.specialties.includes(editingRestaurant?.category),
+                  .filter(
+                    (e) =>
+                      Array.isArray(e.specialties) &&
+                      e.specialties.includes(editingRestaurant?.category),
                   )
                   .map((evaluator) => (
                     <SelectItem
@@ -858,6 +860,7 @@ function EditAssignmentModal({
                 {evaluators
                   .filter(
                     (e) =>
+                      Array.isArray(e.specialties) &&
                       e.specialties.includes(editingRestaurant?.category) &&
                       e.id !== editEvaluator1,
                   )

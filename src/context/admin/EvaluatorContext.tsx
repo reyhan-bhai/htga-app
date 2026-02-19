@@ -28,7 +28,7 @@ interface EvaluatorsContextType {
 }
 
 const EvaluatorsContext = createContext<EvaluatorsContextType | undefined>(
-  undefined
+  undefined,
 );
 
 export const useEvaluators = () => {
@@ -56,11 +56,17 @@ export const EvaluatorsProvider: React.FC<EvaluatorsProviderProps> = ({
       const data = snapshot.val();
       setEvaluators(
         data
-          ? Object.entries(data).map(([id, val]: [string, any]) => ({
-              id,
-              ...val,
-            }))
-          : []
+          ? Object.entries(data)
+              .filter(([, val]: [string, any]) => {
+                // Filter out corrupted/incomplete evaluator nodes
+                // (e.g., nodes created by stray FCM token writes with no actual evaluator data)
+                return val && typeof val === "object" && val.email;
+              })
+              .map(([id, val]: [string, any]) => ({
+                id,
+                ...val,
+              }))
+          : [],
       );
       setIsLoading(false);
     });

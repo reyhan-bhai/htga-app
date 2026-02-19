@@ -100,19 +100,19 @@ export default function NDAPage() {
 
         try {
           const token = await getFCMToken(messaging);
-          if (token) {
+          if (token && user?.id) {
             console.log("💾 Sending token to server...");
             // Always send to server - backend will handle duplicates
-            const saved = await saveFCMTokenToServer(token, user?.id || "");
+            const saved = await saveFCMTokenToServer(token, user.id);
             if (saved) {
               storeFCMToken(token);
               console.log(
                 "✅ Token saved to server:",
-                token.substring(0, 20) + "..."
+                token.substring(0, 20) + "...",
               );
             } else {
               console.log(
-                "ℹ️ Token already exists in server or failed to save"
+                "ℹ️ Token already exists in server or failed to save",
               );
             }
           }
@@ -167,20 +167,20 @@ export default function NDAPage() {
           const token = await getFCMToken(messaging);
           console.log("🔔 Token received:", token ? "✅ Yes" : "❌ No");
 
-          if (token) {
+          if (token && user?.id) {
             console.log("💾 Saving token to server...");
             // Save token to server and localStorage
-            const saved = await saveFCMTokenToServer(token, user?.id || "");
+            const saved = await saveFCMTokenToServer(token, user.id);
             console.log(
               "💾 Token saved to server:",
-              saved ? "✅ Yes" : "❌ No"
+              saved ? "✅ Yes" : "❌ No",
             );
 
             if (saved) {
               storeFCMToken(token);
               console.log(
                 "✅ Token saved successfully:",
-                token.substring(0, 20) + "..."
+                token.substring(0, 20) + "...",
               );
 
               await Swal.fire({
@@ -252,7 +252,9 @@ export default function NDAPage() {
   };
 
   const startDrawing = (
-    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>
+    e:
+      | React.MouseEvent<HTMLCanvasElement>
+      | React.TouchEvent<HTMLCanvasElement>,
   ) => {
     setIsDrawing(true);
     const canvas = canvasRef.current;
@@ -275,7 +277,9 @@ export default function NDAPage() {
   };
 
   const draw = (
-    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>
+    e:
+      | React.MouseEvent<HTMLCanvasElement>
+      | React.TouchEvent<HTMLCanvasElement>,
   ) => {
     if (!isDrawing) return;
     const canvas = canvasRef.current;
