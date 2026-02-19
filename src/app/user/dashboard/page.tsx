@@ -239,6 +239,31 @@ export default function DashboardPage() {
       inputPlaceholder: "Reason...",
       showCancelButton: true,
       confirmButtonColor: "#1B1B1B",
+      inputValidator: (value) => {
+        if (!value || !value.trim()) {
+          return "Please provide a reason for reassignment.";
+        }
+        return null;
+      },
+      didOpen: () => {
+        const confirmBtn = Swal.getConfirmButton();
+        if (confirmBtn) {
+          confirmBtn.disabled = true;
+          confirmBtn.style.opacity = "0.5";
+          confirmBtn.style.cursor = "not-allowed";
+        }
+        const textarea = Swal.getInput();
+        if (textarea) {
+          textarea.addEventListener("input", () => {
+            const hasValue = textarea.value.trim().length > 0;
+            if (confirmBtn) {
+              confirmBtn.disabled = !hasValue;
+              confirmBtn.style.opacity = hasValue ? "1" : "0.5";
+              confirmBtn.style.cursor = hasValue ? "pointer" : "not-allowed";
+            }
+          });
+        }
+      },
     });
     if (result.isConfirmed && result.value) {
       if (!user) return;

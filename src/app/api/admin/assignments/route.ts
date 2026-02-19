@@ -461,17 +461,19 @@ export async function PUT(request: Request) {
 
         if (evaluator1Id !== undefined) {
           updates.evaluator1Id = evaluator1Id;
-          // If evaluator1 is being changed/assigned, update assignment date
+          // If evaluator1 is being changed/assigned, update assignment date and reset status
           if (evaluator1Id && evaluator1Id !== currentAssignment.evaluator1Id) {
             updates.evaluator1AssignedAt = new Date().toISOString();
+            updates.evaluator1Status = "pending";
           }
         }
 
         if (evaluator2Id !== undefined) {
           updates.evaluator2Id = evaluator2Id;
-          // If evaluator2 is being changed/assigned, update assignment date
+          // If evaluator2 is being changed/assigned, update assignment date and reset status
           if (evaluator2Id && evaluator2Id !== currentAssignment.evaluator2Id) {
             updates.evaluator2AssignedAt = new Date().toISOString();
+            updates.evaluator2Status = "pending";
           }
         }
 

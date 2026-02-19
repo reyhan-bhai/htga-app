@@ -428,10 +428,86 @@ export default function FeedbackPage() {
 
     if (success) {
       if (selectedReassign?.id) {
+        // 1. Mark the reassign request as Approved
         await update(ref(db, `reassignRequests/${selectedReassign.id}`), {
           status: "Approved",
           resolvedAt: new Date().toISOString(),
         });
+
+        // 2. Remove the evaluator from the OLD assignment so the
+        //    "Reassigned" card disappears from the user's dashboard.
+        const oldAssignId = selectedReassign.assign_id;
+        const evaluatorId = selectedReassign.evaluator_id;
+
+        if (oldAssignId && evaluatorId) {
+          const oldAssignment = assignments.find((a) => a.id === oldAssignId);
+
+          if (oldAssignment) {
+            const oldUpdates: Record<string, any> = {};
+
+            // Handle JEVA slot structure
+            if (oldAssignment.evaluators) {
+              const jevaFirst = oldAssignment.evaluators.JEVA_FIRST;
+              const jevaSecond = oldAssignment.evaluators.JEVA_SECOND;
+
+              if (jevaFirst?.evaluatorId === evaluatorId) {
+                oldUpdates[
+                  `assignments/${oldAssignId}/evaluators/JEVA_FIRST/evaluatorId`
+                ] = null;
+                oldUpdates[
+                  `assignments/${oldAssignId}/evaluators/JEVA_FIRST/status`
+                ] = null;
+                oldUpdates[
+                  `assignments/${oldAssignId}/evaluators/JEVA_FIRST/evaluatorStatus`
+                ] = null;
+                // Also clear the legacy flat fields
+                oldUpdates[`assignments/${oldAssignId}/evaluator1Id`] = null;
+                oldUpdates[`assignments/${oldAssignId}/evaluator1Status`] =
+                  null;
+                oldUpdates[`assignments/${oldAssignId}/evaluator1UniqueID`] =
+                  null;
+              }
+
+              if (jevaSecond?.evaluatorId === evaluatorId) {
+                oldUpdates[
+                  `assignments/${oldAssignId}/evaluators/JEVA_SECOND/evaluatorId`
+                ] = null;
+                oldUpdates[
+                  `assignments/${oldAssignId}/evaluators/JEVA_SECOND/status`
+                ] = null;
+                oldUpdates[
+                  `assignments/${oldAssignId}/evaluators/JEVA_SECOND/evaluatorStatus`
+                ] = null;
+                // Also clear the legacy flat fields
+                oldUpdates[`assignments/${oldAssignId}/evaluator2Id`] = null;
+                oldUpdates[`assignments/${oldAssignId}/evaluator2Status`] =
+                  null;
+                oldUpdates[`assignments/${oldAssignId}/evaluator2UniqueID`] =
+                  null;
+              }
+            } else {
+              // Legacy flat structure
+              if (oldAssignment.evaluator1Id === evaluatorId) {
+                oldUpdates[`assignments/${oldAssignId}/evaluator1Id`] = null;
+                oldUpdates[`assignments/${oldAssignId}/evaluator1Status`] =
+                  null;
+                oldUpdates[`assignments/${oldAssignId}/evaluator1UniqueID`] =
+                  null;
+              }
+              if (oldAssignment.evaluator2Id === evaluatorId) {
+                oldUpdates[`assignments/${oldAssignId}/evaluator2Id`] = null;
+                oldUpdates[`assignments/${oldAssignId}/evaluator2Status`] =
+                  null;
+                oldUpdates[`assignments/${oldAssignId}/evaluator2UniqueID`] =
+                  null;
+              }
+            }
+
+            if (Object.keys(oldUpdates).length > 0) {
+              await update(ref(db), oldUpdates);
+            }
+          }
+        }
       }
       setSelectedReassign(null);
     }
