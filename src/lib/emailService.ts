@@ -89,7 +89,7 @@ export async function sendEvaluatorCredentials(
 
     const t = getTransporter();
     const gmailFrom = process.env.GMAIL_FROM?.trim();
-    const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://localhost:3000"}/htga/login`;
+    const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://localhost:3000"}`;
 
     const mailOptions = {
       from: {
