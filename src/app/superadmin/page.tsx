@@ -188,10 +188,14 @@ export default function SuperadminPage() {
           const id = String(data.id ?? activeAdmin?.id ?? "");
           if (!id) throw new Error("Missing admin id");
 
+          const editPayload: { name: string; role: string; password?: string } =
+            { name, role };
+          if (password) editPayload.password = password;
+
           const res = await fetch(`/api/superadmin/admins?id=${id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, role }),
+            body: JSON.stringify(editPayload),
           });
           const body = (await res.json().catch(() => null)) as {
             error?: string;
