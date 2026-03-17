@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import {
   // handleManualMatch,
   handleMatchEvaluator,
@@ -54,6 +57,11 @@ interface AdminViewControlProps {
   setReimbursementRange?: (range: { min: string; max: string }) => void;
   receiptStatus?: "all" | "uploaded" | "missing";
   setReceiptStatus?: (status: "all" | "uploaded" | "missing") => void;
+  jevaFilter?: "all" | "jeva1" | "jeva2";
+  setJevaFilter?: (filter: "all" | "jeva1" | "jeva2") => void;
+  jevaIdFilter?: string;
+  setJevaIdFilter?: (id: string) => void;
+  jevaEvaluators?: Array<{ id: string; name: string; email?: string }>;
 
   // Assignment Only
   selectedView?: string;
@@ -136,6 +144,11 @@ export default function AdminViewControl({
   setReimbursementRange,
   receiptStatus = "all",
   setReceiptStatus,
+  jevaFilter = "all",
+  setJevaFilter,
+  jevaIdFilter = "",
+  setJevaIdFilter,
+  jevaEvaluators = [],
   selectedView,
   setSelectedView,
   statusFilterOptions,
@@ -176,6 +189,22 @@ export default function AdminViewControl({
   fetchData,
   setIsManualMatchOpen,
 }: AdminViewControlProps) {
+  const [jevaDropdownPage, setJevaDropdownPage] = useState(1);
+  const [jevaDropdownSearch, setJevaDropdownSearch] = useState("");
+
+  const JEVA_PER_PAGE = 5;
+
+  const filteredJevaEvaluators = jevaEvaluators.filter((ev) => {
+    if (!jevaDropdownSearch.trim()) return true;
+    const q = jevaDropdownSearch.toLowerCase();
+    return ev.id.toLowerCase().includes(q) || ev.name.toLowerCase().includes(q);
+  });
+  const jevaTotalPages = Math.max(1, Math.ceil(filteredJevaEvaluators.length / JEVA_PER_PAGE));
+  const jevaPagedEvaluators = filteredJevaEvaluators.slice(
+    (jevaDropdownPage - 1) * JEVA_PER_PAGE,
+    jevaDropdownPage * JEVA_PER_PAGE,
+  );
+
   const defaultTabOptions = [
     {
       key: "evaluator",
@@ -1472,6 +1501,159 @@ export default function AdminViewControl({
                             }}
                           />
                         </div>
+                      </div>
+
+                      <Divider className="bg-gray-200" />
+
+                      {/* JEVA ID Filter - Dropdown with pagination */}
+                      <div className="flex flex-col gap-2">
+                        <span className="font-medium text-sm text-gray-700">
+                          JEVA ID
+                        </span>
+                        <div className="flex flex-col gap-2 border border-gray-300 rounded-md bg-white p-2">
+                          {/* Selected display + clear */}
+                          <div className="flex items-center justify-between gap-2">
+                            <span className={`text-sm truncate ${jevaIdFilter ? "text-[#A67C37] font-semibold" : "text-gray-400"}`}>
+                              {jevaIdFilter
+                                ? (() => {
+                                    const found = jevaEvaluators.find((e) => e.id === jevaIdFilter);
+                                    return found ? `${found.name} (${found.id})` : jevaIdFilter;
+                                  })()
+                                : "All Evaluators"}
+                            </span>
+                            {jevaIdFilter && (
+                              <button
+                                type="button"
+                                onClick={() => { if (setJevaIdFilter) setJevaIdFilter(""); }}
+                                className="text-gray-400 hover:text-red-500 flex-shrink-0"
+                              >
+                                <MdClose size={14} />
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Search */}
+                          <Input
+                            type="text"
+                            placeholder="Search by name or ID..."
+                            value={jevaDropdownSearch}
+                            onValueChange={(v) => {
+                              setJevaDropdownSearch(v);
+                              setJevaDropdownPage(1);
+                            }}
+                            size="sm"
+                            variant="bordered"
+                            startContent={<MdSearch size={14} className="text-gray-400" />}
+                            classNames={{
+                              inputWrapper: "bg-gray-50 border-gray-200 rounded-md h-8",
+                              input: "text-black text-xs",
+                            }}
+                          />
+
+                          {/* List */}
+                          {jevaPagedEvaluators.length === 0 ? (
+                            <p className="text-xs text-gray-400 text-center py-1">No evaluators found</p>
+                          ) : (
+                            <div className="flex flex-col gap-1">
+                              {jevaPagedEvaluators.map((ev) => (
+                                <button
+                                  key={ev.id}
+                                  type="button"
+                                  onClick={() => {
+                                    if (setJevaIdFilter) {
+                                      setJevaIdFilter(jevaIdFilter === ev.id ? "" : ev.id);
+                                    }
+                                  }}
+                                  className={`text-left px-2 py-1.5 rounded-md text-xs transition ${
+                                    jevaIdFilter === ev.id
+                                      ? "bg-[#A67C37] text-white"
+                                      : "hover:bg-gray-100 text-gray-700"
+                                  }`}
+                                >
+                                  <div className="font-medium">{ev.name}</div>
+                                  <div className={`text-[10px] ${jevaIdFilter === ev.id ? "text-amber-100" : "text-gray-400"}`}>{ev.id}</div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Pagination */}
+                          {jevaTotalPages > 1 && (
+                            <div className="flex items-center justify-between pt-1">
+                              <button
+                                type="button"
+                                disabled={jevaDropdownPage <= 1}
+                                onClick={() => setJevaDropdownPage((p) => Math.max(1, p - 1))}
+                                className="text-xs px-2 py-1 rounded border border-gray-200 text-gray-600 disabled:opacity-40 hover:bg-gray-50"
+                              >
+                                Prev
+                              </button>
+                              <span className="text-[10px] text-gray-400">
+                                {jevaDropdownPage} / {jevaTotalPages}
+                              </span>
+                              <button
+                                type="button"
+                                disabled={jevaDropdownPage >= jevaTotalPages}
+                                onClick={() => setJevaDropdownPage((p) => Math.min(jevaTotalPages, p + 1))}
+                                className="text-xs px-2 py-1 rounded border border-gray-200 text-gray-600 disabled:opacity-40 hover:bg-gray-50"
+                              >
+                                Next
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+
+                      <Divider className="bg-gray-200" />
+
+                      {/* JEVA Slot Filter */}
+                      <div className="flex flex-col gap-2">
+                        <span className="font-medium text-sm text-gray-700">
+                          JEVA Slot
+                        </span>
+                        <Select
+                          selectedKeys={[jevaFilter]}
+                          onSelectionChange={(keys) => {
+                            const value = Array.from(keys)[0];
+                            if (value && setJevaFilter) {
+                              setJevaFilter(
+                                value as "all" | "jeva1" | "jeva2",
+                              );
+                            }
+                          }}
+                          size="sm"
+                          variant="bordered"
+                          classNames={{
+                            trigger:
+                              "bg-white border-gray-300 rounded-md h-9 text-black",
+                            value: "text-black text-sm",
+                            listboxWrapper: "text-gray-500",
+                            popoverContent: "text-gray-500",
+                          }}
+                        >
+                          <SelectItem
+                            key="all"
+                            value="all"
+                            className="text-gray-600"
+                          >
+                            All
+                          </SelectItem>
+                          <SelectItem
+                            key="jeva1"
+                            value="jeva1"
+                            className="text-gray-600"
+                          >
+                            JEVA First
+                          </SelectItem>
+                          <SelectItem
+                            key="jeva2"
+                            value="jeva2"
+                            className="text-gray-600"
+                          >
+                            JEVA Second
+                          </SelectItem>
+                        </Select>
                       </div>
 
                       <Divider className="bg-gray-200" />

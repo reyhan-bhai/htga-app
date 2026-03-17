@@ -6,18 +6,121 @@ import {
 import { google } from "googleapis";
 import { NextRequest, NextResponse } from "next/server";
 
-const SPREADSHEET_ID = "1THH_mVOFUAorNjVtGm37KJyBpE-ttsN5Z2Xa75O5YD0";
+const REQUIRED_SHEETS = [
+  "List of Evaluators",
+  "List of Eating Establishments",
+  "Budget",
+] as const;
+
+const getRequiredEnv = (name: string): string => {
+  const value = process.env[name]?.trim();
+  if (!value) {
+    throw new Error(`Missing environment variable: ${name}`);
+  }
+  return value;
+};
+
+const getSpreadsheetId = (): string =>
+  getRequiredEnv("GOOGLE_SHEETS_SPREADSHEET_ID");
+
+const ensureRequiredSheets = async (
+  sheets: ReturnType<typeof google.sheets>,
+  spreadsheetId: string,
+): Promise<string[]> => {
+  const metadata = await sheets.spreadsheets.get({
+    spreadsheetId,
+    fields: "sheets.properties.title",
+  });
+
+  const existingSheetTitles = new Set(
+    (metadata.data.sheets || [])
+      .map((sheet) => sheet.properties?.title)
+      .filter((title): title is string => Boolean(title)),
+  );
+
+  const missingSheets = REQUIRED_SHEETS.filter(
+    (title) => !existingSheetTitles.has(title),
+  );
+
+  if (missingSheets.length > 0) {
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: missingSheets.map((title) => ({
+          addSheet: { properties: { title } },
+        })),
+      },
+    });
+  }
+
+  return missingSheets;
+};
+
+const createGoogleSheetsErrorResponse = (
+  error: unknown,
+  context: {
+    operation: string;
+    resourceType?: string;
+    resourceId?: string;
+    path?: string;
+  },
+) => {
+  const message = error instanceof Error ? error.message : String(error);
+
+  if (message.toLowerCase().includes("does not have permission")) {
+    return createErrorResponse(
+      new Error(
+        "Google Sheets access denied. Share the spreadsheet with GOOGLE_SHEETS_CLIENT_EMAIL as Editor.",
+      ),
+      context,
+      403,
+    );
+  }
+
+  if (
+    message.toLowerCase().includes("requested entity was not found") ||
+    message.toLowerCase().includes("not found")
+  ) {
+    return createErrorResponse(
+      new Error(
+        "Spreadsheet not found. Verify GOOGLE_SHEETS_SPREADSHEET_ID and ensure the service account can access it.",
+      ),
+      context,
+      404,
+    );
+  }
+
+  return createErrorResponse(error, context);
+};
 
 const getAuthClient = async (writeAccess: boolean = false) => {
+  const projectId = getRequiredEnv("GOOGLE_SHEETS_PROJECT_ID");
+  const privateKey = getRequiredEnv("GOOGLE_SHEETS_PRIVATE_KEY").replace(
+    /\\n/g,
+    "\n",
+  );
+  const clientEmail = getRequiredEnv("GOOGLE_SHEETS_CLIENT_EMAIL");
+  const privateKeyId = process.env.GOOGLE_SHEETS_PRIVATE_KEY_ID?.trim();
+
+  const credentials: {
+    type: "service_account";
+    project_id: string;
+    private_key: string;
+    client_email: string;
+    private_key_id?: string;
+  } = {
+    type: "service_account",
+    project_id: projectId,
+    private_key: privateKey,
+    client_email: clientEmail,
+  };
+
+  if (privateKeyId) {
+    credentials.private_key_id = privateKeyId;
+  }
+
   const auth = new google.auth.GoogleAuth({
-    credentials: {
-      type: "service_account",
-      project_id: "eirene-5413a",
-      private_key_id: "074887058c91682c30e4859583937f4cdaf1a1c6",
-      private_key:
-        "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDQCmlHx/ffOR6m\nngLM0YimD10Fplvjr8I82ZNomucz31wUP9FRB8YXhcURmrDhAwygHgIRWKSC/K5B\n1Y8lVvJEqggymBwqpGfCEMHOsQo0sFA9wr/VQgv/zoDdQKTTUaSlgTsOmsIhsBiQ\nnSHG4Cc2iRNWiiJkt8xQ71zkdyWKuvS9w/3R8/PjvF8nytVhr/UKbtRaFMk47zuY\nzYKAx1+5C9cRD7DtFLrmaPaRfGFCvsWCiOUq7acqo0EjL1/zctnF+f6KtG6PaMbx\nPIYsosTFZy4bvTQrLdQr2j4MnsR/4tkKVSBIWUZ+4hHtKv9+VKeSrSk7LUD0n5s9\nDjKdzpCtAgMBAAECggEALc14/9+ADGKSQ7sqoSbpp6vevlFxzidiQ4zghimCiRpe\nNqwVPLqSK5gdOuK8mhGWjEMHEAQc1iTlBaQLy7wAg0sPGnqASwgeuux/Cu9R8Kc3\nx10y6HQN2cBAgVXL5CWHsxOIac77Ojj/s4kQyG0N3RUhT46Cg3uuzUvhvwAXYRsh\n2/6m8bKCTRHvIEKjzEnQgeYnPettWp8SDfHqc6BAZcaJLNioVSshPVG6MiJoUHOe\nOr61Dwg74gwTVEnVXE5SILwpPiiBjcbEVlz+4CKhz2Eq+5iqB7nqAcnBQVfuRCXd\nIAzUzHND+nlqxXZuA/OIZeZEi5TGPtbPZezxlJr5IQKBgQD1QysKN4NMY72oZk6v\nXmPW6hwSQKyBKgl3/86ZMpM/GX4ta5VJjgOegL0ccMGS6SzB618NzRvgiM6reM0V\nrFSR2x75u47nWRiVRohy5wmeZmgYhiFfQ2M+qiBojtRN2lFz1IGk4ASxlZjpXfew\nQZTyWKRoglUuge7SyA0JRnpGIQKBgQDZJhKbiGxsOvEmm+kqVHm5PUxR1Uzh5rrs\nCWBYZyZzvKE84QUfp8jX8G4vDdh3vjp3MXcjquwqK69PZRslJSAJ4VlxPGQGuvZ0\nog1z3QUt+3rdxWmyyfDZokB623QyvIrAHDzrLw6TeEp/gORfyeErEXRZDl/O/5lv\nL8f25zbhDQKBgQC76Dk6e6uhxC0Tr0aLv7KYfwcAyQIhd7aHdLqxzvjXeE2euPVI\nxIBrWNEK0CzOxM1gyVcrOMEp90b4QvZFq6GjmhESXquu/ikCfWafOfm5nVYVq/Y3\niWapJSjtUri/6QtMxjyJuISAFlBwQ2k4Zhaa0mUsGObwWeZDIbgzKgcWYQKBgCV0\nU7FQDqN8ZyvpqIYMnBI/aHKU//XW/lbIJz4YTKGZ35XImkGjhxj394lWMgg1X5A/\nj/Uu/h0n+80N+2ikxqntnKfTas1eYjQr33YkoUgVIFQwQNL90fU37zdBswEtVCFe\nvYMzUqhND0x+xuVexN/Q2uihehUSMTzkWPFVYDnhAoGAILziclsO7p3iGPSlmU3N\n7ljk24nZd07FBlkwm+sAt36uYdwEXQzQT3cPTpBcKkQEjoEXviTAmq7T45qvsCFi\na8Ei9POqsfBX2Y2v93HhP5owtf9BhAZP+kvN7EfEQZhE3lcn4U4M51kdnHW+sL0V\n3scQ5Ijl/rU/mY5aSxzAVms=\n-----END PRIVATE KEY-----\n",
-      client_email: "htga-spreadsheet@eirene-5413a.iam.gserviceaccount.com",
-    },
+    credentials,
     scopes: writeAccess
       ? ["https://www.googleapis.com/auth/spreadsheets"]
       : ["https://www.googleapis.com/auth/spreadsheets.readonly"],
@@ -28,21 +131,23 @@ const getAuthClient = async (writeAccess: boolean = false) => {
 
 export async function GET() {
   try {
+    const spreadsheetId = getSpreadsheetId();
     const client = await getAuthClient(false);
     const sheets = google.sheets({ version: "v4", auth: client as any });
+    const createdSheets = await ensureRequiredSheets(sheets, spreadsheetId);
 
     const evaluatorResponse = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId,
       range: "'List of Evaluators'!A1:Z1000",
     });
 
     const establishmentResponse = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId,
       range: "'List of Eating Establishments'!A1:Z1000",
     });
 
     const budgetResponse = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId,
       range: "'Budget'!A1:Z1000",
     });
 
@@ -56,9 +161,10 @@ export async function GET() {
     return NextResponse.json({
       status: "success",
       data: evaluatorResponse.data.values,
+      ...(createdSheets.length > 0 ? { createdSheets } : {}),
     });
   } catch (error: unknown) {
-    return createErrorResponse(error, {
+    return createGoogleSheetsErrorResponse(error, {
       operation: "GET /api/sheets (Fetch Spreadsheet Data)",
       resourceType: "Google Sheets",
       path: "/api/sheets",
@@ -344,6 +450,7 @@ const transformBudgetToSheet = (
 
 export async function POST(request: NextRequest) {
   try {
+    const spreadsheetId = getSpreadsheetId();
     const body = await request.json();
     const { evaluators, establishments, assignments } = body;
 
@@ -361,6 +468,7 @@ export async function POST(request: NextRequest) {
 
     const client = await getAuthClient(true);
     const sheets = google.sheets({ version: "v4", auth: client as any });
+  const createdSheets = await ensureRequiredSheets(sheets, spreadsheetId);
 
     // Transform data for each sheet
     const evaluatorData = transformEvaluatorsToSheet(evaluators, assignments);
@@ -377,11 +485,11 @@ export async function POST(request: NextRequest) {
 
     // Clear and update Evaluators sheet
     await sheets.spreadsheets.values.clear({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId,
       range: "'List of Evaluators'!A1:Z1000",
     });
     await sheets.spreadsheets.values.update({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId,
       range: "'List of Evaluators'!A1",
       valueInputOption: "USER_ENTERED",
       requestBody: { values: evaluatorData },
@@ -389,11 +497,11 @@ export async function POST(request: NextRequest) {
 
     // Clear and update Establishments sheet
     await sheets.spreadsheets.values.clear({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId,
       range: "'List of Eating Establishments'!A1:Z1000",
     });
     await sheets.spreadsheets.values.update({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId,
       range: "'List of Eating Establishments'!A1",
       valueInputOption: "USER_ENTERED",
       requestBody: { values: establishmentData },
@@ -401,11 +509,11 @@ export async function POST(request: NextRequest) {
 
     // Clear and update Budget sheet
     await sheets.spreadsheets.values.clear({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId,
       range: "'Budget'!A1:Z1000",
     });
     await sheets.spreadsheets.values.update({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId,
       range: "'Budget'!A1",
       valueInputOption: "USER_ENTERED",
       requestBody: { values: budgetData },
@@ -420,9 +528,10 @@ export async function POST(request: NextRequest) {
         establishments: establishmentData.length - 1,
         budgetEntries: budgetData.length - 1,
       },
+      ...(createdSheets.length > 0 ? { createdSheets } : {}),
     });
   } catch (error: unknown) {
-    return createErrorResponse(error, {
+    return createGoogleSheetsErrorResponse(error, {
       operation: "POST /api/sheets (Sync to Spreadsheet)",
       resourceType: "Google Sheets",
       path: "/api/sheets",

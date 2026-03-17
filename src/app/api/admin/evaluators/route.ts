@@ -1,4 +1,3 @@
-import { NDA_DOCUMENTS } from "@/constants/ndaDocs";
 import {
   createConflictError,
   createErrorResponse,
@@ -6,7 +5,6 @@ import {
   createValidationError,
 } from "@/lib/api-error-handler";
 import admin, { db } from "@/lib/firebase-admin";
-import { sendNDA } from "@/lib/nda-service";
 import { Evaluator } from "@/types/restaurant";
 import bcrypt from "bcrypt";
 import { NextResponse } from "next/server";
@@ -240,6 +238,9 @@ export async function POST(request: Request) {
       specialties: specialtiesArray,
       firebaseUid: firebaseUser.uid,
       password: hashedPassword,
+      nda: {
+        ndaSigned: false,
+      },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -247,7 +248,7 @@ export async function POST(request: Request) {
     // Only add optional fields if they have values
     if (phone) newEvaluator.phone = phone;
     if (position) newEvaluator.position = position;
-    if (city) newEvaluator.position = position;
+    if (city) newEvaluator.city = city;
     if (company) newEvaluator.company = company;
     if (maxAssignments !== undefined && maxAssignments !== null) {
       newEvaluator.maxAssignments = maxAssignments;
@@ -263,27 +264,9 @@ export async function POST(request: Request) {
       generatedPassword,
     );
 
-    // Send NDA automatically ONLY if email was sent successfully
-    if (emailResult.success) {
-      try {
-        const minimalPdfBase64 =
-          NDA_DOCUMENTS ||
-          "JVBERi0xLjcKCjEgMCBvYmogICUgZW50cnkgcG9pbnQKPDwKICAvVHlwZSAvQ2F0YWxvZwogIC9QYWdlcyAyIDAgUgo+PgplbmRvYmoKCjIgMCBvYmogCjw8CiAgL1R5cGUgL1BhZ2VzCiAgL01lZGlhQm94IFsgMCAwIDIwMCAyMDAgXQogIC9Db3VudCAxCiAgL0tpZHMgWyAzIDAgUiBdCj4+CmVuZG9iagoKMyAwIG9iago8PAogIC9UeXBlIC9QYWdlCiAgL1BhcmVudCAyIDAgUgogIC9SZXNvdXJjZXMgPDwKICAgIC9Gb250IDw8CiAgICAgIC9FMSA0IDAgUgogICAgPj4KICA+PgogIC9Db250ZW50cyA1IDAgUgo+PgplbmRvYmoKCjQgMCBvYmogCjw8CiAgL1R5cGUgL0ZvbnQKICAvU3VidHlwZSAvVHlwZTEKICAvQmFzZUZvbnQgL1RpbWVzLVJvbWFuCj4+CmVuZG9iagoKNSAwIG9iago8PAogIC9MZW5ndGggNDQKPj4Kc3RyZWFtCkJUCjcwIDUwIFRECi9FMSAxMiBUZgooSGVsbG8gV29ybGQhKSBUagpFVAplbmRzdHJlYW0KZW5kb2JqCgp4cmVmCjAgNgowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTAgMDAwMDAgbiAKMDAwMDAwMDA2MCAwMDAwMCBuIAowMDAwMDAwMTU3IDAwMDAwIG4gCjAwMDAwMDAyNTUgMDAwMDAgbiAKMDAwMDAwMDM0NCAwMDAwMCBuIAp0cmFpbGVyCjw8CiAgL1NpemUgNgogIC9Sb290IDEgMCBSCj4+CnN0YXJ0eHJlZgo0MTMKJSVFT0YK";
-
-        console.log(`📧 Sending NDA to new evaluator: ${email}`);
-        await sendNDA({
-          recipientEmail: email,
-          recipientName: name,
-          documentBase64: minimalPdfBase64,
-        });
-        console.log(`✅ NDA sent successfully to ${email}`);
-      } catch (error) {
-        console.error("❌ Failed to send NDA:", error);
-        // We don't block creation if NDA fails, but we log it.
-      }
-    } else {
+    if (!emailResult.success) {
       console.warn(
-        `⚠️ Skipping NDA sending for ${email} because credential email failed.`,
+        `⚠️ Credential email failed for ${email}: ${emailResult.error}`,
       );
     }
 
@@ -301,7 +284,7 @@ export async function POST(request: Request) {
           evaluator: { id: evaluatorId, ...evaluatorWithoutPassword },
           credentials: {
             email,
-            password: generatedPassword, // Include password since email failed
+            password: generatedPassword,
           },
         },
         { status: 201 },
@@ -425,24 +408,7 @@ export async function PUT(request: Request) {
 
     await db.ref(`evaluators/${id}`).update(updates);
 
-    // Send NDA if email has changed
-    if (email && email !== currentEvaluator.email) {
-      try {
-        const minimalPdfBase64 =
-          NDA_DOCUMENTS ||
-          "JVBERi0xLjcKCjEgMCBvYmogICUgZW50cnkgcG9pbnQKPDwKICAvVHlwZSAvQ2F0YWxvZwogIC9QYWdlcyAyIDAgUgo+PgplbmRvYmoKCjIgMCBvYmogCjw8CiAgL1R5cGUgL1BhZ2VzCiAgL01lZGlhQm94IFsgMCAwIDIwMCAyMDAgXQogIC9Db3VudCAxCiAgL0tpZHMgWyAzIDAgUiBdCj4+CmVuZG9iagoKMyAwIG9iago8PAogIC9UeXBlIC9QYWdlCiAgL1BhcmVudCAyIDAgUgogIC9SZXNvdXJjZXMgPDwKICAgIC9Gb250IDw8CiAgICAgIC9FMSA0IDAgUgogICAgPj4KICA+PgogIC9Db250ZW50cyA1IDAgUgo+PgplbmRvYmoKCjQgMCBvYmogCjw8CiAgL1R5cGUgL0ZvbnQKICAvU3VidHlwZSAvVHlwZTEKICAvQmFzZUZvbnQgL1RpbWVzLVJvbWFuCj4+CmVuZG9iagoKNSAwIG9iago8PAogIC9MZW5ndGggNDQKPj4Kc3RyZWFtCkJUCjcwIDUwIFRECi9FMSAxMiBUZgooSGVsbG8gV29ybGQhKSBUagpFVAplbmRzdHJlYW0KZW5kb2JqCgp4cmVmCjAgNgowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTAgMDAwMDAgbiAKMDAwMDAwMDA2MCAwMDAwMCBuIAowMDAwMDAwMTU3IDAwMDAwIG4gCjAwMDAwMDAyNTUgMDAwMDAgbiAKMDAwMDAwMDM0NCAwMDAwMCBuIAp0cmFpbGVyCjw8CiAgL1NpemUgNgogIC9Sb290IDEgMCBSCj4+CnN0YXJ0eHJlZgo0MTMKJSVFT0YK";
 
-        console.log(`📧 Email changed. Sending new NDA to: ${email}`);
-        await sendNDA({
-          recipientEmail: email,
-          recipientName: name || currentEvaluator.name,
-          documentBase64: minimalPdfBase64,
-        });
-        console.log(`✅ NDA sent successfully to new email ${email}`);
-      } catch (error) {
-        console.error("❌ Failed to send NDA to new email:", error);
-      }
-    }
 
     // Send new credentials email if password was regenerated
     let emailSent = false;

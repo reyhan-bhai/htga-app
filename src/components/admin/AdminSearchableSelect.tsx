@@ -80,15 +80,34 @@ export default function AdminSearchableSelect({
     }
   };
 
+  const inputId = `field-${name}`;
+  const labelId = `${inputId}-label`;
+
   return (
     <div className="relative" ref={dropdownRef}>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <label
+        id={labelId}
+        htmlFor={inputId}
+        className="block text-sm font-medium text-gray-700 mb-1"
+      >
         {label}
+        {required && (
+          <>
+            <span className="ml-1 text-red-500" aria-hidden="true">
+              *
+            </span>
+            <span className="sr-only">required</span>
+          </>
+        )}
       </label>
 
       {/* Trigger Button */}
       <div
         onClick={() => !disabled && setIsOpen(!isOpen)}
+        role="button"
+        aria-labelledby={labelId}
+        aria-required={required}
+        aria-disabled={disabled}
         className={`w-full px-3 py-2 border rounded-md bg-white text-left flex items-center justify-between cursor-pointer ${
           disabled
             ? "bg-gray-100 text-gray-600 cursor-not-allowed"
@@ -103,10 +122,12 @@ export default function AdminSearchableSelect({
 
       {/* Hidden input for native form validation compatibility */}
       <input
+        id={inputId}
         type="hidden"
         name={name}
         value={value || ""}
         required={required}
+        aria-required={required}
       />
 
       {/* Dropdown */}

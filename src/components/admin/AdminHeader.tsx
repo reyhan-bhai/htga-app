@@ -3,8 +3,7 @@ import { useState } from "react";
 import { MdOpenInNew, MdSync } from "react-icons/md";
 import Swal from "sweetalert2";
 
-const SPREADSHEET_URL =
-  "https://docs.google.com/spreadsheets/d/1THH_mVOFUAorNjVtGm37KJyBpE-ttsN5Z2Xa75O5YD0/edit";
+const SPREADSHEET_URL = process.env.NEXT_PUBLIC_SPREADSHEET_URL;
 
 interface AdminHeaderProps {
   type: "assignment" | "evaluator" | "restaurant" | "budget";
@@ -27,6 +26,13 @@ export default function AdminHeader({
   userName = "Admin",
 }: AdminHeaderProps) {
   const [isSyncing, setIsSyncing] = useState(false);
+  const toast = Swal.mixin({
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    timer: 2500,
+    timerProgressBar: true,
+  });
 
   // If title is passed via props, use it. Otherwise, use defaults.
   // For 'assignment', default to greeting.
@@ -41,26 +47,24 @@ export default function AdminHeader({
           : "Budget Analytics";
 
   const handleSyncToSpreadsheet = async () => {
-    // Check which data is missing and provide informative error
+    // Check which payload fields are missing and provide informative error
     const missingData: string[] = [];
-    if (!evaluators || evaluators.length === 0) missingData.push("Evaluators");
-    if (!establishments || establishments.length === 0)
-      missingData.push("Establishments");
-    if (!assignments || assignments.length === 0)
-      missingData.push("Assignments");
+    if (!Array.isArray(evaluators)) missingData.push("Evaluators");
+    if (!Array.isArray(establishments)) missingData.push("Establishments");
+    if (!Array.isArray(assignments)) missingData.push("Assignments");
 
     if (missingData.length > 0) {
       await Swal.fire({
         icon: "warning",
-        title: "Data Not Available",
+        title: "Data not ready",
         html: `
           <div class="text-left">
-            <p class="mb-2">The following data is missing or empty:</p>
+            <p class="mb-2">Sync cannot run because the following data is not available:</p>
             <ul class="list-disc list-inside text-gray-600">
               ${missingData.map((item) => `<li>${item}</li>`).join("")}
             </ul>
             <p class="mt-3 text-sm text-gray-500">
-              Please ensure the data is loaded before syncing to the spreadsheet.
+              Please reload the data first.
             </p>
           </div>
         `,
@@ -81,43 +85,37 @@ export default function AdminHeader({
         }),
       });
 
-      const result = await response.json();
+      const contentType = response.headers.get("content-type") || "";
+      const result = contentType.includes("application/json")
+        ? await response.json()
+        : { error: await response.text() };
 
       if (response.ok) {
-        await Swal.fire({
+        const counts = result?.counts || {};
+        await toast.fire({
           icon: "success",
-          title: "Sync Successful!",
+          title: "Data synced to Spreadsheet.",
           html: `
-            <div class="text-left">
-              <p class="mb-2">Data has been synced to the spreadsheet:</p>
-              <ul class="list-disc list-inside text-gray-600">
-                <li><strong>${result.counts.evaluators}</strong> evaluators</li>
-                <li><strong>${result.counts.establishments}</strong> establishments</li>
-                <li><strong>${result.counts.budgetEntries}</strong> budget entries</li>
-              </ul>
+            <div class="text-sm text-left">
+              Evaluators: <strong>${counts.evaluators ?? 0}</strong>, Restaurants: <strong>${counts.establishments ?? 0}</strong>, Budget: <strong>${counts.budgetEntries ?? 0}</strong>
             </div>
           `,
-          confirmButtonColor: "#A67C37",
         });
       } else {
+        console.error("Sync server error:", result?.error || result);
         await Swal.fire({
           icon: "error",
-          title: "Sync Failed",
-          text: result.error || "An error occurred while syncing data.",
+          title: "Sync failed",
+          text: "There was an issue sending data to Spreadsheet. Please try again. If it still fails, contact the technical team.",
           confirmButtonColor: "#A67C37",
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Sync error:", error);
       await Swal.fire({
         icon: "error",
-        title: "Sync Failed",
-        html: `
-          <div class="text-left">
-            <p class="mb-2">An error occurred while syncing:</p>
-            <p class="text-red-600 text-sm">${error.message || "Unknown error"}</p>
-          </div>
-        `,
+        title: "Sync failed",
+        text: "There was an issue sending data to Spreadsheet. Please try again. If it still fails, contact the technical team.",
         confirmButtonColor: "#A67C37",
       });
     } finally {
@@ -126,7 +124,30 @@ export default function AdminHeader({
   };
 
   const openSpreadsheet = () => {
-    window.open(SPREADSHEET_URL, "_blank");
+    if (!SPREADSHEET_URL) {
+      Swal.fire({
+        icon: "error",
+        title: "Configuration incomplete",
+        text: "Spreadsheet link is not configured. Ask the technical team to set NEXT_PUBLIC_SPREADSHEET_URL.",
+        confirmButtonColor: "#A67C37",
+      });
+      return;
+    }
+
+    const popup = window.open(SPREADSHEET_URL, "_blank", "noopener,noreferrer");
+
+    if (!popup) {
+      Swal.fire({
+        icon: "info",
+        title: "Unable to open Spreadsheet",
+        text: "Your browser blocked a new tab. Please allow pop-ups for this site, then click Open Spreadsheet again.",
+        confirmButtonText: "Got it",
+        confirmButtonColor: "#A67C37",
+      });
+      return;
+    }
+
+    popup.opener = null;
   };
 
   const renderSyncButtons = () => (

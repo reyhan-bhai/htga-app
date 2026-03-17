@@ -1,4 +1,5 @@
 import { db } from "@/lib/firebase-admin";
+import { updateEvaluatorStats } from "@/lib/evaluatorStats";
 import crypto from "crypto";
 import { mkdir, writeFile } from "fs/promises";
 import { NextResponse } from "next/server";
@@ -45,6 +46,7 @@ const buildAssignmentUpdates = (
     updates.evaluator1AmountSpent = payload.amountSpent;
     updates.evaluator1Currency = payload.currency;
     updates.evaluator1Status = "completed";
+    updates.evaluator1SubmittedAt = new Date().toISOString();
   }
 
   if (assignment.evaluator2Id === payload.evaluatorId) {
@@ -52,6 +54,7 @@ const buildAssignmentUpdates = (
     updates.evaluator2AmountSpent = payload.amountSpent;
     updates.evaluator2Currency = payload.currency;
     updates.evaluator2Status = "completed";
+    updates.evaluator2SubmittedAt = new Date().toISOString();
   }
 
   const evaluators = assignment.evaluators || {};
@@ -64,6 +67,7 @@ const buildAssignmentUpdates = (
     updates["evaluators/JEVA_FIRST/currency"] = payload.currency;
     updates["evaluators/JEVA_FIRST/status"] = "completed";
     updates["evaluators/JEVA_FIRST/evaluatorStatus"] = "completed";
+    updates["evaluators/JEVA_FIRST/submittedAt"] = new Date().toISOString();
   }
 
   if (jevaSecond?.evaluatorId === payload.evaluatorId) {
@@ -72,6 +76,7 @@ const buildAssignmentUpdates = (
     updates["evaluators/JEVA_SECOND/currency"] = payload.currency;
     updates["evaluators/JEVA_SECOND/status"] = "completed";
     updates["evaluators/JEVA_SECOND/evaluatorStatus"] = "completed";
+    updates["evaluators/JEVA_SECOND/submittedAt"] = new Date().toISOString();
   }
 
   return updates;
@@ -152,6 +157,13 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     await assignmentRef.update(updates);
+
+    // Recompute and persist evaluatorStats for this evaluator
+    try {
+      await updateEvaluatorStats(evaluatorId);
+    } catch (statsError) {
+      console.error("[ClaimSubmission] Failed to update evaluatorStats:", statsError);
+    }
 
     return NextResponse.json({
       success: true,

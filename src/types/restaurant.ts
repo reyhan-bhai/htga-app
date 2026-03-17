@@ -9,6 +9,11 @@ export interface Evaluator {
   specialties: string[]; // ["Bakery", "FastFood", "Italy"]
   maxAssignments?: number; // Optional: limit jumlah assignment per evaluator
   password: string; // For login authentication
+  nda?: {
+    ndaSigned: boolean;
+    ndaSignedAt?: string;
+    ndaSignatureImage?: string;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -35,6 +40,7 @@ export interface Assignment {
   evaluator1Status: "pending" | "completed" | "reassigned" | "reported";
   evaluator1UniqueID?: string;
   evaluator1AssignedAt?: string;
+  evaluator1SubmittedAt?: string;
   evaluator1Receipt?: string; // URL to receipt image
   evaluator1AmountSpent?: number; // Amount spent in RM
   evaluator1Currency?: string;
@@ -42,6 +48,7 @@ export interface Assignment {
   evaluator2Status: "pending" | "completed" | "reassigned" | "reported";
   evaluator2UniqueID?: string;
   evaluator2AssignedAt?: string;
+  evaluator2SubmittedAt?: string;
   evaluator2Receipt?: string; // URL to receipt image
   evaluator2AmountSpent?: number; // Amount spent in RM
   evaluator2Currency?: string;
@@ -59,6 +66,19 @@ export interface AssignmentWithDetails extends Assignment {
 export interface AssignmentRequest {
   establishmentId: string;
   forceReassign?: boolean; // Optional: force reassign if already assigned
+}
+
+export interface EvaluatorStat {
+  name: string;
+  completedCount: number;
+  submittedCount: number;
+  totalAssigned: number;
+  lastUpdated: number;
+}
+
+export interface RankedEvaluatorStat extends EvaluatorStat {
+  evaluatorId: string;
+  rank: number;
 }
 
 export interface AssignmentResponse {

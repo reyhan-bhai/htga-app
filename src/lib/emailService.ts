@@ -17,7 +17,7 @@ const createTransporter = (): Transporter => {
     port: 587,
     secure: false, // true for 465, false for other ports
     auth: {
-      user: gmailFrom,
+      user: process.env.SMTP_USER,
       pass: gmailPassword,
     },
     // Force IPv4 to avoid ETIMEOUT on some networks
