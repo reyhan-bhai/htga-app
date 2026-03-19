@@ -4,6 +4,7 @@ import {
   createValidationError,
 } from "@/lib/api-error-handler";
 import { db } from "@/lib/firebase-admin";
+import { updateEvaluatorStats } from "@/lib/evaluatorStats";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
@@ -66,6 +67,13 @@ export async function POST(request: Request) {
 
     // 4. Update the assignment in Firebase
     await assignmentRef.update(updates);
+
+    // 5. Recompute and persist evaluatorStats for this evaluator
+    try {
+      await updateEvaluatorStats(evaluator_id);
+    } catch (statsError) {
+      console.error("[webhook-zoho] Failed to update evaluatorStats:", statsError);
+    }
 
     return NextResponse.json({
       message: "Assignment updated successfully",

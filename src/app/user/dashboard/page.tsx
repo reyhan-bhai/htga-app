@@ -14,6 +14,7 @@ import { MobileLayoutWrapper } from "../../layout-wrapper";
 import AssignmentList from "@/components/dashboard/AssignmentList";
 import ClaimModal from "@/components/dashboard/ClaimModal";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import LeaderboardPreview from "@/components/dashboard/LeaderboardPreview";
 import ProgressStats from "@/components/dashboard/ProgressStats";
 import RecommendationBanner from "@/components/dashboard/RecommendationBanner";
 import RequestRestaurantModal from "@/components/dashboard/RequestRestaurantModal";
@@ -35,6 +36,7 @@ export default function DashboardPage() {
   const { messaging, needsPWAInstall } = useContext(PushNotificationsContext);
 
   // If an admin/superadmin lands here (e.g., during role resolution), redirect immediately.
+  // If evaluator hasn't signed NDA, redirect to NDA page.
   useEffect(() => {
     if (authLoading) return;
     if (!user) return;
@@ -47,7 +49,11 @@ export default function DashboardPage() {
       router.replace("/admin");
       return;
     }
-  }, [authLoading, router, user]);
+    if (user.role === "evaluator" && !ndaSigned) {
+      router.replace("/user/nda");
+      return;
+    }
+  }, [authLoading, ndaSigned, router, user]);
 
   // --- State ---
   const [assignments, setAssignments] = useState<EvaluatorAssignment[]>([]);
@@ -377,6 +383,12 @@ export default function DashboardPage() {
             onReassign={handleReassign}
             onReport={handleReport}
           />
+
+          {user && (
+            <div className="mt-6">
+              <LeaderboardPreview currentUserId={user.id} />
+            </div>
+          )}
         </div>
 
         {/* Modals */}

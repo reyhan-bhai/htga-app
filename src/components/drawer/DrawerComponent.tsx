@@ -12,6 +12,7 @@ import {
   MdAccountBalanceWallet,
   MdAssignment,
   MdClose,
+  MdEmojiEvents,
   MdFeedback,
   MdLogout,
   MdMenuBook,
@@ -157,25 +158,33 @@ export default function DrawerComponent({
         className={`fixed md:static inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-[#FF6B00] to-[#FFA200] text-white flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
       >
         <div
-          className={`p-6 text-2xl ${poppins.className} font-bold flex items-center justify-between gap-2`}
+          className={`p-6 pb-8 ${poppins.className} font-bold flex flex-col items-center gap-4 relative`}
         >
-          <div className="flex items-center gap-2">
-            <Image
-              src="/home-2.png"
-              alt="HTGA Logo"
-              width={30}
-              height={30}
-              className="object-contain"
-            />
-            HTGA Admin
-          </div>
-
           <button
-            className="md:hidden text-white hover:bg-white/20 rounded p-1"
+            className="md:hidden text-white hover:bg-white/20 rounded p-1 absolute top-4 right-4"
             onClick={onClose}
           >
             <MdClose size={24} />
           </button>
+          <Image
+            src="/logo.svg"
+            alt="HTGA Logo"
+            width={72}
+            height={72}
+            className="object-contain drop-shadow-md"
+          />
+          <div className="flex items-center gap-2">
+            <Image
+              src="/home-2.png"
+              alt="Home Icon"
+              width={28}
+              height={28}
+              className="object-contain"
+            />
+            <span className="text-xl text-white leading-tight">
+              HTGA Admin
+            </span>
+          </div>
         </div>
 
         <nav className="flex-1 p-4">
@@ -244,6 +253,16 @@ export default function DrawerComponent({
               >
                 <MdMenuBook size={24} />
                 Evaluator Handbook
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/admin/leaderboard"
+                className={navItemClass("/admin/leaderboard")}
+                onClick={onClose}
+              >
+                <MdEmojiEvents size={24} />
+                Leaderboard
               </Link>
             </li>
           </ul>

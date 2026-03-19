@@ -19,6 +19,7 @@ const budgetColumns = [
   { name: "Company/Organization", uid: "company" },
   { name: "Restaurant Name", uid: "restaurantName" },
   { name: "Date Assigned", uid: "dateAssigned" },
+  { name: "Date Submitted", uid: "dateSubmitted" },
   { name: "Image Receipt", uid: "receipt" },
   { name: "Amount Spent", uid: "amountSpent" },
   { name: "Budget", uid: "budget" },
@@ -115,6 +116,10 @@ const getBudgetViewData = (
           restaurantName: establishment.name || "Unknown",
           dateAssigned:
             assignment.evaluator1AssignedAt || assignment.assignedAt || "-",
+          dateSubmitted:
+            assignment.evaluators?.JEVA_FIRST?.submittedAt ||
+            assignment.evaluator1SubmittedAt ||
+            null,
           receipt: claimInfo.receipt,
           amountSpent: amountSpent,
           claimCurrency: claimInfo.currency || "Not Set",
@@ -148,6 +153,10 @@ const getBudgetViewData = (
           restaurantName: establishment.name || "Unknown",
           dateAssigned:
             assignment.evaluator2AssignedAt || assignment.assignedAt || "-",
+          dateSubmitted:
+            assignment.evaluators?.JEVA_SECOND?.submittedAt ||
+            assignment.evaluator2SubmittedAt ||
+            null,
           receipt: claimInfo.receipt,
           amountSpent: amountSpent,
           claimCurrency: claimInfo.currency || "Not Set",
@@ -188,6 +197,12 @@ export default function BudgetPage() {
   const [receiptStatus, setReceiptStatus] = useState<
     "all" | "uploaded" | "missing"
   >("all");
+  const [jevaFilter, setJevaFilter] = useState<"all" | "jeva1" | "jeva2">("all");
+  const [jevaIdFilter, setJevaIdFilter] = useState("");
+  const [backendFilteredAssignments, setBackendFilteredAssignments] = useState<
+    any[] | null
+  >(null);
+  const [isBackendFiltering, setIsBackendFiltering] = useState(false);
   const [uploadingReceiptId, setUploadingReceiptId] = useState<string | null>(
     null,
   );
@@ -197,10 +212,49 @@ export default function BudgetPage() {
     null,
   );
 
+  // Backend filter by JEVA ID
+  useEffect(() => {
+    const trimmed = jevaIdFilter.trim();
+    if (!trimmed) {
+      setBackendFilteredAssignments(null);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const fetchFiltered = async () => {
+      setIsBackendFiltering(true);
+      try {
+        const res = await fetch(
+          `/api/admin/assignments?evaluatorId=${encodeURIComponent(trimmed)}`,
+          { signal: controller.signal },
+        );
+        if (!res.ok) throw new Error("Failed to fetch filtered assignments");
+        const data = await res.json();
+        setBackendFilteredAssignments(data.assignments || []);
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          console.error("[Budget] Backend JEVA ID filter error:", error);
+          setBackendFilteredAssignments([]);
+        }
+      } finally {
+        setIsBackendFiltering(false);
+      }
+    };
+
+    const timer = setTimeout(fetchFiltered, 400);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [jevaIdFilter]);
+
+  const activeAssignments = backendFilteredAssignments ?? assignments;
+
   // Get budget view data
   const budgetViewData = useMemo(() => {
-    return getBudgetViewData(assignments, evaluators, establishments);
-  }, [assignments, evaluators, establishments]);
+    return getBudgetViewData(activeAssignments, evaluators, establishments);
+  }, [activeAssignments, evaluators, establishments]);
 
   // Filter budget data
   const filteredBudgetData = useMemo(() => {
@@ -258,6 +312,11 @@ export default function BudgetPage() {
       });
     }
 
+    // Client-side filter by selected JEVA ID
+    if (jevaIdFilter.trim()) {
+      results = results.filter((item) => item.jevaId === jevaIdFilter.trim());
+    }
+
     results = results.filter((item) => {
       const amountSpent = item.amountSpent ?? null;
       const budgetValue = item.budget ?? null;
@@ -267,12 +326,17 @@ export default function BudgetPage() {
         receiptStatus === "all" ||
         (receiptStatus === "uploaded" && hasReceipt) ||
         (receiptStatus === "missing" && !hasReceipt);
+      const matchesJevaFilter =
+        jevaFilter === "all" ||
+        (jevaFilter === "jeva1" && item.evaluatorNumber === 1) ||
+        (jevaFilter === "jeva2" && item.evaluatorNumber === 2);
 
       return (
         isWithinRange(amountSpent, amountSpentRange) &&
         isWithinRange(budgetValue, budgetValueRange) &&
         isWithinRange(reimbursementValue, reimbursementRange) &&
-        matchesReceiptStatus
+        matchesReceiptStatus &&
+        matchesJevaFilter
       );
     });
 
@@ -284,6 +348,8 @@ export default function BudgetPage() {
     budgetValueRange,
     reimbursementRange,
     receiptStatus,
+    jevaFilter,
+    jevaIdFilter,
   ]);
 
   // Calculate pagination
@@ -302,6 +368,7 @@ export default function BudgetPage() {
     budgetValueRange,
     reimbursementRange,
     receiptStatus,
+    jevaFilter,
   ]);
 
   // Reset page when rows per page changes
@@ -315,6 +382,8 @@ export default function BudgetPage() {
     setBudgetValueRange({ min: "", max: "" });
     setReimbursementRange({ min: "", max: "" });
     setReceiptStatus("all");
+    setJevaFilter("all");
+    setJevaIdFilter("");
   };
 
   const handleReceiptUpload = async (
@@ -396,7 +465,9 @@ export default function BudgetPage() {
       (range) => range.min.trim() || range.max.trim(),
     ).length || 0);
   const receiptFilterCount = receiptStatus === "all" ? 0 : 1;
-  const totalActiveFilters = activeFiltersCount + receiptFilterCount;
+  const jevaFilterCount = jevaFilter === "all" ? 0 : 1;
+  const jevaIdFilterCount = jevaIdFilter.trim().length > 0 ? 1 : 0;
+  const totalActiveFilters = activeFiltersCount + receiptFilterCount + jevaFilterCount + jevaIdFilterCount;
 
   return (
     <div className="text-black flex flex-col gap-4 lg:gap-6 p-4 sm:p-6">
@@ -422,6 +493,11 @@ export default function BudgetPage() {
         setReimbursementRange={setReimbursementRange}
         receiptStatus={receiptStatus}
         setReceiptStatus={setReceiptStatus}
+        jevaFilter={jevaFilter}
+        setJevaFilter={setJevaFilter}
+        jevaIdFilter={jevaIdFilter}
+        setJevaIdFilter={setJevaIdFilter}
+        jevaEvaluators={evaluators.map((ev: any) => ({ id: ev.id, name: ev.name || ev.id, email: ev.email }))}
         activeFiltersCount={totalActiveFilters}
         clearFilters={handleClearFilters}
         rowsPerPage={rowsPerPage}
@@ -431,7 +507,7 @@ export default function BudgetPage() {
       {/* Table Section */}
       <AdminTable
         type="budget"
-        isLoading={isLoading}
+        isLoading={isLoading || isBackendFiltering}
         data={paginatedData}
         columns={budgetColumns}
         renderCell={(item: any, columnKey: React.Key) => {
@@ -460,6 +536,14 @@ export default function BudgetPage() {
               if (!cellValue || cellValue === "-") {
                 return (
                   <span className="text-gray-400 italic">Not assigned</span>
+                );
+              }
+              return new Date(cellValue).toLocaleDateString();
+
+            case "dateSubmitted":
+              if (!cellValue) {
+                return (
+                  <span className="text-gray-400 italic">Not submitted</span>
                 );
               }
               return new Date(cellValue).toLocaleDateString();

@@ -20,6 +20,7 @@ import {
   orderByChild,
   query,
   ref,
+  update,
 } from "firebase/database";
 import {
   createContext,
@@ -39,7 +40,7 @@ interface AuthContextType {
   ) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   ndaSigned: boolean;
-  signNDA: () => void;
+  signNDA: () => Promise<void>;
   loading: boolean;
 }
 
@@ -135,12 +136,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setMounted(true);
 
-    if (typeof window !== "undefined") {
-      const storedNDA = localStorage.getItem("htga_nda");
-      if (storedNDA === "true") {
-        setNdaSigned(true);
-      }
-    }
+    // NOTE: We intentionally do NOT read ndaSigned from localStorage here.
+    // localStorage is only a cache for UI purposes (set after DB confirms).
+    // Reading it at mount causes a race condition: if stale "true" is in
+    // localStorage, the redirect guard may fire before onValue corrects it.
+    // onValue is the single source of truth for ndaSigned.
 
     // Listen to Firebase auth state changes
     let dataUnsubscribe: (() => void) | null = null;
@@ -185,6 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   email: firebaseUser.email || "",
                   role,
                 });
+                setNdaSigned(false);
                 setLoading(false);
                 return;
               }
@@ -212,6 +213,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
                 const isSigned =
                   data?.nda?.status === "signed" ||
+                  data?.nda?.ndaSigned === true ||
                   data?.ndaSigned === true ||
                   data?.ndaSigned === "true";
 
@@ -268,13 +270,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await signInWithEmailAndPassword(auth, email, password);
 
       // Note: we rely on onAuthStateChanged + RTDB listeners to populate user/role.
+      // Do NOT call setLoading(false) here — keep loading=true until onValue resolves
+      // so the redirect logic has the correct ndaSigned value from DB.
 
       if (typeof window !== "undefined") {
         localStorage.setItem("htga_isLogged", "true");
         localStorage.setItem("htga_rememberMe", rememberMe.toString());
       }
 
-      setLoading(false);
       return { success: true };
     } catch (error: unknown) {
       setLoading(false);
@@ -308,7 +311,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signNDA = () => {
+  const signNDA = async () => {
+    if (!user?.id) return;
+    try {
+      await update(ref(db, `evaluators/${user.id}/nda`), {
+        ndaSigned: true,
+        ndaSignedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("signNDA DB write error:", error);
+    }
     setNdaSigned(true);
     if (typeof window !== "undefined") {
       localStorage.setItem("htga_nda", "true");

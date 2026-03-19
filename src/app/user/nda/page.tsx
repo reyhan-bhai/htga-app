@@ -8,6 +8,8 @@ import {
   saveFCMTokenToServer,
   storeFCMToken,
 } from "@/lib/fcmTokenHelper";
+import { auth } from "@/lib/firebase";
+import { getIdToken } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useContext, useEffect, useRef, useState } from "react";
 import Swal from "sweetalert2";
@@ -56,6 +58,7 @@ export default function NDAPage() {
     };
   }, []);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [isSigning, setIsSigning] = useState(false);
   const [notificationRequested, setNotificationRequested] = useState(false);
   const router = useRouter();
   const { user, signNDA } = useAuth();
@@ -227,13 +230,14 @@ export default function NDAPage() {
     }
   }, [user, messaging, notificationRequested, needsPWAInstall]);
 
-  const handleSignatureNow = () => {
+  const handleSignatureNow = async () => {
     if (!agreed) {
       alert("Please agree to terms & condition first");
       return;
     }
 
     const canvas = canvasRef.current;
+    let signatureImage = "";
     if (canvas) {
       const ctx = canvas.getContext("2d");
       if (ctx) {
@@ -245,10 +249,47 @@ export default function NDAPage() {
           return;
         }
       }
+      signatureImage = canvas.toDataURL("image/png");
     }
 
-    signNDA();
-    router.push("/user/dashboard");
+    setIsSigning(true);
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) throw new Error("Not authenticated");
+
+      const idToken = await getIdToken(currentUser);
+      const agreedAt = new Date().toISOString();
+
+      const response = await fetch("/api/user/nda-sign", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ signatureImage, agreedAt }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err?.error || "Failed to save signature");
+      }
+
+      await signNDA();
+      router.push("/user/dashboard");
+    } catch (error) {
+      console.error("NDA sign error:", error);
+      await Swal.fire({
+        title: "Error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Failed to save signature. Please try again.",
+        icon: "error",
+        confirmButtonColor: "#A67C37",
+      });
+    } finally {
+      setIsSigning(false);
+    }
   };
 
   const startDrawing = (
@@ -448,14 +489,14 @@ export default function NDAPage() {
           {/* Signature Button */}
           <button
             onClick={handleSignatureNow}
-            disabled={!agreed}
+            disabled={!agreed || isSigning}
             className={`w-full py-4 rounded-full text-white font-semibold htga-button ${
-              agreed
+              agreed && !isSigning
                 ? "bg-[#FFA200] hover:bg-[#FF9500]"
                 : "bg-gray-400 cursor-not-allowed"
             }`}
           >
-            SIGNATURE NOW
+            {isSigning ? "Signing..." : "SIGNATURE NOW"}
           </button>
         </div>
 

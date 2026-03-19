@@ -11,14 +11,15 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
-  const { login, isAuthenticated, loading, user } = useAuth();
+  const { login, isAuthenticated, loading, user, ndaSigned } = useAuth();
 
   const getRedirectPath = useCallback((): string => {
     const role = user?.role;
     if (role === "superadmin") return "/superadmin";
     if (role === "admin") return "/admin";
+    if (role === "evaluator" && !ndaSigned) return "/user/nda";
     return "/user/dashboard";
-  }, [user?.role]);
+  }, [user?.role, ndaSigned]);
 
   useEffect(() => {
     if (!loading && isAuthenticated && user?.role) {

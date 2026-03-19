@@ -1,7 +1,5 @@
-import { NDA_DOCUMENTS } from "@/constants/ndaDocs";
 import { sendEvaluatorCredentials } from "@/lib/emailService";
 import admin, { db } from "@/lib/firebase-admin";
-import { sendNDA } from "@/lib/nda-service";
 import type { Evaluator } from "@/types/restaurant";
 import bcrypt from "bcrypt";
 import { NextResponse } from "next/server";
@@ -174,7 +172,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       displayName: name,
     });
 
-    const evaluatorPayload: EvaluatorRecord = {
+    const evaluatorPayload = {
       name,
       email,
       phone,
@@ -184,6 +182,9 @@ export async function POST(request: Request): Promise<NextResponse> {
       specialties: normalizeSpecialties(specialties),
       firebaseUid: firebaseUser.uid,
       password: hashedPassword,
+      nda: {
+        ndaSigned: false,
+      },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -192,27 +193,10 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const emailResult = await sendEvaluatorCredentials(email, email, password);
 
-    let ndaSent = false;
+    const ndaSent = false;
     let warning: string | undefined;
-    if (emailResult.success) {
-      // const documentBase64 = process.env.DOCUSIGN_BASE64_DOCUMENT;
-      const documentBase64 = NDA_DOCUMENTS;
-      if (!documentBase64) {
-        warning =
-          "DOCUSIGN_BASE64_DOCUMENT is not configured; NDA could not be sent.";
-      } else {
-        try {
-          await sendNDA({
-            recipientEmail: email,
-            recipientName: name,
-            documentBase64,
-          });
-          ndaSent = true;
-        } catch (error) {
-          console.error("❌ Failed to send NDA:", error);
-          warning = "Registration completed but NDA could not be sent.";
-        }
-      }
+    if (!emailResult.success) {
+      warning = "Registration completed but credentials email could not be sent";
     }
 
     const responseBody: RegisterResponse = {
@@ -226,15 +210,12 @@ export async function POST(request: Request): Promise<NextResponse> {
         position: evaluatorPayload.position,
         company: evaluatorPayload.company,
         specialties: evaluatorPayload.specialties,
-        maxAssignments: evaluatorPayload.maxAssignments,
         createdAt: evaluatorPayload.createdAt,
         updatedAt: evaluatorPayload.updatedAt,
       },
       emailSent: emailResult.success,
       ndaSent,
-      warning: emailResult.success
-        ? warning
-        : "Registration completed but credentials email could not be sent",
+      warning,
     };
 
     return NextResponse.json(responseBody, { status: 201 });

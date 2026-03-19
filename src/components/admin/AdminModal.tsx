@@ -161,16 +161,39 @@ function EntityModal<T extends Record<string, any>>({
     return rows;
   }, [fields]);
 
+  const renderFieldLabel = (label: string, required?: boolean) => {
+    const isRequiredField = Boolean(!isViewMode && required);
+
+    return (
+      <>
+        {label}
+        {isRequiredField && (
+          <>
+            <span className="ml-1 text-red-500" aria-hidden="true">
+              *
+            </span>
+            <span className="sr-only">required</span>
+          </>
+        )}
+      </>
+    );
+  };
+
   const renderField = (field: FieldConfig) => {
     const widthClass = field.className || "w-full";
+    const inputId = `field-${field.name}`;
 
     if (field.type === "textarea") {
       return (
         <div key={field.name} className={widthClass}>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            {field.label}
+          <label
+            htmlFor={inputId}
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            {renderFieldLabel(field.label, field.required)}
           </label>
           <textarea
+            id={inputId}
             name={field.name}
             value={formData[field.name] || ""}
             onChange={handleChange}
@@ -178,6 +201,7 @@ function EntityModal<T extends Record<string, any>>({
             placeholder={field.placeholder}
             rows={field.rows || 3}
             required={!isViewMode && field.required}
+            aria-required={!isViewMode && field.required}
             className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 outline-none disabled:bg-gray-100 disabled:text-gray-600"
           />
         </div>
@@ -211,7 +235,7 @@ function EntityModal<T extends Record<string, any>>({
       return (
         <div key={field.name} className={widthClass}>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            {field.label}
+            {renderFieldLabel(field.label, field.required)}
           </label>
           <div className="flex gap-2 flex-wrap">
             {field.options?.map((option) => (
@@ -255,10 +279,14 @@ function EntityModal<T extends Record<string, any>>({
     // Default: text, email, tel
     return (
       <div key={field.name} className={widthClass}>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          {field.label}
+        <label
+          htmlFor={inputId}
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
+          {renderFieldLabel(field.label, field.required)}
         </label>
         <input
+          id={inputId}
           type={field.type}
           name={field.name}
           value={formData[field.name] || ""}
@@ -266,6 +294,7 @@ function EntityModal<T extends Record<string, any>>({
           disabled={isViewMode}
           placeholder={field.placeholder}
           required={!isViewMode && field.required}
+          aria-required={!isViewMode && field.required}
           className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 outline-none disabled:bg-gray-100 disabled:text-gray-600"
         />
       </div>
@@ -495,6 +524,10 @@ function ManualMatchModal({
           <div className="flex flex-col gap-2">
             <label className="font-semibold text-sm text-gray-700">
               Select Evaluator
+              <span className="ml-1 text-red-500" aria-hidden="true">
+                *
+              </span>
+              <span className="sr-only">required</span>
             </label>
             <Select
               placeholder="Choose an evaluator..."
@@ -528,6 +561,10 @@ function ManualMatchModal({
           <div className="flex flex-col gap-2">
             <label className="font-semibold text-sm text-gray-700">
               Select Restaurant
+              <span className="ml-1 text-red-500" aria-hidden="true">
+                *
+              </span>
+              <span className="sr-only">required</span>
             </label>
             <Select
               placeholder="Choose a restaurant..."
@@ -802,6 +839,10 @@ function EditAssignmentModal({
             <div className="flex flex-col gap-2">
               <label className="font-semibold text-sm text-gray-700">
                 Restaurant
+                <span className="ml-1 text-red-500" aria-hidden="true">
+                  *
+                </span>
+                <span className="sr-only">required</span>
               </label>
               <Select
                 placeholder="Select restaurant"
@@ -984,8 +1025,29 @@ const baseEvaluatorFields: FieldConfig[] = [
   {
     name: "city",
     label: "City",
-    type: "text",
-    placeholder: "e.g. Kuala Lumpur, Jakarta",
+    type: "select",
+    placeholder: "Select city...",
+    allowAdd: false,
+    options: [
+      "Kuala Lumpur",
+      "Selangor",
+      "Johor Bahru",
+      "Penang",
+      "Kota Kinabalu",
+      "Kuching",
+      "Ipoh",
+      "Malacca",
+      "Putrajaya",
+      "Petaling Jaya",
+      "Jakarta",
+      "Surabaya",
+      "Bandung",
+      "Medan",
+      "Bali",
+      "Yogyakarta",
+      "Semarang",
+      "Makassar",
+    ],
   },
   {
     name: "position",

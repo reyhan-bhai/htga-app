@@ -1,4 +1,5 @@
 import admin, { db } from "@/lib/firebase-admin";
+import bcrypt from "bcrypt";
 import { NextResponse } from "next/server";
 
 interface AdminRecord {
@@ -93,10 +94,11 @@ export async function PUT(request: Request): Promise<NextResponse> {
     }
 
     const body = (await request.json()) as Partial<
-      Pick<AdminRecord, "name" | "role">
+      Pick<AdminRecord, "name" | "role"> & { password?: string }
     >;
     const name = body.name?.trim();
     const role = body.role;
+    const password = body.password?.trim();
 
     if (!name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -136,9 +138,23 @@ export async function PUT(request: Request): Promise<NextResponse> {
       await db.ref(`${collection}/${id}`).update(updates);
     }
 
-    await admin.auth().updateUser(id, { displayName: name });
+    // Update Firebase Auth
+    const authUpdate: { displayName: string; password?: string } = {
+      displayName: name,
+    };
+    if (password) authUpdate.password = password;
+    await admin.auth().updateUser(id, authUpdate);
+
     if (role) {
       await admin.auth().setCustomUserClaims(id, { role });
+    }
+
+    // If password changed, also update the hashed password in Realtime Database
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      await db
+        .ref(`${collection}/${id}`)
+        .update({ password: hashedPassword });
     }
 
     return NextResponse.json({ ok: true });
